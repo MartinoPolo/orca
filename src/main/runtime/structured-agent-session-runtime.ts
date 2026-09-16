@@ -39,6 +39,10 @@ import { resolveLoginShellEnvironment } from '../startup/login-shell-environment
 import { recordAgentSessionProviderHandle } from './agent-session-provider-handle-transition'
 import type { ClaudeStructuredAuthPolicy } from '../claude-accounts/claude-structured-auth-policy'
 import { createStructuredClaudeRuntimeAdapter } from './structured-claude-runtime-adapter'
+import {
+  reportStructuredAgentSessionTaskStall,
+  type StructuredAgentSessionErrorReporter
+} from './structured-agent-session-stall-reporter'
 
 /** Sibling of the journal tree rather than inside it: one file adjudicates every
  *  session's lease, while a journal is per session. */
@@ -78,7 +82,7 @@ export type StructuredAgentSessionRuntimeDeps = {
   getClaudeManagedAccountGateSettings?: () => ClaudeManagedAccountGateSettings
   resolveEnvironment?: () => Promise<NodeJS.ProcessEnv>
   resolveCodexOverrides?: () => NodeJS.ProcessEnv
-  onError?: (input: { scope: string; error: unknown }) => void
+  onError?: StructuredAgentSessionErrorReporter
   /** Every structured-session status projection, for host-side reactions such as the first-work
    *  workspace rename that CLI agents get from their hooks. */
   onSessionStatusChanged?: StructuredAgentSessionHostDeps['onSessionStatusChanged']
@@ -327,17 +331,7 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
         : {}),
       onEventSinkError: ({ sessionId, error }) =>
         deps.onError?.({ scope: `structured-agent-session-journal:${sessionId}`, error }),
-      onSessionTaskStalled: ({ sessionId, ageMs }) => {
-        const scope = `structured-agent-session-queue:${sessionId}`
-        const error = new Error(
-          `agent session task has not settled after ${ageMs}ms; later mutations for this session are queued behind it`
-        )
-        if (deps.onError) {
-          deps.onError({ scope, error })
-        } else {
-          console.error(`[${scope}]`, error)
-        }
-      },
+      onSessionTaskStalled: (stall) => reportStructuredAgentSessionTaskStall(stall, deps.onError),
       ...(deps.onSessionStatusChanged
         ? { onSessionStatusChanged: deps.onSessionStatusChanged }
         : {}),
