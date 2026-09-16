@@ -273,6 +273,30 @@ describe('structured agent-session runtime install', () => {
     )
   })
 
+  it('logs a stalled session task when no reporter is configured', async () => {
+    stateDirectory = await mkdtemp(join(tmpdir(), 'orca-structured-runtime-'))
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const host = await ensureStructuredAgentSessionHost({
+      stateDirectory,
+      hostId: HOST_ID,
+      claimKeyId: 'key-1',
+      resolveWorkspacePath: async () => stateDirectory!,
+      resolveClaudeAuthPolicy: () => ({ stripAuthEnv: true }),
+      resolveEnvironment: async () => ({}),
+      reapOrphanChildren: async () => []
+    })
+
+    host.deps.onSessionTaskStalled?.({ sessionId: 'session-stalled', ageMs: 240_000 })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '[structured-agent-session-queue:session-stalled]',
+      expect.objectContaining({
+        message:
+          'agent session task has not settled after 240000ms; later mutations for this session are queued behind it'
+      })
+    )
+  })
+
   it('does not infer Windows process identity support from an injected reader', async () => {
     stateDirectory = await mkdtemp(join(tmpdir(), 'orca-structured-runtime-'))
     const originalPlatform = process.platform

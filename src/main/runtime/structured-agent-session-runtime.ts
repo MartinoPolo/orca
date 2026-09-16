@@ -327,13 +327,17 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
         : {}),
       onEventSinkError: ({ sessionId, error }) =>
         deps.onError?.({ scope: `structured-agent-session-journal:${sessionId}`, error }),
-      onSessionTaskStalled: ({ sessionId, ageMs }) =>
-        deps.onError?.({
-          scope: `structured-agent-session-queue:${sessionId}`,
-          error: new Error(
-            `agent session task has not settled after ${ageMs}ms; later mutations for this session are queued behind it`
-          )
-        }),
+      onSessionTaskStalled: ({ sessionId, ageMs }) => {
+        const scope = `structured-agent-session-queue:${sessionId}`
+        const error = new Error(
+          `agent session task has not settled after ${ageMs}ms; later mutations for this session are queued behind it`
+        )
+        if (deps.onError) {
+          deps.onError({ scope, error })
+        } else {
+          console.error(`[${scope}]`, error)
+        }
+      },
       ...(deps.onSessionStatusChanged
         ? { onSessionStatusChanged: deps.onSessionStatusChanged }
         : {}),

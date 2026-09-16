@@ -84,7 +84,11 @@ export class StructuredAgentSessionTaskQueue {
       return
     }
     running.stalled = true
-    this.options.onStalled?.({ sessionId, ageMs: this.now() - running.startedAt })
+    try {
+      this.options.onStalled?.({ sessionId, ageMs: this.now() - running.startedAt })
+    } catch (error) {
+      console.error('[structured-agent-session] stalled task reporter failed', error)
+    }
   }
 
   private now(): number {

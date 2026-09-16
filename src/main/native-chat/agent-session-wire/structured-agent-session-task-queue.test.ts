@@ -65,6 +65,7 @@ describe('StructuredAgentSessionTaskQueue', () => {
 describe('StructuredAgentSessionTaskQueue stall reporting', () => {
   afterEach(() => {
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('reports a task that has not settled past the stall threshold', async () => {
@@ -124,6 +125,39 @@ describe('StructuredAgentSessionTaskQueue stall reporting', () => {
     await expect(Promise.all(followers)).resolves.toEqual(['second', 'third'])
     expect(order).toEqual(['first', 'second', 'third'])
     expect(onStalled).toHaveBeenCalledTimes(1)
+  })
+
+  it('contains a throwing stall reporter without releasing the parked chain', async () => {
+    vi.useFakeTimers()
+    const reportingFailure = new Error('reporter failed')
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const queue = new StructuredAgentSessionTaskQueue({
+      stallMs: 1_000,
+      onStalled: () => {
+        throw reportingFailure
+      }
+    })
+    const parked = Promise.withResolvers<void>()
+    const order: string[] = []
+    const first = queue.serialize('session-1', async () => {
+      order.push('first')
+      await parked.promise
+    })
+    const second = queue.serialize('session-1', async () => {
+      order.push('second')
+    })
+
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(consoleError).toHaveBeenCalledWith(
+      '[structured-agent-session] stalled task reporter failed',
+      reportingFailure
+    )
+    expect(order).toEqual(['first'])
+
+    parked.resolve()
+    await first
+    await second
+    expect(order).toEqual(['first', 'second'])
   })
 
   it('clears the stalled snapshot once the reported task settles', async () => {
