@@ -1,6 +1,6 @@
 # Fork
 
-`MartinoPolo/orca` is our maintained fork of [`stablyai/orca`](https://github.com/stablyai/orca), created to fix reliability gaps; preserve these patches when syncing upstream.
+`main` is the maintained `MartinoPolo/orca` fork branch: it carries local reliability patches on top of [`stablyai/orca`](https://github.com/stablyai/orca) and is the source for the installed Orca app. Preserve these patches when syncing upstream.
 
 ## Fork Patches
 
