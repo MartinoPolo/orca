@@ -94,6 +94,12 @@ const devChannelBuildVersion = isHourlyChannel
     : isAdhocChannel
       ? process.env.ORCA_ADHOC_BUILD_VERSION
       : undefined
+const packagedVersion = devChannelBuildVersion ?? localBuildVersion
+const isManualUpdateBuild = process.env.ORCA_MANUAL_UPDATES_ONLY === '1'
+const extraMetadata = {
+  ...(packagedVersion ? { version: packagedVersion } : {}),
+  ...(isManualUpdateBuild ? { orcaManualUpdatesOnly: true } : {})
+}
 // Separate dev-channel repos: 24 hourly tags/day would evict stable/RC from the ten-entry release feed; isolate adhoc/daily from hourly subscribers too.
 const devChannelRepo = isHourlyChannel
   ? 'orca-hourly'
@@ -239,11 +245,7 @@ module.exports = {
   productName: 'Orca',
   protocols: [{ name: 'Orca', schemes: ['orca'] }],
   toolsets: { appimage: '1.0.3' },
-  ...(devChannelBuildVersion
-    ? { extraMetadata: { version: devChannelBuildVersion } }
-    : localBuildVersion
-      ? { extraMetadata: { version: localBuildVersion } }
-      : {}),
+  ...(packagedVersion || isManualUpdateBuild ? { extraMetadata } : {}),
   directories: {
     buildResources: 'resources/build'
   },
@@ -732,13 +734,15 @@ module.exports = {
   // Dual-arch builds need target node-pty rebuilds or Intel Macs get arm64 binaries and posix_spawnp failure.
   // beforeBuild performs targeted rebuild then returns false to skip optional cpu-features.
   npmRebuild: true,
-  publish: {
-    provider: 'github',
-    owner: 'stablyai',
-    repo: devChannelRepo ?? 'orca',
-    // Keep main-repo releases draft until release-cut verifies all assets; early --publish always would expose missing Windows installers.
-    releaseType: devChannelRepo ? 'prerelease' : 'draft'
-  }
+  publish: isManualUpdateBuild
+    ? null
+    : {
+        provider: 'github',
+        owner: 'stablyai',
+        repo: devChannelRepo ?? 'orca',
+        // Keep main-repo releases draft until release-cut verifies all assets; early --publish always would expose missing Windows installers.
+        releaseType: devChannelRepo ? 'prerelease' : 'draft'
+      }
 }
 
 // Stamp the effective channel version where node-mode CLI code can read it.

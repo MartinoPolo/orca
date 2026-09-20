@@ -129,6 +129,12 @@ describe('Electron Vite output contract', () => {
     }
   })
 
+  it('defines the manual-update gate as a main-process boolean literal', () => {
+    expect(electronViteConfig.main?.define?.ORCA_MANUAL_UPDATES_ONLY).toBe(
+      process.env.ORCA_MANUAL_UPDATES_ONLY === '1'
+    )
+  })
+
   it('emits hidden main source maps that packaging strips from app.asar', () => {
     // Hidden maps decode minified crashes without referencing maps omitted from the package.
     expect(electronViteConfig.main?.build?.sourcemap).toBe('hidden')
