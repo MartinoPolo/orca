@@ -5,7 +5,7 @@ import {
   resolveTerminalKittyPrimaryCodePoint
 } from './terminal-kitty-csi-u-encoding'
 
-export type TerminalOptionKittyRelease = { flags: number }
+export type TerminalOptionKittyRelease = { flags: number; primaryCodePoint?: number }
 
 type OptionKeyboardEvent = {
   key: string
@@ -56,10 +56,12 @@ export function createTerminalOptionKittyReleaseTracker(): {
       if ((release.flags & KITTY_REPORT_EVENT_TYPES) === 0) {
         return
       }
-      const primaryCodePoint = resolveTerminalKittyPrimaryCodePoint(event, {
-        layoutCharacterForCode,
-        primaryCharacterFallback: optionKittyPrimaryCharacterFallback(event)
-      })
+      const primaryCodePoint =
+        release.primaryCodePoint ??
+        resolveTerminalKittyPrimaryCodePoint(event, {
+          layoutCharacterForCode,
+          primaryCharacterFallback: optionKittyPrimaryCharacterFallback(event)
+        })
       if (primaryCodePoint === undefined) {
         return
       }

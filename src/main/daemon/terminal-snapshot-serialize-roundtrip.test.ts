@@ -209,8 +209,9 @@ describe('cursor restore after wrap-pending replay (BUG C, absolute-cursor harde
     // cursorX == cols marks pending wrap; a CUP would clamp and clear it.
     expect(terminal.buffer.active.cursorX).toBe(10)
     const plain = addon.serialize()
-    expect(serializeWithAbsoluteCursor(addon, terminal)).toBe(plain)
-    const restored = await replay(plain)
+    const hardened = serializeWithAbsoluteCursor(addon, terminal)
+    expect(hardened).toBe(`${plain}\x1b[?9l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1016l`)
+    const restored = await replay(hardened)
     await write(restored, 'Z')
     expect(visibleText(restored)[1]).toBe('Z')
   })
