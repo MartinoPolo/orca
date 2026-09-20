@@ -9,6 +9,7 @@ Found a security vulnerability? Do not open a public issue or PR; report it priv
 Install Node 24, the pnpm version in `packageManager` in [`package.json`](../package.json), and the Bun version in [`config/.bun-version`](../config/.bun-version). `pnpm install` compiles native modules, so you also need a C++ toolchain and Python 3 (Xcode Command Line Tools on macOS, Visual Studio Build Tools on Windows, `build-essential` and Electron's libraries on Linux).
 
 ```bash
+corepack enable pnpm
 pnpm install
 pnpm -C mobile install --frozen-lockfile   # mobile/ has its own lockfile; build and lint need it
 pnpm dev
