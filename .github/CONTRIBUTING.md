@@ -17,6 +17,7 @@ Thanks for contributing to Orca.
 ## Local Setup
 
 ```bash
+corepack enable pnpm
 pnpm install
 pnpm dev
 ```
