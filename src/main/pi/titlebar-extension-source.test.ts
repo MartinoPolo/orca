@@ -12,6 +12,8 @@ const BRAILLE_RE = /[⠀-⣿]/
 type TitlebarContext = {
   ui: { setTitle: (title: string) => void }
   isIdle?: () => boolean
+  mode?: string
+  hasUI?: boolean
 }
 type HookHandler = (event?: unknown, context?: TitlebarContext) => Promise<void> | void
 
@@ -38,6 +40,9 @@ function createHarness(
     setTitle?: (title: string) => void
     globals?: Record<string | symbol, unknown>
     env?: Record<string, string>
+    mode?: string
+    hasUI?: boolean
+    pid?: number
   } = {}
 ): Harness {
   const titles: string[] = []
@@ -48,7 +53,9 @@ function createHarness(
         titles.push(title)
       }
     },
-    isIdle: options.isIdle
+    isIdle: options.isIdle,
+    mode: options.mode,
+    hasUI: options.hasUI
   }
 
   const module = {
@@ -60,12 +67,14 @@ function createHarness(
     }
   }
 
-  const context = {
+  const env = options.env ?? {}
+  env.ORCA_PANE_KEY = options.paneKey ?? env.ORCA_PANE_KEY ?? 'pane-1'
+  const context: Record<string, unknown> = {
     module,
     exports: module.exports,
     process: {
-      env: { ORCA_PANE_KEY: options.paneKey ?? 'pane-1', ...options.env },
-      pid: options.env?.ORCA_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222,
+      env,
+      pid: options.pid ?? (options.env?.ORCA_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222),
       title: options.processTitle ?? 'pi',
       argv: ['node', 'pi'],
       cwd: options.cwdImpl ?? (() => CWD)
@@ -77,7 +86,7 @@ function createHarness(
     clearInterval: (timer: ReturnType<typeof setInterval>) => clearInterval(timer),
     setTimeout: (...args: Parameters<typeof setTimeout>) => setTimeout(...args),
     clearTimeout: (timer: ReturnType<typeof setTimeout>) => clearTimeout(timer)
-  } as Record<string, unknown>
+  }
   context.globalThis = options.globals ?? context
 
   const output = ts.transpileModule(getPiTitlebarExtensionSource(options.kind ?? 'pi'), {
@@ -123,6 +132,25 @@ describe('getPiTitlebarExtensionSource', () => {
 
   it('registers nothing outside an Orca pane', () => {
     expect(createHarness({ paneKey: '' }).handlers).toEqual({})
+  })
+
+  it('rejects nonterminal events even after the activation owns the titlebar', async () => {
+    const harness = createHarness({ mode: 'tui', hasUI: true })
+    await harness.callHook('agent_start')
+    await harness.callHook('ui_prompt_start')
+    const titleCount = harness.titles.length
+    await harness.handlers.session_shutdown(
+      {},
+      {
+        mode: 'print',
+        hasUI: false,
+        ui: { setTitle: vi.fn() }
+      }
+    )
+    expect(harness.titles).toHaveLength(titleCount)
+    expect(vi.getTimerCount()).toBe(2)
+    await harness.callHook('ui_prompt_end')
+    expect(harness.lastTitle()).toMatch(BRAILLE_RE)
   })
 
   it('stops the spinner when the agent settles', async () => {
@@ -701,7 +729,7 @@ describe('getPiTitlebarExtensionSource', () => {
     await old.callHook('agent_end')
     await other.callHook('agent_start')
     const replacement = createHarness({ globals })
-    expect(vi.getTimerCount()).toBe(1)
+    expect(vi.getTimerCount()).toBe(4)
     await replacement.callHook('agent_start')
     const oldCount = old.titles.length
     await old.callHook('session_shutdown')
@@ -712,10 +740,57 @@ describe('getPiTitlebarExtensionSource', () => {
     expect(replacement.lastTitle()).toMatch(BRAILLE_RE)
     expect(other.lastTitle()).toMatch(BRAILLE_RE)
     const third = createHarness({ globals })
-    expect(vi.getTimerCount()).toBe(1)
+    expect(vi.getTimerCount()).toBe(2)
     await third.callHook('agent_start')
     await replacement.callHook('session_shutdown')
     expect(vi.getTimerCount()).toBe(2)
+  })
+
+  it('ignores same-process RPC child events without retiring the terminal owner', async () => {
+    const globals = {}
+    const env: Record<string, string> = {}
+    const parent = createHarness({ globals, env, mode: 'tui', hasUI: true, pid: 111 })
+    await parent.callHook('agent_start')
+    await parent.callHook('ui_prompt_start')
+    expect(vi.getTimerCount()).toBe(2)
+
+    const child = createHarness({ globals, env, mode: 'rpc', hasUI: true, pid: 111 })
+    await child.callHook('agent_start')
+    await child.callHook('ui_prompt_start')
+    await child.callHook('session_shutdown')
+    expect(vi.getTimerCount()).toBe(2)
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(parent.lastTitle()).toBe(PROMPT_TITLE)
+    expect(child.titles).toEqual([])
+  })
+
+  it('does not claim marker ownership from an RPC context', async () => {
+    const env: Record<string, string> = {}
+    const harness = createHarness({ env, mode: 'rpc', hasUI: true })
+
+    await harness.callHook('ui_prompt_start')
+
+    expect(env.ORCA_PI_TITLE_MARKER_OWNED).toBeUndefined()
+    expect(harness.titles).toEqual([])
+  })
+
+  it('retires the previous owner on the replacement first terminal event', async () => {
+    const globals = {}
+    const env: Record<string, string> = {}
+    const parent = createHarness({ globals, env, mode: 'tui' })
+    await parent.callHook('agent_start')
+    expect(vi.getTimerCount()).toBe(1)
+
+    const replacement = createHarness({ globals, env, mode: 'tui' })
+    expect(vi.getTimerCount()).toBe(1)
+    await replacement.callHook('agent_start')
+
+    expect(vi.getTimerCount()).toBe(1)
+    const parentTitleCount = parent.titles.length
+    vi.advanceTimersByTime(80)
+    expect(parent.titles).toHaveLength(parentTitleCount)
+    expect(replacement.lastTitle()).toMatch(BRAILLE_RE)
   })
 
   it('stops spinner, prompt reassertion and idle recheck together on invalidation', async () => {

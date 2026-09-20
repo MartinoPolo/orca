@@ -1,6 +1,7 @@
 import { getPiTitlebarLifetimeSourceLines } from './titlebar-extension-lifetime-source'
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 import { getPiOmpRuntimeDetectionSourceLines } from './agent-status-runtime-detection-source'
+import { getPiTerminalOwnerContextSourceLines } from './terminal-owner-context-source'
 
 export const ORCA_PI_EXTENSION_FILE = 'orca-titlebar-spinner.ts'
 
@@ -49,7 +50,13 @@ export function getPiTitlebarExtensionSource(kind: PiAgentKind = 'pi'): string {
       : []
 
   return [
-    ...(kind === 'pi' ? [...getPiOmpRuntimeDetectionSourceLines(`/hook/${kind}`), ''] : []),
+    ...(kind === 'pi'
+      ? [
+          ...getPiOmpRuntimeDetectionSourceLines(`/hook/${kind}`),
+          '',
+          ...getPiTerminalOwnerContextSourceLines()
+        ]
+      : []),
     'const BRAILLE_FRAMES = [',
     "  '\\u280b',",
     "  '\\u2819',",
@@ -103,16 +110,18 @@ export function getPiTitlebarExtensionSource(kind: PiAgentKind = 'pi'): string {
     '  if (!process.env.ORCA_PANE_KEY) return',
     ...(kind === 'pi'
       ? [
-          '  // Why: child agents inherit the pane env, and the spinner is harmlessly',
-          '  // per-process — but the needs-input marker is status the pane reports, so only',
-          '  // one process may assert it. Mirrors ORCA_PI_STATUS_OWNED in the status hook.',
-          '  const markerOwnerPid = process.env.ORCA_PI_TITLE_MARKER_OWNED',
-          '  const ownsMarker = !markerOwnerPid || markerOwnerPid === String(process.pid)',
-          '  if (ownsMarker) process.env.ORCA_PI_TITLE_MARKER_OWNED = String(process.pid)'
+          '  // Why: marker ownership is claimed only after this generation proves it owns the',
+          '  // terminal; child agents inherit the pane environment and may share this realm.',
+          '  let ownsMarker = false',
+          '  function claimMarkerOwnership() {',
+          '    const markerOwnerPid = process.env.ORCA_PI_TITLE_MARKER_OWNED',
+          '    ownsMarker = !markerOwnerPid || markerOwnerPid === String(process.pid)',
+          '    if (ownsMarker) process.env.ORCA_PI_TITLE_MARKER_OWNED = String(process.pid)',
+          '  }'
         ]
-      : []),
+      : ['  function claimMarkerOwnership() {}']),
 
-    ...getPiTitlebarLifetimeSourceLines(),
+    ...getPiTitlebarLifetimeSourceLines(kind),
     '  let timer = null',
     '  let frameIndex = 0',
     '  // Why: only idle maintenance owns a spinner of its own. A threshold compaction runs',

@@ -124,14 +124,15 @@ describe('Pi UI prompt status', () => {
     ])
   })
 
-  it('retains modal state across an in-process registration reload', async () => {
+  it('releases the previous activation modal on an in-process reload', async () => {
     const harness = createHarness()
     await post(harness, 'agent_start')
     await post(harness, 'ui_prompt_start')
-    harness.reload()
-    await post(harness, 'tool_execution_end', { toolName: 'bash' })
-    // Why: re-registering handlers is not a session boundary and must not lose the wait.
     expect(harness.statuses.at(-1)?.payload.state).toBe('waiting')
+    harness.reload()
+    await post(harness, 'session_start', { reason: 'reload' })
+    await post(harness, 'tool_execution_end', { toolName: 'bash' })
+    expect(harness.statuses.at(-1)?.payload.state).not.toBe('waiting')
   })
 
   it('releases a modal that a session replacement tore down without a close', async () => {

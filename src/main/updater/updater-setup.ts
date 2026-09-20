@@ -19,7 +19,11 @@ import { getServeUpdateHandoffFailure } from '../serve-update-handoff'
 import { recordUpdaterLifecycle } from '../updater-lifecycle-diagnostics'
 import { AUTO_UPDATE_CHECK_INTERVAL_MS } from './updater-state'
 import { UpdaterDownloadInstall } from './updater-download-install'
+import { isManualUpdateBuild } from './manual-update-build'
 import type { UpdateInstallMode } from './updater-state'
+
+const MANUAL_UPDATE_MESSAGE =
+  'Automatic updates are disabled in this custom build. Install updates manually.'
 
 export type UpdaterSetupOptions = {
   getLastUpdateCheckAt?: () => number | null
@@ -35,20 +39,36 @@ export type UpdaterSetupOptions = {
 
 /** Initializes electron-updater and attaches lifecycle/event bridges. */
 export class UpdaterSetup extends UpdaterDownloadInstall {
+  private rejectManualUpdateAction(): boolean {
+    if (!isManualUpdateBuild()) {
+      return false
+    }
+    this.sendErrorStatus(MANUAL_UPDATE_MESSAGE, true)
+    return true
+  }
+
   checkForUpdates(): void {
-    this.checkForUpdatesInBackground()
+    if (!isManualUpdateBuild()) {
+      this.checkForUpdatesInBackground()
+    }
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
-    super.checkForUpdatesFromMenu(options)
+    if (!this.rejectManualUpdateAction()) {
+      super.checkForUpdatesFromMenu(options)
+    }
   }
 
   downloadUpdate(): void {
-    super.downloadUpdate()
+    if (!this.rejectManualUpdateAction()) {
+      super.downloadUpdate()
+    }
   }
 
   quitAndInstall(): void {
-    super.quitAndInstall()
+    if (!this.rejectManualUpdateAction()) {
+      super.quitAndInstall()
+    }
   }
 
   isQuittingForUpdate(): boolean {
@@ -87,14 +107,23 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
   }
 
   async getLinuxPackageInstallInstructions(): Promise<LinuxPackageInstallInstructions> {
+    if (this.rejectManualUpdateAction()) {
+      throw new Error(MANUAL_UPDATE_MESSAGE)
+    }
     return super.getLinuxPackageInstallInstructions()
   }
 
   async showLinuxPackage(): Promise<void> {
+    if (this.rejectManualUpdateAction()) {
+      throw new Error(MANUAL_UPDATE_MESSAGE)
+    }
     return super.showLinuxPackage()
   }
 
   async listAvailableReleaseBuilds(channel: ReleaseChannel): Promise<ReleaseBuild[]> {
+    if (isManualUpdateBuild()) {
+      return []
+    }
     return super.listAvailableReleaseBuilds(channel)
   }
 
@@ -118,6 +147,10 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     this.getReleaseChannelOverride = opts?.getReleaseChannelOverride ?? null
     this.updateInstallMode = opts?.installMode ?? 'interactive'
     this.lastInstallDeferralVersion = { download: null, install: null }
+
+    if (isManualUpdateBuild()) {
+      return
+    }
 
     const serveHandoffFailure = getServeUpdateHandoffFailure()
     if (serveHandoffFailure) {

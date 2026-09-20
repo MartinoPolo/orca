@@ -55,6 +55,12 @@ const devChannelBuildVersion = isHourlyChannel
     : isAdhocChannel
       ? process.env.ORCA_ADHOC_BUILD_VERSION
       : undefined
+const packagedVersion = devChannelBuildVersion ?? localBuildVersion
+const isManualUpdateBuild = process.env.ORCA_MANUAL_UPDATES_ONLY === '1'
+const extraMetadata = {
+  ...(packagedVersion ? { version: packagedVersion } : {}),
+  ...(isManualUpdateBuild ? { orcaManualUpdatesOnly: true } : {})
+}
 // Why each dev channel gets its own repo rather than tagging into the main one:
 // the releases atom feed exposes only the 10 newest entries, so 24 hourly tags a
 // day would evict every stable/RC entry and strand users on a feed with nothing
@@ -168,11 +174,7 @@ module.exports = {
   productName: 'Orca',
   protocols: [{ name: 'Orca', schemes: ['orca'] }],
   toolsets: { appimage: '1.0.3' },
-  ...(devChannelBuildVersion
-    ? { extraMetadata: { version: devChannelBuildVersion } }
-    : localBuildVersion
-      ? { extraMetadata: { version: localBuildVersion } }
-      : {}),
+  ...(packagedVersion || isManualUpdateBuild ? { extraMetadata } : {}),
   directories: {
     buildResources: 'resources/build'
   },
@@ -203,6 +205,8 @@ module.exports = {
     // it is gitignored, but exclude it defensively so a stray local capture at
     // package time never bloats app.asar.
     '!pr-evidence{,/**/*}',
+    // Why: local validation evidence and disposable profile data are never runtime inputs.
+    '!notes{,/**/*}',
     // Why: local agent/tooling directories may contain worktree symlink loops;
     // they are never runtime inputs and must not be traversed by electron-builder.
     '!{.claude,.grok,.agents,.codex}{,/**/*}',
@@ -661,12 +665,14 @@ module.exports = {
   // on Intel Macs. The beforeBuild hook performs Orca's targeted rebuild and
   // returns false so electron-builder does not rebuild optional cpu-features.
   npmRebuild: true,
-  publish: {
-    provider: 'github',
-    owner: 'stablyai',
-    repo: devChannelRepo ?? 'orca',
-    releaseType: devChannelRepo ? 'prerelease' : 'release'
-  }
+  publish: isManualUpdateBuild
+    ? null
+    : {
+        provider: 'github',
+        owner: 'stablyai',
+        repo: devChannelRepo ?? 'orca',
+        releaseType: devChannelRepo ? 'prerelease' : 'release'
+      }
 }
 
 // Stamp the effective channel version where node-mode CLI code can read it.

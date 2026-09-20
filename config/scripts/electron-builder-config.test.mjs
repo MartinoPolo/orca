@@ -37,6 +37,7 @@ describe('electron-builder config', () => {
         '!tests{,/**/*}',
         '!examples{,/**/*}',
         '!pr-evidence{,/**/*}',
+        '!notes{,/**/*}',
         '!{.claude,.grok,.agents,.codex}{,/**/*}',
         '!Casks{,/**/*}',
         '!{AGENTS.md,CLAUDE.md,DEVELOPING.md,bundle-size-progress.md,ORCHESTRATION_IMPLEMENTATION_CHECKLIST.md,ORCHESTRATION_STRUCTURED_OUTPUT_DESIGN.md}',
@@ -352,6 +353,37 @@ describe('electron-builder config', () => {
         delete process.env.ORCA_LOCAL_BUILD_VERSION
       } else {
         process.env.ORCA_LOCAL_BUILD_VERSION = original
+      }
+      delete require.cache[configPath]
+      require('../electron-builder.config.cjs')
+    }
+  })
+
+  it('marks manual-update packages without publishing while preserving version metadata', () => {
+    const configPath = require.resolve('../electron-builder.config.cjs')
+    const originalManualUpdatesOnly = process.env.ORCA_MANUAL_UPDATES_ONLY
+    const originalLocalVersion = process.env.ORCA_LOCAL_BUILD_VERSION
+    try {
+      delete require.cache[configPath]
+      process.env.ORCA_MANUAL_UPDATES_ONLY = '1'
+      process.env.ORCA_LOCAL_BUILD_VERSION = '1.4.159-rc.0.local.123.abc'
+      const config = require('../electron-builder.config.cjs')
+
+      expect(config.extraMetadata).toEqual({
+        version: '1.4.159-rc.0.local.123.abc',
+        orcaManualUpdatesOnly: true
+      })
+      expect(config.publish).toBeNull()
+    } finally {
+      if (originalManualUpdatesOnly === undefined) {
+        delete process.env.ORCA_MANUAL_UPDATES_ONLY
+      } else {
+        process.env.ORCA_MANUAL_UPDATES_ONLY = originalManualUpdatesOnly
+      }
+      if (originalLocalVersion === undefined) {
+        delete process.env.ORCA_LOCAL_BUILD_VERSION
+      } else {
+        process.env.ORCA_LOCAL_BUILD_VERSION = originalLocalVersion
       }
       delete require.cache[configPath]
       require('../electron-builder.config.cjs')

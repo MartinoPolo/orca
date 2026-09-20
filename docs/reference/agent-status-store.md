@@ -61,6 +61,14 @@ Three consequences:
   decay, acknowledgements, dismissals, unread. Those stay reader-side but
   become one shared implementation (PR 3).
 
+## Pi terminal ownership
+
+Pi SDK children can share a process with the terminal session. Producers must
+isolate activation state and verify terminal ownership before publishing; PID
+identity and transcript ancestry alone are insufficient. See
+[Pi terminal session ownership](pi-terminal-session-ownership.md) for the
+forward-only restoration and validation boundaries.
+
 ## The store already exists
 
 The hook server's state is that store today for every PTY-based agent. The

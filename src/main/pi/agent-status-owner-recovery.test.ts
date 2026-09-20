@@ -24,9 +24,8 @@ describe('Pi status owner recovery', () => {
 
       expect(harness.killMock).toHaveBeenCalledWith(SELF_PID - 1, 0)
       expect(harness.handlers.agent_end).toBeTypeOf('function')
-      expect(harness.processEnv[ownerKey]).toBe(String(SELF_PID))
-
       await harness.callHook('agent_end')
+      expect(harness.processEnv[ownerKey]).toBe(String(SELF_PID))
       expect(harness.fetchMock).toHaveBeenCalledTimes(1)
     }
   )
@@ -50,37 +49,40 @@ describe('Pi status owner recovery', () => {
     }
   )
 
-  it('claims the pane when the inherited owner PID is not a usable pid', () => {
+  it('claims the pane when the inherited owner PID is not a usable pid', async () => {
     // Why: a truncated/garbage marker is not evidence of a live owner.
     const harness = createHarness({
       kind: 'pi',
       pid: SELF_PID,
       env: { ORCA_PI_STATUS_OWNED: 'not-a-pid' }
     })
+    await harness.callHook('agent_start')
 
     expect(harness.killMock).not.toHaveBeenCalled()
     expect(harness.handlers.agent_end).toBeTypeOf('function')
     expect(harness.processEnv.ORCA_PI_STATUS_OWNED).toBe(String(SELF_PID))
   })
 
-  it('claims the pane when the inherited owner PID exceeds safe integer precision', () => {
+  it('claims the pane when the inherited owner PID exceeds safe integer precision', async () => {
     const harness = createHarness({
       kind: 'pi',
       pid: SELF_PID,
       env: { ORCA_PI_STATUS_OWNED: '99999999999999999999999' }
     })
+    await harness.callHook('agent_start')
 
     expect(harness.killMock).not.toHaveBeenCalled()
     expect(harness.handlers.agent_end).toBeTypeOf('function')
     expect(harness.processEnv.ORCA_PI_STATUS_OWNED).toBe(String(SELF_PID))
   })
 
-  it('claims the pane when the inherited owner PID exceeds the process API range', () => {
+  it('claims the pane when the inherited owner PID exceeds the process API range', async () => {
     const harness = createHarness({
       kind: 'pi',
       pid: SELF_PID,
       env: { ORCA_PI_STATUS_OWNED: String(2 ** 31) }
     })
+    await harness.callHook('agent_start')
 
     expect(harness.killMock).not.toHaveBeenCalled()
     expect(harness.handlers.agent_end).toBeTypeOf('function')

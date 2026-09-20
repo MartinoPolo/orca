@@ -7,7 +7,7 @@ export function getPiAgentStatusUiPromptHandlerSourceLines(kind: PiAgentKind): s
   }
 
   return [
-    "  onStatus('ui_prompt_start', () => {",
+    "  onTerminalStatus('ui_prompt_start', () => {",
     '    // Idle utility dialogs are not agent work; do not create a completion boundary for them.',
     '    if (isOmpRuntime() || !piTurnInFlight) return',
     '    piUiPromptDepth++',
@@ -15,7 +15,7 @@ export function getPiAgentStatusUiPromptHandlerSourceLines(kind: PiAgentKind): s
     "    post('ui_prompt_start')",
     '  })',
     '',
-    "  onStatus('ui_prompt_end', (_event, ctx) => {",
+    "  onTerminalStatus('ui_prompt_end', (_event, ctx) => {",
     '    if (isOmpRuntime() || piUiPromptDepth === 0) return',
     '    piUiPromptDepth--',
     '    if (piUiPromptDepth > 0) return',
@@ -32,7 +32,7 @@ export function getPiAgentStatusUiPromptHandlerSourceLines(kind: PiAgentKind): s
     "    post('ui_prompt_end', { is_idle: isIdle })",
     '  })',
     '',
-    "  onStatus('session_shutdown', () => {",
+    "  onTerminalStatus('session_shutdown', () => {",
     '    resetPostQueue()',
     '    clearPendingAgentEndCheck()',
     '    if (isOmpRuntime()) return',

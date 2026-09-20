@@ -78,6 +78,12 @@ const electronBuilderConfig = createRequire(import.meta.url)('../electron-builde
 }
 
 describe('Electron Vite output contract', () => {
+  it('defines the manual-update gate as a main-process boolean literal', () => {
+    expect(electronViteConfig.main?.define?.ORCA_MANUAL_UPDATES_ONLY).toBe(
+      process.env.ORCA_MANUAL_UPDATES_ONLY === '1'
+    )
+  })
+
   it("minifies main and renderer with rolldown's in-process minifier", () => {
     // Why: 'esbuild' routes every chunk through a second, undeclared transpiler.
     expect(electronViteConfig.main?.build?.minify).toBe('oxc')

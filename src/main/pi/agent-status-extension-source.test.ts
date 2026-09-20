@@ -299,10 +299,11 @@ describe('getPiAgentStatusExtensionSource', () => {
 
   it.each(['pi', 'omp', 'prime-agent'] as const)(
     'registers no status handlers for a nested %s subagent process',
-    (kind) => {
+    async (kind) => {
       // Why: inheriting the lead's owner PID must disable the extension as a
       // whole, so future hook additions cannot reopen the notification leak.
       const lead = createHarness({ kind, pid: SELF_PID })
+      await lead.callHook('agent_start')
       const child = createHarness({ kind, pid: SELF_PID + 1, env: lead.processEnv })
       const grandchild = createHarness({ kind, pid: SELF_PID + 2, env: child.processEnv })
 
@@ -333,13 +334,14 @@ describe('getPiAgentStatusExtensionSource', () => {
     // Why: Pi reloads extensions in-process, so the lead must recognize its PID
     // instead of mistaking its own marker for a nested child.
     const harness = createHarness({ kind: 'pi', pid: SELF_PID })
+    await harness.callHook('session_start', { reason: 'reload' })
 
     expect(harness.processEnv.ORCA_PI_STATUS_OWNED).toBe(String(SELF_PID))
 
     harness.reload()
     await harness.callHook('agent_end')
 
-    expect(harness.fetchMock).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(harness.fetchMock).toHaveBeenCalledTimes(1))
     const body = JSON.parse(String(harness.fetchMock.mock.calls[0]?.[1]?.body))
     expect(body.payload).toEqual({ hook_event_name: 'agent_end' })
   })

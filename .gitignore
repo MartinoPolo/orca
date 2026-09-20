@@ -127,6 +127,7 @@ docs/**
 !docs/reference/macos-press-and-hold.md
 !docs/reference/orcad-operations.md
 !docs/reference/pnpm-install-policy.md
+!docs/reference/pi-terminal-session-ownership.md
 !docs/reference/relay-grace-time-reconfiguration.md
 !docs/reference/windows-cmd-shim-resolution.md
 !docs/reference/windows-daemon-host-relocation.md

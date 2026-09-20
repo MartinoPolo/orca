@@ -7,6 +7,7 @@ import { vi } from 'vitest'
 import { getPiAgentStatusExtensionSource } from './agent-status-extension-source'
 
 export type HookContext = {
+  mode?: 'tui' | 'print' | 'json' | 'rpc'
   hasUI?: boolean
   ui?: { setEditorText?: (text: string) => void; notify?: (message: string, level: string) => void }
   isIdle?: () => boolean
@@ -31,7 +32,12 @@ type FakeCurlChild = {
   }
 }
 
-export type AgentStatusExtensionHarness = {
+export type AgentStatusActivationHarness = {
+  handlers: Record<string, HookHandler>
+  callHook: (name: string, event?: unknown, context?: HookContext) => Promise<void>
+}
+
+export type AgentStatusExtensionHarness = AgentStatusActivationHarness & {
   setModelMock: ReturnType<typeof vi.fn>
   commands: Record<string, { handler: (args: string, context: HookContext) => Promise<void> }>
   killMock: ReturnType<typeof vi.fn>
@@ -43,9 +49,8 @@ export type AgentStatusExtensionHarness = {
     readFileSync: ReturnType<typeof vi.fn>
     statSync: ReturnType<typeof vi.fn>
   }
-  handlers: Record<string, HookHandler>
   processEnv: Record<string, string | undefined>
-  callHook: (name: string, event?: unknown, context?: HookContext) => Promise<void>
+  registerActivation: () => AgentStatusActivationHarness
   // Re-invoke the extension factory in the same process (as Pi does on an
   // in-process extension reload), swapping in the freshly registered handlers.
   reload: () => void
@@ -204,6 +209,16 @@ export function createAgentStatusExtensionHarness(args: {
       }
     })
   }
+  const registerActivation = (): AgentStatusActivationHarness => {
+    const activationHandlers: Record<string, HookHandler> = {}
+    registerInto(activationHandlers)
+    return {
+      handlers: activationHandlers,
+      callHook: async (name, event, hookContext) => {
+        await activationHandlers[name]?.(event, hookContext)
+      }
+    }
+  }
   registerInto(handlers)
 
   return {
@@ -216,6 +231,7 @@ export function createAgentStatusExtensionHarness(args: {
     fsMock,
     handlers,
     processEnv: processMock.env,
+    registerActivation,
     callHook: async (name, event, hookContext) => {
       await handlers[name]?.(event, hookContext)
     },
