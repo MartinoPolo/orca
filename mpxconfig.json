@@ -1,0 +1,11 @@
+{
+  "projectId": "orca",
+  "repository": {
+    "provider": "github",
+    "remote": "fork"
+  },
+  "issues": {
+    "provider": "github"
+  },
+  "packageManager": "pnpm"
+}

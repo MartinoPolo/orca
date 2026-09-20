@@ -1,3 +1,20 @@
+# Fork
+
+`MartinoPolo/orca` is our maintained fork of [`stablyai/orca`](https://github.com/stablyai/orca), created to fix reliability gaps; preserve these patches when syncing upstream.
+
+## Fork Patches
+
+- **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks.
+- **Implemented:** Exclude private `notes/` deployment evidence from packages.
+- **Planned:** Make Windows desktop port discovery include IPv6 listeners while preserving existing scanning and attribution boundaries.
+
+Add or update a one-to-three-sentence entry here for every fork-only patch.
+
+## Installation
+
+Build with `ORCA_MANUAL_UPDATES_ONLY=1` and a unique `ORCA_LOCAL_BUILD_VERSION`, validate with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.
+
 # Useful Commands
 
 - **Validation**: Run the smallest checks that verify the change. Prefer focused tests; expand only for concrete risk, failures, or explicit requests. Shared imports alone don’t justify broad suites.
