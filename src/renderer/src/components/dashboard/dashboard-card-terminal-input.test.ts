@@ -105,7 +105,8 @@ describe('resolveDashboardCardTerminalInput', () => {
       WINDOWS_ARGS
     )
     expect(pi.windowsShiftEnterEncoding).toBe('csi-u')
-    expect(pi.ctrlEnterCsiU).toBe(false)
+    expect(pi.ctrlEnterCsiU).toBe(true)
+    expect(pi.kittyKeyboardAdvertised).toBe(false)
   })
 
   // Why: the pty runs Linux inside WSL, so byte protocols must follow it and
