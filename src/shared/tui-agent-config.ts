@@ -132,7 +132,8 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     // Pi has no prefill flag; the managed extension seeds env to avoid its long startup paste race.
     draftPromptEnvVar: 'ORCA_PI_PREFILL',
     // Why: Pi decodes CSI-u; Esc+CR submits after tool subprocesses reset live KKP state (#9703).
-    windowsShiftEnterEncoding: 'csi-u'
+    windowsShiftEnterEncoding: 'csi-u',
+    ctrlEnterEncoding: 'csi-u'
   },
   omp: {
     detectCmd: 'omp',

@@ -105,7 +105,8 @@ describe('resolveDashboardCardTerminalInput', () => {
       WINDOWS_ARGS
     )
     expect(pi.windowsShiftEnterEncoding).toBe('csi-u')
-    expect(pi.ctrlEnterCsiU).toBe(false)
+    expect(pi.ctrlEnterCsiU).toBe(true)
+    expect(pi.kittyKeyboardAdvertised).toBe(false)
   })
 
   // WSL PTYs speak Linux byte protocols even on Windows clients; mirror pane cwd-based resolution.
