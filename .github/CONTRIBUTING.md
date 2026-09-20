@@ -49,6 +49,7 @@ Electron, so a fresh machine also needs:
   Older releases name the last package `libasound2`.
 
 ```bash
+corepack enable pnpm
 pnpm install
 pnpm dev
 ```

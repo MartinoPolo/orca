@@ -7,6 +7,7 @@
 - **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
 - **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks.
 - **Implemented:** Exclude private `notes/` deployment evidence from packages.
+- **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Planned:** Make Windows desktop port discovery include IPv6 listeners while preserving existing scanning and attribution boundaries.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
