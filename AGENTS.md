@@ -1,3 +1,20 @@
+# Fork
+
+`MartinoPolo/orca` is our maintained fork of [`stablyai/orca`](https://github.com/stablyai/orca), created to fix reliability gaps; preserve these patches when syncing upstream.
+
+## Fork Patches
+
+- **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks.
+- **Implemented:** Exclude private `notes/` deployment evidence from packages.
+- **Planned:** Make Windows desktop port discovery include IPv6 listeners while preserving existing scanning and attribution boundaries.
+
+Add or update a one-to-three-sentence entry here for every fork-only patch.
+
+## Installation
+
+Build with `ORCA_MANUAL_UPDATES_ONLY=1` and a unique `ORCA_LOCAL_BUILD_VERSION`, validate with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.
+
 # Design System
 
 All UI work — layout, color, typography, spacing, component selection, UX behavior — must follow [`docs/STYLEGUIDE.md`](./docs/STYLEGUIDE.md). Most of it is linted: `pnpm run check:code-quality:changed` fails on new restyles of a `components/ui/` primitive, raw palette colors, and computed `className` strings; `pnpm lint` fails on any class Tailwind cannot generate. See the Enforcement section of the style guide before suppressing either. Use the tokens defined in `src/renderer/src/assets/main.css` (the canonical source) and the shadcn primitives in `src/renderer/src/components/ui/`. Don't invent new color values, font sizes, or shadow tiers when a documented one already covers the role. When STYLEGUIDE.md is silent, follow the resolution order in its final section.
