@@ -11,6 +11,7 @@
 - **Implemented:** Send Pi's Ctrl+Enter as CSI-u from trusted panes without enabling the protocol globally for Windows ConPTY shells.
 - **Implemented:** Preserve snapshot mouse encoding and negotiated Alt shortcuts, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
 - **Implemented:** Windows desktop port discovery uses unfiltered `netstat` enumeration so IPv4 and IPv6 TCP listeners reach the existing scanner and workspace attribution. Parsing still requires the English `LISTENING` state.
+- **Implemented:** Per-agent linked work-item prompt templates can prefill issue and review workspaces with workflows such as `/skill:mpx-execute {{artifact_url}}` while keeping launch drafts reviewable.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 

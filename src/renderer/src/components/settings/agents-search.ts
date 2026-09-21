@@ -35,6 +35,11 @@ function buildAgentSettingsKeywords(): string[] {
     { key: 'auto.components.settings.agents.search.permissions', fallback: 'permissions' },
     { key: 'auto.components.settings.agents.search.yolo', fallback: 'yolo', englishOnly: true },
     { key: 'auto.components.settings.agents.search.manual', fallback: 'manual' },
+    { key: 'auto.components.settings.agents.search.linked', fallback: 'linked' },
+    { key: 'auto.components.settings.agents.search.workItem', fallback: 'work item' },
+    { key: 'auto.components.settings.agents.search.linkedWorkItem', fallback: 'linked work item' },
+    { key: 'auto.components.settings.agents.search.promptTemplate', fallback: 'prompt template' },
+    { key: 'auto.components.settings.agents.search.artifactUrl', fallback: 'artifact url' },
     {
       key: 'auto.components.settings.agents.search.e2b7c0dcd7',
       fallback: 'github',
@@ -72,7 +77,7 @@ const getAllAgentsPaneSearchEntries = createLocalizedCatalog(() => [
     title: translate('auto.components.settings.agents.search.bb9ad95777', 'Agents'),
     description: translate(
       'auto.components.settings.agents.search.01926b9d8c',
-      'Configure AI coding agents, default agent, and command overrides.'
+      'Configure AI coding agents, launch defaults, and linked work-item prompt templates.'
     ),
     keywords: buildAgentSettingsKeywords()
   },

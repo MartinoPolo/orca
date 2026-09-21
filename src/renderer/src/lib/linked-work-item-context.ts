@@ -1,3 +1,4 @@
+import { ARTIFACT_URL_TEMPLATE_TOKEN } from '../../../shared/agent-linked-work-item-prompt-templates'
 import type { TaskProvider } from '../../../shared/task-providers'
 
 export type LinkedWorkItemContext = {
@@ -213,9 +214,23 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
       > & { linkedContext?: LinkedWorkItemContext })
     | null
     | undefined,
-  note: string
+  note: string,
+  linkedWorkItemPromptTemplate?: string
 ): { prompt: string; draftPrompt: string | null } {
   const trimmedNote = note.trim()
+  const linkedUrl = linkedWorkItem?.url?.trim() || null
+  const trimmedTemplate = linkedWorkItemPromptTemplate?.trim()
+  if (linkedUrl && trimmedTemplate) {
+    const renderedTemplate = trimmedTemplate.replaceAll(
+      ARTIFACT_URL_TEMPLATE_TOKEN,
+      () => linkedUrl
+    )
+    return {
+      prompt: '',
+      draftPrompt: [trimmedNote, renderedTemplate].filter(Boolean).join('\n\n')
+    }
+  }
+
   const linearBlock = isLinearWorkItemReference(linkedWorkItem)
     ? buildLinearLaunchContextBlock({
         provider: linkedWorkItem?.provider,
@@ -225,7 +240,6 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
       })
     : null
   const linearDraft = linearBlock ? formatDraftContextBlock(linearBlock) : null
-  const linkedUrl = linkedWorkItem?.url?.trim() || null
   const draftPrompt = linearDraft
     ? [trimmedNote, linearDraft].filter(Boolean).join('\n\n')
     : linkedUrl

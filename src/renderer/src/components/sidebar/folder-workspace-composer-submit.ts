@@ -54,6 +54,7 @@ type SubmitFolderWorkspaceCreateParams = {
   quickAgent: TuiAgent | null
   autoRenameBranchFromWork: boolean | undefined
   agentCmdOverrides: Record<string, string> | undefined
+  linkedWorkItemPromptTemplate?: string
   agentArgs?: string | null
   agentEnv?: Record<string, string>
   sessionOptions?: Record<string, SessionOptionValue>
@@ -75,6 +76,7 @@ export async function submitFolderWorkspaceCreate({
   quickAgent,
   autoRenameBranchFromWork,
   agentCmdOverrides,
+  linkedWorkItemPromptTemplate,
   agentArgs,
   agentEnv,
   sessionOptions,
@@ -105,6 +107,7 @@ export async function submitFolderWorkspaceCreate({
           agent: quickAgent,
           linkedWorkItem,
           note,
+          linkedWorkItemPromptTemplate,
           agentCmdOverrides,
           agentArgs,
           agentEnv,
@@ -130,7 +133,9 @@ export async function submitFolderWorkspaceCreate({
   // Why: the argv-prefill plan carries the draft inside `launchCommand`, so
   // `startupPlan.draftPrompt` alone can't tell whether this launch has one.
   const launchDraftPrompt =
-    quickAgent && linkedWorkItem ? resolveFolderWorkspaceLaunchDraft(linkedWorkItem, note) : null
+    quickAgent && linkedWorkItem
+      ? resolveFolderWorkspaceLaunchDraft(linkedWorkItem, note, linkedWorkItemPromptTemplate)
+      : null
   const plan = quickAgent
     ? planAgentSessionLaunch(useAppStore.getState(), {
         agent: quickAgent,

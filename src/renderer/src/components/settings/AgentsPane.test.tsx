@@ -20,6 +20,7 @@ import {
   AgentsPane,
   getAgentsPaneSearchEntries,
   buildAgentAvailabilitySettingsUpdate,
+  buildAgentLinkedWorkItemPromptTemplateSettingsUpdate,
   createAgentAvailabilityUpdateQueue
 } from './AgentsPane'
 import { matchesSettingsSearch } from './settings-search'
@@ -412,6 +413,35 @@ describe('AgentsPane', () => {
     expect(matchesSettingsSearch('permission', getAgentsPaneSearchEntries())).toBe(true)
     expect(matchesSettingsSearch('yolo', getAgentsPaneSearchEntries())).toBe(true)
     expect(matchesSettingsSearch('manual', getAgentsPaneSearchEntries())).toBe(true)
+  })
+
+  it('includes linked work-item prompt template search metadata', () => {
+    expect(matchesSettingsSearch('linked work item', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('prompt template', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('artifact url', getAgentsPaneSearchEntries())).toBe(true)
+  })
+
+  it('saves and resets one agent prompt template without changing other agents', () => {
+    const templates = {
+      codex: 'Review {{artifact_url}}',
+      claude: 'Fix {{artifact_url}}'
+    }
+
+    expect(
+      buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(
+        templates,
+        'pi',
+        '/skill:mpx-execute {{artifact_url}}'
+      )
+    ).toEqual({
+      agentLinkedWorkItemPromptTemplates: {
+        ...templates,
+        pi: '/skill:mpx-execute {{artifact_url}}'
+      }
+    })
+    expect(buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(templates, 'codex', '')).toEqual({
+      agentLinkedWorkItemPromptTemplates: { claude: 'Fix {{artifact_url}}' }
+    })
   })
 
   it('applies the selected agent permission mode from settings without a mixed segment', () => {

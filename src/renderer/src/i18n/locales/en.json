@@ -6644,7 +6644,7 @@
           "92033495ff": "Auto",
           "9b175d0f5e": "Pre-selected agent when opening a new workspace.",
           "385212c7a1": "Default Agent",
-          "f9f127d664": "Override the binary path or name, and edit the default launch arguments or environment for this agent.",
+          "f9f127d664": "Override the binary path or name, and edit launch defaults for this agent.",
           "f95b5c79b8": "Install",
           "fe4d630c94": "Docs",
           "8dc0192e48": "Disabled",
@@ -6679,7 +6679,9 @@
           "codexSessionSourceInfo": "About importing Codex history",
           "codexSessionSourceTooltip": "Orca runs Codex in an isolated home. Point this at your existing Codex home to import that session history. Empty uses ~/.codex.",
           "storedDefaultUndetected": "Saved as your default, but not detected right now",
-          "noAgentsDetected": "No agents detected. If one is installed, the probe may have timed out."
+          "noAgentsDetected": "No agents detected. If one is installed, the probe may have timed out.",
+          "linkedWorkItemPromptTemplate": "Linked work-item prompt template",
+          "linkedWorkItemPromptTemplateDescription": "Use {{artifact_url}} for the linked URL. A template without it is used literally. Leave blank to restore the default linked work-item draft."
         },
         "AppIconSelector": {
           "d5a112dc9b": "Next icon",
@@ -9009,7 +9011,7 @@
             "96ba2373b6": "agent",
             "cbdd7f3b9e": "Choose whether installed agents are detected on this device or in WSL.",
             "ef804b7337": "Agent Location",
-            "01926b9d8c": "Configure AI coding agents, default agent, and command overrides.",
+            "01926b9d8c": "Configure AI coding agents, launch defaults, and linked work-item prompt templates.",
             "bb9ad95777": "Agents",
             "d8f3a8b8a0": "default",
             "167daeb5e9": "command",
@@ -10896,7 +10898,7 @@
           "sourceControlAiDefaults": "Recipes, prompts, and hosted-review defaults are shared by this client; model choices and discovery stay scoped to the host where the agent runs.",
           "projectOnThisHost": "Project on this host",
           "repositorySourceControlAi": "These overrides apply to this project setup and inherit the client Source Control AI defaults until customized.",
-          "agentLaunchDefaults": "Default agent, command overrides, CLI arguments, and launch environment are client preferences. SSH and remote server launches still validate host availability at run time.",
+          "agentLaunchDefaults": "Default agent, command overrides, CLI arguments, launch environment, and linked work-item prompt templates are client preferences. SSH and remote server launches still validate host availability at run time.",
           "clientDefaultProjectScopes": "Client default + project scopes",
           "terminalQuickCommands": "Commands are saved on this client, then scoped globally or to a project setup so they run from the selected terminal context.",
           "hostOverride": "Host override",

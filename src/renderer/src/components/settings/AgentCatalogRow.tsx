@@ -12,7 +12,8 @@ import { stringifyAgentDefaultEnvDraft } from './agent-default-env-draft'
 import {
   AgentCommandOverrideInput,
   AgentDefaultArgsInput,
-  AgentDefaultEnvInput
+  AgentDefaultEnvInput,
+  AgentLinkedWorkItemPromptTemplateInput
 } from './AgentLaunchDefaultsEditor'
 
 type AgentAvailability = 'enabled' | 'disabled'
@@ -68,11 +69,13 @@ export type AgentCatalogRowProps = {
   cmdOverride: string | undefined
   argsOverride: string
   envOverride: Record<string, string>
+  linkedWorkItemPromptTemplate: string | undefined
   onSetDefault: () => void
   onSetEnabled: (enabled: boolean) => void
   onSaveOverride: (value: string) => void
   onSaveArgs: (value: string) => void
   onSaveEnv: (value: Record<string, string>) => void
+  onSaveLinkedWorkItemPromptTemplate: (value: string) => void
   sessionSourceHome?: AgentSessionSourceHomeControl
 }
 
@@ -89,17 +92,22 @@ export function AgentCatalogRow({
   cmdOverride,
   argsOverride,
   envOverride,
+  linkedWorkItemPromptTemplate,
   onSetDefault,
   onSetEnabled,
   onSaveOverride,
   onSaveArgs,
   onSaveEnv,
+  onSaveLinkedWorkItemPromptTemplate,
   sessionSourceHome
 }: AgentCatalogRowProps): React.JSX.Element {
   const envSummary = stringifyAgentDefaultEnvDraft(envOverride)
   const defaultEnvSummary = stringifyAgentDefaultEnvDraft(defaultEnv)
   const [cmdOpen, setCmdOpen] = useState(
-    Boolean(cmdOverride) || argsOverride !== defaultArgs || envSummary !== defaultEnvSummary
+    Boolean(cmdOverride) ||
+      argsOverride !== defaultArgs ||
+      envSummary !== defaultEnvSummary ||
+      Boolean(linkedWorkItemPromptTemplate)
   )
 
   return (
@@ -226,6 +234,13 @@ export function AgentCatalogRow({
               />
             </div>
           )}
+          <div className="mt-2">
+            <AgentLinkedWorkItemPromptTemplateInput
+              key={`${agentId}:${linkedWorkItemPromptTemplate ?? ''}`}
+              template={linkedWorkItemPromptTemplate}
+              onSave={onSaveLinkedWorkItemPromptTemplate}
+            />
+          </div>
           {sessionSourceHome && (
             <div className="mt-2">
               <AgentSessionSourceHomeInput
@@ -239,7 +254,7 @@ export function AgentCatalogRow({
           <p className="mt-2 text-[11px] text-muted-foreground">
             {translate(
               'auto.components.settings.AgentsPane.f9f127d664',
-              'Override the binary path or name, and edit the default launch arguments or environment for this agent.'
+              'Override the binary path or name, and edit launch defaults for this agent.'
             )}
           </p>
         </div>
