@@ -11,7 +11,7 @@ export function dedupeRawPorts(ports: RawListeningPort[]): RawListeningPort[] {
   const seen = new Set<string>()
   const result: RawListeningPort[] = []
   for (const port of ports) {
-    const key = `${connectHostForBindHost(port.host)}:${port.port}:${port.pid ?? 'unknown'}`
+    const key = `${port.host}:${port.port}:${port.pid ?? 'unknown'}`
     if (seen.has(key)) {
       continue
     }
