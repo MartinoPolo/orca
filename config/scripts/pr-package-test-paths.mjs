@@ -30,6 +30,7 @@ export function isCloudTestRunnerInput(file) {
 // The package (windows) job's "Test Windows-specific boundaries" step runs exactly these files.
 export const WINDOWS_BOUNDARY_TESTS = [
   'src/main/zcode/zcode-plan-api-key-store-native-windows.test.ts',
+  'src/main/ports/local-workspace-port-scanner.win32.test.ts',
   'config/scripts/rebuild-native-deps.test.mjs',
   'config/scripts/rebuild-native-deps-windows-process-tree.test.mjs',
   'config/scripts/rebuild-native-deps-node-pty.test.mjs',

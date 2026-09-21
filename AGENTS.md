@@ -10,7 +10,7 @@
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Send Pi's Ctrl+Enter as CSI-u from trusted panes without enabling the protocol globally for Windows ConPTY shells.
 - **Implemented:** Preserve snapshot mouse encoding and negotiated Alt shortcuts, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
-- **Planned:** Make Windows desktop port discovery include IPv6 listeners while preserving existing scanning and attribution boundaries.
+- **Implemented:** Windows desktop port discovery uses unfiltered `netstat` enumeration so IPv4 and IPv6 TCP listeners reach the existing scanner and workspace attribution. Parsing still requires the English `LISTENING` state.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 
