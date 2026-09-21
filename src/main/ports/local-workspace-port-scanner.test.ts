@@ -50,6 +50,10 @@ const worktrees = [
 ]
 
 describe('attributePortToWorkspace', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('requires command-line path boundary evidence', () => {
     const owner = attributePortToWorkspace(
       { commandLine: `node ${path.posix.resolve('/repo/worktrees/feature-other/server.js')}` },
@@ -57,6 +61,28 @@ describe('attributePortToWorkspace', () => {
     )
 
     expect(owner).toBeUndefined()
+  })
+
+  it('uses Windows path semantics for native command-line attribution', () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const windowsWorktree = {
+      id: 'repo::C:\\Projects\\Repo\\worktrees\\feature',
+      repoId: 'repo',
+      displayName: 'feature',
+      path: 'C:\\Projects\\Repo\\worktrees\\feature'
+    }
+
+    const owner = attributePortToWorkspace(
+      {
+        commandLine: 'node C:\\Projects\\Repo\\worktrees\\feature\\node_modules\\vite\\bin\\vite.js'
+      },
+      [windowsWorktree]
+    )
+
+    expect(owner).toMatchObject({
+      worktreeId: windowsWorktree.id,
+      confidence: 'command'
+    })
   })
 })
 
