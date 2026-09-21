@@ -531,7 +531,7 @@ describe('resolveWindowShortcutAction', () => {
     ).toBeNull()
   })
 
-  it('resolves the worktree-history chord despite carrying Alt', () => {
+  it('claims only the default worktree-history back chord despite carrying Alt', () => {
     expect(
       resolveWindowShortcutAction(
         {
@@ -558,7 +558,7 @@ describe('resolveWindowShortcutAction', () => {
         },
         'darwin'
       )
-    ).toEqual({ type: 'worktreeHistoryNavigate', direction: 'forward' })
+    ).toBeNull()
 
     expect(
       resolveWindowShortcutAction(
@@ -573,6 +573,27 @@ describe('resolveWindowShortcutAction', () => {
         'linux'
       )
     ).toEqual({ type: 'worktreeHistoryNavigate', direction: 'back' })
+  })
+
+  it('resolves a user-bound worktree-history forward chord', () => {
+    const overrides: KeybindingOverrides = {
+      'worktree.history.forward': ['Mod+Alt+ArrowRight']
+    }
+
+    expect(
+      resolveWindowShortcutAction(
+        {
+          code: 'ArrowRight',
+          key: 'ArrowRight',
+          meta: true,
+          control: false,
+          alt: true,
+          shift: false
+        },
+        'darwin',
+        overrides
+      )
+    ).toEqual({ type: 'worktreeHistoryNavigate', direction: 'forward' })
   })
 
   it('resolves the floating terminal chord despite carrying Alt', () => {
