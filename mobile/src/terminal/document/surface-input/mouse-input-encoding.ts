@@ -209,15 +209,10 @@ export function buildTuiScrollInput(
   if (count === 0) {
     return ''
   }
-  const mouseTrackingMode = getMouseTrackingMode(scope)
-  let sequence = ''
-  if (isWheelMouseTrackingMode(mouseTrackingMode)) {
-    sequence = buildMouseWheelSequence(scope, lines, clientX, clientY)
+  if (isWheelMouseTrackingMode(getMouseTrackingMode(scope))) {
+    return buildMouseWheelScrollInput(scope, lines, clientX, clientY)
   }
-  if (!sequence) {
-    sequence = buildArrowScrollSequence(scope, lines)
-  }
-  return repeatSequence(sequence, count)
+  return repeatSequence(buildArrowScrollSequence(scope, lines), count)
 }
 
 export function routeScrollLines(
@@ -242,11 +237,8 @@ export function routeScrollLines(
       notify(scope, { type: 'terminal-input', bytes: mouseInput })
       return
     }
-    // Wide-cell legacy encoding may be unsafe; send bounded arrows while the TUI owns scrolling.
-    const fallbackInput = buildTuiScrollInput(scope, lines, clientX, clientY)
-    if (fallbackInput) {
-      notify(scope, { type: 'terminal-input', bytes: fallbackInput })
-    }
+    // An unencodable mouse event belongs to the tracking protocol and must not
+    // be changed into an unrelated cursor-key command.
     return
   }
   if (alternateBufferActive) {
