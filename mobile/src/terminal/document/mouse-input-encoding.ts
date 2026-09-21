@@ -183,15 +183,10 @@ export function buildTuiScrollInput(lines: number, clientX: number, clientY: num
   if (count === 0) {
     return ''
   }
-  const mouseTrackingMode = getMouseTrackingMode()
-  let sequence = ''
-  if (isWheelMouseTrackingMode(mouseTrackingMode)) {
-    sequence = buildMouseWheelSequence(lines, clientX, clientY)
+  if (isWheelMouseTrackingMode(getMouseTrackingMode())) {
+    return buildMouseWheelScrollInput(lines, clientX, clientY)
   }
-  if (!sequence) {
-    sequence = buildArrowScrollSequence(lines)
-  }
-  return repeatSequence(sequence, count)
+  return repeatSequence(buildArrowScrollSequence(lines), count)
 }
 
 export function routeScrollLines(lines: number, clientX: number, clientY: number) {
@@ -208,13 +203,8 @@ export function routeScrollLines(lines: number, clientX: number, clientY: number
       notify({ type: 'terminal-input', bytes: mouseInput })
       return
     }
-    // Why: default mouse encoding can be unrepresentable in our ASCII-safe
-    // RPC path on wide terminals. Send bounded arrows instead of local
-    // scrollback/no-op while a mouse-aware app owns scroll gestures.
-    const fallbackInput = buildTuiScrollInput(lines, clientX, clientY)
-    if (fallbackInput) {
-      notify({ type: 'terminal-input', bytes: fallbackInput })
-    }
+    // An unencodable mouse event belongs to the tracking protocol and must not
+    // be changed into an unrelated cursor-key command.
     return
   }
   if (alternateBufferActive) {

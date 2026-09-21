@@ -135,6 +135,12 @@ function mouseDrag(x1: number, y1: number, x2: number, y2: number): void {
   dispatchPointer('pointerup', { x: x2, y: y2, button: 0, buttons: 0 })
 }
 
+function mouseWheel(deltaY: number, x: number, y: number): void {
+  const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY })
+  Object.defineProperties(event, { clientX: { value: x }, clientY: { value: y } })
+  terminalSurface().dispatchEvent(event)
+}
+
 function postedMessages(postMessage: PostMessage): Record<string, unknown>[] {
   return postMessage.mock.calls.map(([raw]) => JSON.parse(String(raw)) as Record<string, unknown>)
 }
@@ -155,12 +161,12 @@ export function useTerminalMouseWebViewHarness() {
   let select: Select
   let terminals: TerminalStub[]
 
-  function boot(): void {
+  function boot(initialData = ''): void {
     document.body.innerHTML = bodyMarkup()
     runInThisContext(iifeSource())
     window.dispatchEvent(
       new MessageEvent('message', {
-        data: JSON.stringify({ type: 'init', cols: 40, rows: 24, initialData: '' })
+        data: JSON.stringify({ type: 'init', cols: 40, rows: 24, initialData })
       })
     )
     // Why: init commits the replacement surface on the next animation frame.
@@ -240,6 +246,7 @@ export function useTerminalMouseWebViewHarness() {
     dispatchPointer,
     mouseClick,
     mouseDrag,
+    mouseWheel,
     postedMessages: () => postedMessages(postMessage),
     selectionSpy: () => select,
     terminalInputBytes: () => terminalInputBytes(postMessage),
