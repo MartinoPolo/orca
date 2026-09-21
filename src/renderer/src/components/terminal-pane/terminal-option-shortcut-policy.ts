@@ -7,7 +7,8 @@ import {
 import {
   encodeTerminalOptionKittyEvent,
   optionKittyPrimaryCharacterFallback,
-  pc101CharacterForCode
+  pc101CharacterForCode,
+  resolveTerminalKittyPrimaryCodePoint
 } from './terminal-kitty-csi-u-encoding'
 import type { TerminalOptionKittyRelease } from './terminal-option-kitty-release'
 
@@ -43,8 +44,23 @@ type TerminalOptionShortcutContext = {
   layoutCharacterForCode?: (code: string, shifted: boolean) => string | undefined
 }
 
-function createRelease(flags: number): TerminalOptionKittyRelease | undefined {
-  return (flags & KITTY_REPORT_EVENT_TYPES) === 0 ? undefined : { flags }
+function createRelease(
+  flags: number,
+  primaryCodePoint?: number
+): TerminalOptionKittyRelease | undefined {
+  if ((flags & KITTY_REPORT_EVENT_TYPES) === 0) {
+    return undefined
+  }
+  return primaryCodePoint === undefined ? { flags } : { flags, primaryCodePoint }
+}
+
+function isPrintableCharacter(key: string): boolean {
+  const chars = Array.from(key)
+  if (chars.length !== 1) {
+    return false
+  }
+  const codePoint = chars[0].codePointAt(0)
+  return codePoint !== undefined && codePoint >= 0x20 && !(codePoint >= 0x7f && codePoint <= 0x9f)
 }
 
 // Compose-side text must survive kitty negotiation; Alt-configured sides still send chords.
@@ -52,15 +68,9 @@ function isLayoutComposedCharacter(
   key: string,
   characterWithoutOption: string | undefined
 ): boolean {
-  const chars = Array.from(key)
-  if (chars.length !== 1) {
-    return false
-  }
-  const codePoint = chars[0].codePointAt(0)
   return (
-    codePoint !== undefined &&
-    codePoint > 0x20 &&
-    !(codePoint >= 0x7f && codePoint <= 0x9f) &&
+    key !== ' ' &&
+    isPrintableCharacter(key) &&
     (characterWithoutOption === undefined ||
       key.toLowerCase() !== characterWithoutOption.toLowerCase())
   )
@@ -87,8 +97,36 @@ export function resolveTerminalOptionShortcutAction(
   event: TerminalOptionShortcutEvent,
   context: TerminalOptionShortcutContext
 ): TerminalOptionShortcutAction | null {
-  if (!context.isMac || event.metaKey || event.ctrlKey || !event.altKey) {
+  if (event.metaKey || event.ctrlKey || !event.altKey) {
     return null
+  }
+  if (!context.isMac) {
+    if (
+      event.shiftKey ||
+      event.code?.startsWith('Numpad') === true ||
+      event.getModifierState?.('AltGraph') === true ||
+      isImeOwnedKey(event) ||
+      !isPrintableCharacter(event.key)
+    ) {
+      return null
+    }
+    const flags = context.getKittyKeyboardFlags()
+    if (!kittyEncodesModifiedTextKeys(flags)) {
+      return null
+    }
+    // Non-Mac unshifted Alt leaves event.key as native text; layout metadata may be stale.
+    const primaryCodePoint = resolveTerminalKittyPrimaryCodePoint(event, {
+      primaryCharacterFallback: event.key
+    })
+    const data = encodeTerminalOptionKittyEvent(event, {
+      flags,
+      type: event.repeat === true ? 'repeat' : 'press',
+      primaryCharacterFallback: event.key,
+      primaryCodePoint
+    })
+    return data
+      ? { type: 'sendInput', data, optionKittyRelease: createRelease(flags, primaryCodePoint) }
+      : null
   }
   const isLeftOption = (context.optionKeyLocations & 1) !== 0
   const isRightOption = (context.optionKeyLocations & 2) !== 0
