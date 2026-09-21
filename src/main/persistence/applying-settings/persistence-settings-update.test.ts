@@ -67,6 +67,37 @@ describe('Store', () => {
     rmSync(testState.dir, { recursive: true, force: true })
   })
 
+  })
+
+  it('normalizes linked work-item prompt templates on load and update', async () => {
+    writeDataFile({
+      settings: {
+        agentLinkedWorkItemPromptTemplates: {
+          pi: '  /skill:mpx-execute {{artifact_url}}  ',
+          codex: '   '
+        }
+      }
+    })
+    const store = await createStore()
+
+    expect(store.getSettings().agentLinkedWorkItemPromptTemplates).toEqual({
+      pi: '/skill:mpx-execute {{artifact_url}}'
+    })
+
+    const updated = store.updateSettings({
+      agentLinkedWorkItemPromptTemplates: {
+        pi: '',
+        claude: '  Review {{artifact_url}}  '
+      }
+    })
+    expect(updated.agentLinkedWorkItemPromptTemplates).toEqual({
+      claude: 'Review {{artifact_url}}'
+    })
+    store.flush()
+    const reloadedStore = await createStore()
+    expect(reloadedStore.getSettings().agentLinkedWorkItemPromptTemplates).toEqual({
+      claude: 'Review {{artifact_url}}'
+    })
   it('invalidates local worktree scans when the global Windows runtime changes', async () => {
     writeDataFile({ repos: [makeRepo()] })
     const store = await createStore()

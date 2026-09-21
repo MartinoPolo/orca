@@ -38,9 +38,14 @@ export function getFolderWorkspaceAgentLaunchFact(
 
 export function resolveFolderWorkspaceLaunchDraft(
   linkedWorkItem: LinkedWorkItemSummary,
-  note: string
+  note: string,
+  linkedWorkItemPromptTemplate?: string
 ): string | null {
-  const { prompt, draftPrompt } = resolveQuickCreateLinkedWorkItemPrompt(linkedWorkItem, note)
+  const { prompt, draftPrompt } = resolveQuickCreateLinkedWorkItemPrompt(
+    linkedWorkItem,
+    note,
+    linkedWorkItemPromptTemplate
+  )
   return (draftPrompt ?? prompt.trim()) || null
 }
 
@@ -49,6 +54,7 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
   settings?: AgentStartupSettings
   linkedWorkItem: LinkedWorkItemSummary
   note: string
+  linkedWorkItemPromptTemplate?: string
   agentCmdOverrides: Record<string, string> | undefined
   agentArgs?: string | null
   sessionOptions?: Readonly<Record<string, SessionOptionValue>>
@@ -70,7 +76,11 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
   if (args.agentEnv) {
     inputs.agentEnv = args.agentEnv
   }
-  const linkedDraftPrompt = resolveFolderWorkspaceLaunchDraft(args.linkedWorkItem, args.note)
+  const linkedDraftPrompt = resolveFolderWorkspaceLaunchDraft(
+    args.linkedWorkItem,
+    args.note,
+    args.linkedWorkItemPromptTemplate
+  )
   const draftLaunchPlan = linkedDraftPrompt
     ? buildAgentDraftLaunchPlan({
         ...inputs,

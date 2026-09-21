@@ -40,7 +40,7 @@ function buildSummaries(t: Translate = translate): Record<string, SettingOwnersh
       label: t('auto.components.settings.settingOwnership.providerHost', 'Provider host'),
       description: t(
         'auto.components.settings.settingOwnership.agentLaunchDefaults',
-        'Default agent, command overrides, CLI arguments, and launch environment are saved on the selected host.'
+        'Default agent, command overrides, CLI arguments, launch environment, and linked work-item prompt templates are saved on the selected host.'
       )
     },
     terminalQuickCommands: {

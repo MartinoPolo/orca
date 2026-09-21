@@ -27,7 +27,8 @@ import {
 import {
   AgentCommandOverrideInput,
   AgentDefaultArgsInput,
-  AgentDefaultEnvInput
+  AgentDefaultEnvInput,
+  AgentLinkedWorkItemPromptTemplateInput
 } from '../../../agent/launch-settings/AgentLaunchDefaultsEditor'
 import { agentPermissionChoiceLabel } from '../../../agent/launch-settings/agent-permission-choice-label'
 import { AgentPermissionMenu } from '../../../agent/launch-settings/AgentPermissionMenu'
@@ -55,12 +56,15 @@ export type AgentCatalogRowProps = {
   cmdOverride: string | undefined
   argsOverride: string
   envOverride: Record<string, string>
+  linkedWorkItemPromptTemplate?: string
   /** True saves this agent as the default; false goes back to Auto. */
   onSetDefault: (isDefault: boolean) => void
   onSetEnabled: (enabled: boolean) => void
   onSaveOverride: (value: string) => void | Promise<void>
   onSaveArgs: (value: string) => void | Promise<void>
   onSaveEnv: (value: Record<string, string>) => void | Promise<void>
+  /** Present only where this client owns the template (local settings). */
+  onSaveLinkedWorkItemPromptTemplate?: (value: string) => void | Promise<void>
   sessionSourceHome?: AgentSessionSourceHomeControl
   environmentNames?: readonly string[]
   /** Absent for agents without a configurable permission mode on this host. */
@@ -98,11 +102,13 @@ export function AgentCatalogRow({
   cmdOverride,
   argsOverride,
   envOverride,
+  linkedWorkItemPromptTemplate,
   onSetDefault,
   onSetEnabled,
   onSaveOverride,
   onSaveArgs,
   onSaveEnv,
+  onSaveLinkedWorkItemPromptTemplate,
   sessionSourceHome,
   environmentNames,
   environmentEditor,
@@ -357,6 +363,15 @@ export function AgentCatalogRow({
                     defaultEnv={defaultEnv}
                     envOverride={envOverride}
                     onSaveEnv={onSaveEnv}
+                  />
+                </div>
+              )}
+              {onSaveLinkedWorkItemPromptTemplate && (
+                <div className="mt-2">
+                  <AgentLinkedWorkItemPromptTemplateInput
+                    key={`${agentId}:${linkedWorkItemPromptTemplate ?? ''}`}
+                    template={linkedWorkItemPromptTemplate}
+                    onSave={onSaveLinkedWorkItemPromptTemplate}
                   />
                 </div>
               )}

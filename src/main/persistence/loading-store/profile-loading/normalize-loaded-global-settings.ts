@@ -10,6 +10,7 @@ import { normalizeTerminalShortcutPolicy } from '../../../../shared/keybindings/
 import { normalizeAppIconId } from '../../../../shared/app-lifecycle/identity/app-icon'
 import { normalizeTerminalCustomThemes } from '../../../../shared/terminal-themes/terminal-custom-themes'
 import { normalizePluginOwnedSettings } from '../../../../shared/plugins/capabilities/plugin-owned-settings'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
 import {
   hasLegacyMatchTerminalSidebar,
   syncLegacyMatchTerminalSidebar
@@ -189,6 +190,9 @@ export function normalizeLoadedGlobalSettings(
     disabledTuiAgents: migratedDisabledTuiAgents,
     ...migratedAgentYoloDefaults,
     ...migratedAgentPermission,
+    agentLinkedWorkItemPromptTemplates: normalizeAgentLinkedWorkItemPromptTemplates(
+      parsed.settings?.agentLinkedWorkItemPromptTemplates
+    ),
     claudeAgentTeamsDefaultDisabledMigrated: true,
     sshRemoteCliControlExistingHostsMigrated: true,
     agentWorkspaceTrustExistingReposMigrated: true,

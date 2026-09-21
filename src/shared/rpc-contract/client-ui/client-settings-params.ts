@@ -3,6 +3,7 @@ import { isTaskProvider } from '../../work-items/task-providers'
 import type { TaskProvider } from '../../work-items/task-providers'
 import { isTuiAgent } from '../../agent-launch/catalog/tui-agent-config'
 import { normalizeDisabledTuiAgents } from '../../agent-launch/catalog/tui-agent-selection'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../agent-linked-work-item-prompt-templates'
 import {
   normalizeTuiAgentArgsRecord,
   normalizeTuiAgentEnvRecord
@@ -104,6 +105,10 @@ export const SettingsUpdate = z
     agentDefaultArgs: z
       .unknown()
       .transform((value) => normalizeTuiAgentArgsRecord(value))
+      .optional(),
+    agentLinkedWorkItemPromptTemplates: z
+      .unknown()
+      .transform((value) => normalizeAgentLinkedWorkItemPromptTemplates(value))
       .optional(),
     agentDefaultEnv: z
       .unknown()

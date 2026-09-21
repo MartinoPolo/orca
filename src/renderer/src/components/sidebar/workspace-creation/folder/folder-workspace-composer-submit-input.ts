@@ -34,6 +34,7 @@ export type SubmitFolderWorkspaceCreateParams = {
   autoRenameBranchFromWork: boolean | undefined
   settings?: AgentStartupSettings
   agentCmdOverrides: Record<string, string> | undefined
+  linkedWorkItemPromptTemplate?: string
   agentArgs?: string | null
   agentEnv?: Record<string, string>
   terminalWindowsShell?: string | null

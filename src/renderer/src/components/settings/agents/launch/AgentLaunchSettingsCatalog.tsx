@@ -1,3 +1,4 @@
+import { withAgentLinkedWorkItemPromptTemplate } from '../../../../../../shared/agent-linked-work-item-prompt-templates'
 import { useAppStateValue } from '@/store/retained-views/app-state-view'
 import { AgentLaunchChoiceEditor } from '@/components/agent/launch-settings/AgentLaunchChoiceEditor'
 import { agentChatPermissionModes } from '../../../../../../shared/agent-launch/permissions/agent-chat-permission-support'
@@ -295,6 +296,19 @@ export function AgentLaunchSettingsCatalog({
         ? saveUserArgs(agent.id, agent.label, value)
         : mutate({ type: 'arguments', agent: agent.id, value }),
     onSaveEnv: (value) => local?.saveEnvironment(agent.id, value),
+    ...(local
+      ? {
+          linkedWorkItemPromptTemplate: local.settings.agentLinkedWorkItemPromptTemplates?.[agent.id],
+          onSaveLinkedWorkItemPromptTemplate: (value: string) =>
+            local.updateSettings({
+              agentLinkedWorkItemPromptTemplates: withAgentLinkedWorkItemPromptTemplate(
+                local.settings.agentLinkedWorkItemPromptTemplates,
+                agent.id,
+                value
+              )
+            })
+        }
+      : {}),
     ...(!local
       ? {
           environmentNames: settings.environmentNames[agent.id] ?? [],

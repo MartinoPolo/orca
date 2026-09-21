@@ -157,6 +157,9 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
         if (isSubmissionCancelled()) {
           return
         }
+        const linkedWorkItemPromptTemplate = agent
+          ? settings?.agentLinkedWorkItemPromptTemplates?.[agent]
+          : undefined
         const folderWorkspaceCreated = await submitFolderWorkspaceCreate({
           projectGroup: selectedProjectGroup,
           setupSupported,
@@ -174,6 +177,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
           settings: settings ?? undefined,
           agentCmdOverrides: settings?.agentCmdOverrides,
+          linkedWorkItemPromptTemplate,
           terminalWindowsShell: settings?.terminalWindowsShell,
           isRemote: folderTargetIsRemote,
           launchSource: telemetrySource === 'onboarding' ? 'onboarding' : 'new_workspace_composer',

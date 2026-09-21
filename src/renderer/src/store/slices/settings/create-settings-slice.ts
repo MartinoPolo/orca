@@ -22,6 +22,7 @@ import { sanitizeAgentLaunchProfileUpdates } from '../../../../../shared/agent-l
 import { bumpProviderRuntimeSessionGeneration } from '@/runtime/hosts/observations/provider-runtime-context'
 import { normalizeUiLanguage } from '../../../../../shared/ui-language'
 import { normalizeDesktopTerminalScrollbackRows } from '../../../../../shared/terminal/replay/terminal-scrollback-policy'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../../shared/agent-linked-work-item-prompt-templates'
 import { translate } from '@/i18n/i18n'
 import {
   normalizeMobilePairingCustomAddress,
@@ -107,6 +108,10 @@ function normalizeSettingsUpdates(
     sanitizedUpdates.disabledTuiAgents = normalizeDisabledTuiAgents(updates.disabledTuiAgents)
   }
   sanitizeAgentLaunchProfileUpdates(sanitizedUpdates, updates)
+  if ('agentLinkedWorkItemPromptTemplates' in updates) {
+    sanitizedUpdates.agentLinkedWorkItemPromptTemplates =
+      normalizeAgentLinkedWorkItemPromptTemplates(updates.agentLinkedWorkItemPromptTemplates)
+  }
   if ('uiLanguage' in updates) {
     sanitizedUpdates.uiLanguage = normalizeUiLanguage(updates.uiLanguage)
   }

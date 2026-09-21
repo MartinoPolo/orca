@@ -15,7 +15,8 @@ export function agentCatalogRowInitiallyExpanded(row: AgentCatalogRowProps): boo
         agentArgs: row.argsOverride,
         agentEnv: row.envOverride
       }) === 'mixed') ||
-    envSummary !== stringifyAgentDefaultEnvDraft(row.defaultEnv)
+    envSummary !== stringifyAgentDefaultEnvDraft(row.defaultEnv) ||
+    Boolean(row.linkedWorkItemPromptTemplate)
   )
 }
 

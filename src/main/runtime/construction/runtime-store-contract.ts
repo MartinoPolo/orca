@@ -144,6 +144,7 @@ export type RuntimeStore = {
     agentCmdOverrides?: GlobalSettings['agentCmdOverrides']
     agentLaunchChoices?: GlobalSettings['agentLaunchChoices']
     agentDefaultArgs?: GlobalSettings['agentDefaultArgs']
+    agentLinkedWorkItemPromptTemplates?: GlobalSettings['agentLinkedWorkItemPromptTemplates']
     agentDefaultEnv?: GlobalSettings['agentDefaultEnv']
     agentPermissionDefault?: GlobalSettings['agentPermissionDefault']
     agentPermissionOverrides?: GlobalSettings['agentPermissionOverrides']

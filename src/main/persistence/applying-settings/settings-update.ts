@@ -13,6 +13,7 @@ import { sanitizeAgentLaunchProfileUpdates } from '../../../shared/agent-launch/
 import { normalizeTerminalQuickCommands } from '../../../shared/terminal/quick-commands/terminal-quick-commands'
 import { assertTerminalQuickCommandsStorable } from '../../../shared/terminal/quick-commands/terminal-quick-command-prompt-limit'
 import { normalizeTerminalCustomThemes } from '../../../shared/terminal-themes/terminal-custom-themes'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../shared/agent-linked-work-item-prompt-templates'
 import { normalizePluginOwnedSettings } from '../../../shared/plugins/capabilities/plugin-owned-settings'
 import { legacyMatchTerminalSidebarWrite } from '../../../shared/plugin-theme-settings'
 import { normalizeTerminalDefaultShell } from '../../../shared/shell/launch/terminal-default-shell'
@@ -119,6 +120,10 @@ export function updateSettings(
     )
   }
   sanitizeAgentLaunchProfileUpdates(sanitizedUpdates, updates)
+  if ('agentLinkedWorkItemPromptTemplates' in updates) {
+    sanitizedUpdates.agentLinkedWorkItemPromptTemplates =
+      normalizeAgentLinkedWorkItemPromptTemplates(updates.agentLinkedWorkItemPromptTemplates)
+  }
   if ('nativeChatPermissionMode' in updates || 'agentPermissionDefault' in updates) {
     Object.assign(
       sanitizedUpdates,

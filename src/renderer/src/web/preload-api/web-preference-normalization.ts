@@ -28,6 +28,7 @@ import type {
   PairedUiState,
   PairingLocalUiField
 } from '../../../../shared/remote-runtime/pairing/pairing-local-ui-fields'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
 import type { PersistedUIState } from '../../../../shared/persisted-ui-state-types'
 import { normalizeStatusBarUsageMode } from '../../../../shared/status-bar/status-bar-usage-mode'
 import { normalizeStatusBarUsageFormat } from '../../../../shared/status-bar/status-bar-usage-format'
@@ -279,6 +280,9 @@ export function mergeSettings(
           )
         }
       : {}),
+    agentLinkedWorkItemPromptTemplates: normalizeAgentLinkedWorkItemPromptTemplates(
+      updates.agentLinkedWorkItemPromptTemplates ?? base.agentLinkedWorkItemPromptTemplates
+    ),
     agentDefaultEnv: normalizeTuiAgentEnvRecord(updates.agentDefaultEnv ?? base.agentDefaultEnv),
     voice: {
       ...(base.voice ?? defaults.voice),
