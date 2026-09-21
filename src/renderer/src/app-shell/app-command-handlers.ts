@@ -6,6 +6,7 @@ import { showTerminalShortcutCaptureNotification } from '@/lib/terminal-shortcut
 import { shouldShowWorktreeHistoryControls } from '../lib/titlebar-worktree-history-controls'
 import { TOGGLE_WORKSPACE_BOARD_EVENT } from '../components/sidebar/useWorkspaceBoardPanel'
 import { requestTerminalTabRename } from '../components/tab-bar/terminal-tab-rename-request'
+import { moveActiveTabInDirection } from '../components/tab-bar/tab-move-to-pane-column'
 import {
   deleteHoveredWorkspaceImmediately,
   resolveHoveredWorkspaceDeleteTarget
@@ -13,12 +14,15 @@ import {
 import { useAppStore } from '../store'
 import type { usePluginCommands } from '@/store/plugin-panels'
 import { isGitRepoKind } from '../../../shared/repo-kind'
-import type {
-  KeybindingActionId,
-  KeybindingContext,
-  PhysicalModifierToken
+import {
+  TAB_MOVE_ACTIONS,
+  type KeybindingActionId,
+  type KeybindingContext,
+  type PhysicalModifierToken,
+  type TabMoveDirection
 } from '../../../shared/keybindings'
 import { shortcutPlatform } from './app-window-chrome'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
@@ -135,6 +139,17 @@ export function createAppCommandHandlers(
     run()
     return true
   }
+  const moveActiveTab = (actionId: KeybindingActionId, direction: TabMoveDirection): boolean => {
+    const worktreeId = floatingWorkspaceFocused
+      ? FLOATING_TERMINAL_WORKTREE_ID
+      : workspaceChromeActive
+        ? activeWorktreeId
+        : null
+    if (!worktreeId || !moveActiveTabInDirection(worktreeId, direction)) {
+      return false
+    }
+    return claim(actionId, () => {})
+  }
   const revealRightSidebarTab = (
     actionId: KeybindingActionId,
     tab: Parameters<AppShortcutActions['setRightSidebarTab']>[0]
@@ -202,6 +217,9 @@ export function createAppCommandHandlers(
         return claim('tab.rename', () => requestTerminalTabRename(tabId))
       }
     ],
+    ...TAB_MOVE_ACTIONS.map(
+      ({ actionId, direction }) => [actionId, () => moveActiveTab(actionId, direction)] as const
+    ),
     [
       'workspace.rename',
       () => {

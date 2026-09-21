@@ -1,5 +1,6 @@
 import type { KeybindingDefinition } from './types'
 import { platformBindings } from './definitions-support'
+import { TAB_MOVE_KEYBINDING_DEFINITIONS } from './definitions-tab-move'
 
 export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
   {
@@ -64,7 +65,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'worktree', 'history', 'forward'],
-    defaultBindings: platformBindings(['Mod+Alt+ArrowRight']),
+    defaultBindings: platformBindings([]),
     allowInTerminal: true
   },
   {
@@ -205,6 +206,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Ctrl+Tab']),
     allowInTerminal: true
   },
+  ...TAB_MOVE_KEYBINDING_DEFINITIONS,
   {
     id: 'tab.nextTerminal',
     title: 'Next terminal tab',

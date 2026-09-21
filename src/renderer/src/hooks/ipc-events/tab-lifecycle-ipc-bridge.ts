@@ -14,6 +14,7 @@ import {
   dispatchFloatingWorkspaceGuestClose,
   dispatchFloatingWorkspaceGuestSelectIndex
 } from '@/lib/floating-workspace-guest-bridge'
+import { moveBrowserTabInDirection } from '@/components/tab-bar/tab-move-to-pane-column'
 
 import { useAppStore } from '../../store'
 function getWorktreeRuntimeEnvironmentId(worktreeId: string | null | undefined): string | null {
@@ -94,6 +95,11 @@ export function registerTabLifecycleIpcBridge(unsubs: (() => void)[]): void {
         return
       }
       dispatchFloatingWorkspaceGuestClose({ sourceId: workspaceId })
+    })
+  )
+  unsubs.push(
+    window.api.ui.onMoveTabFromBrowserGuest(({ direction, sourceId }) => {
+      moveBrowserTabInDirection(sourceId, direction)
     })
   )
   unsubs.push(

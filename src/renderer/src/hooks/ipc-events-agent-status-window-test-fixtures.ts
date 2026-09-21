@@ -77,6 +77,7 @@ export function buildWindowApi(args: {
         onNewTerminalTab: () => () => {},
         onCloseActiveTab: () => () => {},
         onCloseFloatingItem: () => () => {},
+        onMoveTabFromBrowserGuest: () => () => {},
         onSelectFloatingIndex: () => () => {},
         onSwitchTab: () => () => {},
         onSwitchTabAcrossAllTypes: () => () => {},

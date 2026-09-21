@@ -194,6 +194,7 @@ describe('useIpcEvents browser tab create routing', () => {
           onNewTerminalTab: () => () => {},
           onCloseActiveTab: () => () => {},
           onCloseFloatingItem: () => () => {},
+          onMoveTabFromBrowserGuest: () => () => {},
           onSelectFloatingIndex: () => () => {},
           onSwitchTab: () => () => {},
           onSwitchTabAcrossAllTypes: () => () => {},

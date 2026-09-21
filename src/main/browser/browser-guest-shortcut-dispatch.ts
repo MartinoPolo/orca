@@ -2,7 +2,11 @@ import {
   resolveWindowShortcutAction,
   type WindowShortcutInput
 } from '../../shared/window-shortcut-policy'
-import { keybindingMatchesAction, type KeybindingOverrides } from '../../shared/keybindings'
+import {
+  keybindingMatchesAction,
+  TAB_MOVE_ACTIONS,
+  type KeybindingOverrides
+} from '../../shared/keybindings'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../shared/constants'
 import type { BrowserPageZoomDirection } from '../../shared/browser-page-zoom'
 import type { BrowserFindTarget } from '../../shared/browser-find-source'
@@ -55,6 +59,19 @@ export function forwardGuestShortcutInput(
     }
     return false
   }
+  const tabMove = TAB_MOVE_ACTIONS.find(({ actionId }) =>
+    keybindingMatchesAction(actionId, input, process.platform, keybindings)
+  )
+  if (tabMove) {
+    event.preventDefault()
+    const renderer = resolveRenderer(browserTabId)
+    renderer?.send('ui:moveTabFromBrowserGuest', {
+      direction: tabMove.direction,
+      sourceId: browserTabId
+    })
+    return true
+  }
+
   if (action?.type === 'worktreeHistoryNavigate') {
     // Why: preventDefault unconditionally so the guest never handles Cmd+Alt+Arrow itself, even when the renderer can't be resolved.
     event.preventDefault()

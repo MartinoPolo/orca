@@ -137,6 +137,7 @@ export function buildTerminalCreateWindow(args: {
         },
         onCloseActiveTab: () => () => {},
         onCloseFloatingItem: () => () => {},
+        onMoveTabFromBrowserGuest: () => () => {},
         onSelectFloatingIndex: () => () => {},
         onSwitchTab: () => () => {},
         onSwitchTabAcrossAllTypes: () => () => {},

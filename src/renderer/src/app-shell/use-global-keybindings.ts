@@ -22,6 +22,7 @@ import { usePluginCommands } from '@/store/plugin-panels'
 import { useAppStore } from '../store'
 import {
   keybindingMatchesAction,
+  TAB_MOVE_ACTIONS,
   type KeybindingActionId,
   type KeybindingMatchOptions
 } from '../../../shared/keybindings'
@@ -41,6 +42,15 @@ import {
 import type { AppChromeLayout } from './use-app-chrome-layout'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
 
+export type GlobalKeybindingsLayout = Pick<
+  AppChromeLayout,
+  'activeView' | 'activeWorktreeId' | 'creationLayoutActive' | 'workspaceChromeActive'
+>
+export type GlobalKeybindingsFloatingWorkspace = Pick<
+  FloatingWorkspacePanelState,
+  'enabled' | 'open' | 'visibleTabCount' | 'openMaximized' | 'setOpenWithFocus'
+>
+
 /**
  * Registers the window-level shortcut listeners and the app command dispatcher.
  *
@@ -48,8 +58,8 @@ import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel
  * current shortcut state each key event through a ref.
  */
 export function useGlobalKeybindings(args: {
-  layout: AppChromeLayout
-  floatingWorkspace: FloatingWorkspacePanelState
+  layout: GlobalKeybindingsLayout
+  floatingWorkspace: GlobalKeybindingsFloatingWorkspace
 }): void {
   const { layout, floatingWorkspace } = args
   const actions = useAppShortcutActions()
@@ -187,13 +197,15 @@ export function useGlobalKeybindings(args: {
         return
       }
 
-      // Skip editable surfaces so TipTap's Cmd+B bold works; this renderer-side fallback covers the blur→press IPC race (docs/markdown-cmd-b-bold-design.md).
-      if (isEditableTarget(input.target)) {
+      const matchedTabMoveAction = TAB_MOVE_ACTIONS.find(({ actionId }) => matchShortcut(actionId))
+
+      // Skip editable surfaces so editor commands remain native, except for an explicitly matched workspace tab move.
+      if (isEditableTarget(input.target) && !matchedTabMoveAction) {
         return
       }
 
-      // Let floating-terminal SSH/tmux control chords reach the terminal (xterm's helper textarea isn't a generic editable target).
-      if (isFloatingWorkspaceTerminalInputTarget(input.target)) {
+      // Let floating-terminal SSH/tmux control chords reach the terminal unless the user bound this workspace tab operation.
+      if (isFloatingWorkspaceTerminalInputTarget(input.target) && !matchedTabMoveAction) {
         return
       }
 

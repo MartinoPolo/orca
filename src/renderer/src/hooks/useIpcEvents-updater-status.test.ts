@@ -140,6 +140,7 @@ describe('useIpcEvents updater integration', () => {
           onNewTerminalTab: () => () => {},
           onCloseActiveTab: () => () => {},
           onCloseFloatingItem: () => () => {},
+          onMoveTabFromBrowserGuest: () => () => {},
           onSelectFloatingIndex: () => () => {},
           onSwitchTab: () => () => {},
           onSwitchTabAcrossAllTypes: () => () => {},

@@ -240,6 +240,7 @@ export async function useIpcEventsForCloseRouting({
           }
           return () => {}
         },
+        onMoveTabFromBrowserGuest: () => () => {},
         onSelectFloatingIndex: (listener: SelectFloatingIndexListener) => {
           if (selectFloatingIndexListenerRef) {
             selectFloatingIndexListenerRef.current = listener
