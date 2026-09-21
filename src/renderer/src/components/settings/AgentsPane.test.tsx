@@ -517,6 +517,12 @@ describe('AgentsPane', () => {
     expect(matchesSettingsSearch('approve for me', getAgentsPaneSearchEntries())).toBe(true)
   })
 
+  it('includes linked work-item prompt template search metadata', () => {
+    expect(matchesSettingsSearch('linked work item', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('prompt template', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('artifact url', getAgentsPaneSearchEntries())).toBe(true)
+  })
+
   it.each([
     ['manual', undefined, 'How much agents can do without asking you.'],
     ['auto', 'yolo', 'Supported agents</button> approve safe actions on their own.'],

@@ -59,6 +59,7 @@ type SubmitFolderWorkspaceCreateParams = {
   launchChoice?: AgentLaunchChoice
   autoRenameBranchFromWork: boolean | undefined
   agentCmdOverrides: Record<string, string> | undefined
+  linkedWorkItemPromptTemplate?: string
   agentArgs?: string | null
   agentEnv?: Record<string, string>
   terminalWindowsShell?: string | null
@@ -80,6 +81,7 @@ export async function submitFolderWorkspaceCreate({
   launchChoice,
   autoRenameBranchFromWork,
   agentCmdOverrides,
+  linkedWorkItemPromptTemplate,
   agentArgs,
   agentEnv,
   terminalWindowsShell,
@@ -118,6 +120,7 @@ export async function submitFolderWorkspaceCreate({
           agent: quickAgent,
           linkedWorkItem,
           note,
+          linkedWorkItemPromptTemplate,
           agentCmdOverrides,
           agentArgs,
           agentEnv,
@@ -140,7 +143,9 @@ export async function submitFolderWorkspaceCreate({
         : null
   // Argv prefill embeds the draft in launchCommand, so draftPrompt alone cannot detect it.
   const launchDraftPrompt =
-    quickAgent && linkedWorkItem ? resolveFolderWorkspaceLaunchDraft(linkedWorkItem, note) : null
+    quickAgent && linkedWorkItem
+      ? resolveFolderWorkspaceLaunchDraft(linkedWorkItem, note, linkedWorkItemPromptTemplate)
+      : null
   const launchRequest = quickAgent
     ? {
         requestId: newAgentLaunchRequestId(),

@@ -5,6 +5,7 @@ import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-ch
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { normalizeDisabledTuiAgents } from '../../../shared/tui-agent-selection'
 import { normalizeNativeChatProviderChoices } from '../../../shared/native-chat/native-chat-providers'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../shared/agent-linked-work-item-prompt-templates'
 import { resolveNestedWorkerMaxDepth } from '../../../shared/nested-worker-depth'
 import { resolveOrchestrationHeartbeatInterval } from '../../../shared/orchestration-heartbeat'
 import { sanitizeAgentLaunchProfileUpdates } from '../../../shared/tui-agent-launch-defaults'
@@ -109,6 +110,10 @@ export function updateSettings(
     }
   }
   sanitizeAgentLaunchProfileUpdates(sanitizedUpdates, updates)
+  if ('agentLinkedWorkItemPromptTemplates' in updates) {
+    sanitizedUpdates.agentLinkedWorkItemPromptTemplates =
+      normalizeAgentLinkedWorkItemPromptTemplates(updates.agentLinkedWorkItemPromptTemplates)
+  }
   if ('nativeChatPermissionMode' in updates || 'agentPermissionDefault' in updates) {
     Object.assign(
       sanitizedUpdates,

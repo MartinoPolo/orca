@@ -7566,7 +7566,7 @@
           "02e0143be5": "Installed",
           "92033495ff": "Auto",
           "385212c7a1": "Default Agent",
-          "f9f127d664": "Override the binary path or name, and edit the default launch arguments or environment for this agent.",
+          "f9f127d664": "Override the binary path or name, and edit launch defaults for this agent.",
           "f95b5c79b8": "Install",
           "fe4d630c94": "Docs",
           "8dc0192e48": "Disabled",
@@ -7589,7 +7589,9 @@
           "codexSessionSourceInfo": "About importing Codex history",
           "codexSessionSourceTooltip": "Orca runs Codex in an isolated home. Point this at your existing Codex home to import that session history. Empty uses ~/.codex.",
           "storedDefaultUndetected": "Saved as your default, but not detected right now",
-          "noAgentsDetected": "No agents detected. If one is installed, the probe may have timed out."
+          "noAgentsDetected": "No agents detected. If one is installed, the probe may have timed out.",
+          "linkedWorkItemPromptTemplate": "Linked work-item prompt template",
+          "linkedWorkItemPromptTemplateDescription": "Use {{artifact_url}} for the linked URL. A template without it is used literally. Leave blank to restore the default linked work-item draft."
         },
         "AppIconSelector": {
           "d5a112dc9b": "Next icon",
@@ -11509,7 +11511,7 @@
           "sourceControlAiDefaults": "Recipes, prompts, and hosted-review defaults are shared by this client; model choices and discovery stay scoped to the host where the agent runs.",
           "projectOnThisHost": "Project on this host",
           "repositorySourceControlAi": "These overrides apply to this project setup and inherit the client Source Control AI defaults until customized.",
-          "agentLaunchDefaults": "Default agent, command overrides, CLI arguments, and launch environment are saved on the selected host.",
+          "agentLaunchDefaults": "Default agent, command overrides, CLI arguments, launch environment, and linked work-item prompt templates are saved on the selected host.",
           "hostOverride": "Host override",
           "workspaceDirectory": "The client default is inherited until a host needs its own worktree directory.",
           "providerHost": "Provider host",

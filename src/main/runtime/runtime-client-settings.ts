@@ -71,6 +71,7 @@ export class RuntimeClientSettingsController {
       disabledTuiAgents: settings.disabledTuiAgents ?? [],
       agentCmdOverrides: settings.agentCmdOverrides ?? {},
       agentDefaultArgs: launchProfile.agentDefaultArgs,
+      agentLinkedWorkItemPromptTemplates: settings.agentLinkedWorkItemPromptTemplates ?? {},
       agentDefaultEnv: launchProfile.agentDefaultEnv,
       agentStatusHooksEnabled: settings.agentStatusHooksEnabled !== false,
       // Always present, so a client can tell this host accepts the setting (older hosts omit it).

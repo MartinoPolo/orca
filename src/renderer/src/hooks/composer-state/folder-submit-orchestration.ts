@@ -107,6 +107,9 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           useAppStore.getState(),
           selectedProjectGroup
         )
+        const linkedWorkItemPromptTemplate = agent
+          ? settings?.agentLinkedWorkItemPromptTemplates?.[agent]
+          : undefined
         const folderWorkspaceCreated = await submitFolderWorkspaceCreate({
           projectGroup: selectedProjectGroup,
           name: smartGitHubMetadata?.workspaceName ?? name,
@@ -118,6 +121,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           launchChoice: options?.launchChoice,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
           agentCmdOverrides: settings?.agentCmdOverrides,
+          linkedWorkItemPromptTemplate,
           agentArgs: agent ? resolveTuiAgentLaunchArgs(agent, settings) : undefined,
           agentEnv: agent
             ? resolveTuiAgentLaunchEnv(
