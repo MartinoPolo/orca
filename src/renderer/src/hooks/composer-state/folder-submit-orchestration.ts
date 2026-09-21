@@ -107,9 +107,16 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
         if (isSubmissionCancelled()) {
           return
         }
+        const linkedWorkItemPromptTemplate = agent
+          ? settings?.agentLinkedWorkItemPromptTemplates?.[agent]
+          : undefined
         const folderLaunchDraftText =
           agent && submitLinkedWorkItem
-            ? resolveFolderWorkspaceLaunchDraft(submitLinkedWorkItem, note)
+            ? resolveFolderWorkspaceLaunchDraft(
+                submitLinkedWorkItem,
+                note,
+                linkedWorkItemPromptTemplate
+              )
             : null
         const folderWorkspaceCreated = await submitFolderWorkspaceCreate({
           projectGroup: selectedProjectGroup,
@@ -121,6 +128,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           quickAgent: agent,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
           agentCmdOverrides: settings?.agentCmdOverrides,
+          linkedWorkItemPromptTemplate,
           agentArgs: agent
             ? resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs)
             : undefined,

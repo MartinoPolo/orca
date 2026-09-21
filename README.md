@@ -172,6 +172,8 @@ Agents drive Orca too — script every workflow with `orca worktree create`, `sn
 
 Works with **any CLI agent** — if it runs in a terminal, it runs in Orca.
 
+In **Settings → Agents**, each installed agent can define a linked work-item prompt template. Use `{{artifact_url}}` to insert the GitHub, GitLab, or Linear URL—for example, `/skill:mpx-execute {{artifact_url}}`. Templates without the placeholder are used literally; leave the field blank for Orca's default linked-item draft.
+
 <p>
   <a href="https://docs.anthropic.com/claude/docs/claude-code"><kbd><img src="docs/assets/claude-logo.svg" alt="Claude Code logo" width="16" valign="middle" /> Claude Code</kbd></a> &nbsp;
   <a href="https://github.com/openai/codex"><kbd><img src="https://www.google.com/s2/favicons?domain=openai.com&sz=64" alt="Codex logo" width="16" valign="middle" /> Codex</kbd></a> &nbsp;

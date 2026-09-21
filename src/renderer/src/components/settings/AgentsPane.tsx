@@ -65,6 +65,20 @@ type AgentsPaneProps = {
 
 const enqueueAgentAvailabilityUpdate = createAgentAvailabilityUpdateQueue()
 
+export function buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(
+  templates: GlobalSettings['agentLinkedWorkItemPromptTemplates'],
+  agent: TuiAgent,
+  value: string
+): Pick<GlobalSettings, 'agentLinkedWorkItemPromptTemplates'> {
+  const next = { ...templates }
+  if (value) {
+    next[agent] = value
+  } else {
+    delete next[agent]
+  }
+  return { agentLinkedWorkItemPromptTemplates: next }
+}
+
 export function AgentPermissionsSetting({
   mode,
   onChange
@@ -177,6 +191,7 @@ export function AgentsPane({
   const cmdOverrides = settings.agentCmdOverrides ?? {}
   const agentDefaultArgs = settings.agentDefaultArgs ?? {}
   const agentDefaultEnv = settings.agentDefaultEnv ?? {}
+  const linkedWorkItemPromptTemplates = settings.agentLinkedWorkItemPromptTemplates ?? {}
   const disabledAgents = normalizeDisabledTuiAgents(settings.disabledTuiAgents)
   const detectedAgents =
     detectedIds === null ? [] : catalog.filter((agent) => detectedIds.has(agent.id))
@@ -212,6 +227,7 @@ export function AgentsPane({
     cmdOverride: isDetected ? cmdOverrides[agent.id] : undefined,
     argsOverride: resolveTuiAgentLaunchArgs(agent.id, agentDefaultArgs),
     envOverride: resolveTuiAgentLaunchEnv(agent.id, agentDefaultEnv),
+    linkedWorkItemPromptTemplate: linkedWorkItemPromptTemplates[agent.id],
     onSetDefault: isDetected ? () => updateSettings({ defaultTuiAgent: agent.id }) : () => {},
     onSetEnabled: (enabled) => setAgentEnabled(agent.id, enabled),
     onSaveOverride: isDetected
@@ -229,6 +245,14 @@ export function AgentsPane({
       updateSettings({ agentDefaultArgs: { ...agentDefaultArgs, [agent.id]: value } }),
     onSaveEnv: (value) =>
       updateSettings({ agentDefaultEnv: { ...agentDefaultEnv, [agent.id]: value } }),
+    onSaveLinkedWorkItemPromptTemplate: (value) =>
+      updateSettings(
+        buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(
+          linkedWorkItemPromptTemplates,
+          agent.id,
+          value
+        )
+      ),
     sessionSourceHome:
       isDetected && agent.id === 'codex'
         ? buildCodexSessionSourceHomeControl(settings, updateSettings)

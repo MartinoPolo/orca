@@ -12,6 +12,7 @@ import type {
   FeatureInteractionState
 } from '../../../../shared/feature-interactions'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
 import type { PairedUiState, PairingLocalUiField } from '../../../../shared/pairing-local-ui-fields'
 import type { PersistedUIState } from '../../../../shared/persisted-ui-state-types'
 import { normalizeStatusBarUsageMode } from '../../../../shared/status-bar-usage-mode'
@@ -151,6 +152,9 @@ export function mergeSettings(
     ),
     agentDefaultArgs: normalizeTuiAgentArgsRecord(
       updates.agentDefaultArgs ?? base.agentDefaultArgs
+    ),
+    agentLinkedWorkItemPromptTemplates: normalizeAgentLinkedWorkItemPromptTemplates(
+      updates.agentLinkedWorkItemPromptTemplates ?? base.agentLinkedWorkItemPromptTemplates
     ),
     agentDefaultEnv: normalizeTuiAgentEnvRecord(updates.agentDefaultEnv ?? base.agentDefaultEnv),
     voice: {

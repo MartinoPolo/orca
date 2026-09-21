@@ -16,6 +16,7 @@ import { normalizeOpenInApplications } from '../../../../shared/open-in-applicat
 import { createSettingsSearchState, type SettingsSearchState } from './settings-search-state'
 import { isRuntimeCatalogListingStale } from './runtime-status-hydration'
 import { normalizeDisabledTuiAgents } from '../../../../shared/tui-agent-selection'
+import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
 import {
   normalizeTuiAgentArgsRecord,
   normalizeTuiAgentEnvRecord
@@ -106,6 +107,10 @@ function normalizeSettingsUpdates(
   if ('agentDefaultArgs' in updates) {
     sanitizedUpdates.agentDefaultArgs = normalizeTuiAgentArgsRecord(updates.agentDefaultArgs)
     sanitizedUpdates.agentYoloDefaultsMigrated = true
+  }
+  if ('agentLinkedWorkItemPromptTemplates' in updates) {
+    sanitizedUpdates.agentLinkedWorkItemPromptTemplates =
+      normalizeAgentLinkedWorkItemPromptTemplates(updates.agentLinkedWorkItemPromptTemplates)
   }
   if ('agentDefaultEnv' in updates) {
     sanitizedUpdates.agentDefaultEnv = normalizeTuiAgentEnvRecord(updates.agentDefaultEnv)
