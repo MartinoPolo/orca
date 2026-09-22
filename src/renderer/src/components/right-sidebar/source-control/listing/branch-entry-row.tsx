@@ -10,7 +10,7 @@ import { DiffLineCounts } from './diff-line-counts'
 import { SourceControlEntryContextMenu } from './entry-context-menu'
 import { toPermanentSourceControlRowOpenEvent, type SourceControlRowOpenEvent } from './split-open'
 import { SOURCE_CONTROL_TREE_FILE_PADDING_PX, SOURCE_CONTROL_TREE_INDENT_PX } from './row-layout'
-import { STATUS_COLORS, STATUS_LABELS } from '../../status-display'
+import { STATUS_LABELS } from '../../status-display'
 
 export function BranchEntryRow({
   entry,
@@ -48,7 +48,7 @@ export function BranchEntryRow({
       onRevealInExplorer={onRevealInExplorer}
     >
       <div
-        className="group flex cursor-pointer items-center gap-1 pr-3 py-1 transition-colors hover:bg-accent/40"
+        className="group flex cursor-pointer items-center gap-1 pr-3 py-1 text-muted-foreground transition-colors hover:bg-accent/40"
         style={{
           paddingLeft: `${depth * SOURCE_CONTROL_TREE_INDENT_PX + SOURCE_CONTROL_TREE_FILE_PADDING_PX}px`
         }}
@@ -63,11 +63,10 @@ export function BranchEntryRow({
         onDoubleClick={(e) => onOpen(toPermanentSourceControlRowOpenEvent(e))}
       >
         {React.createElement(FileIcon, {
-          className: 'size-3.5 shrink-0',
-          style: { color: STATUS_COLORS[entry.status] }
+          className: 'size-3.5 shrink-0'
         })}
         <span className="min-w-0 flex-1 truncate text-xs">
-          <span className="text-foreground">{fileName}</span>
+          <span>{fileName}</span>
           {showPathHint && dirPath && (
             <span className="ml-1.5 text-[11px] text-muted-foreground">{dirPath}</span>
           )}
@@ -85,11 +84,8 @@ export function BranchEntryRow({
             <span className="tabular-nums">{commentCount}</span>
           </span>
         )}
-        <DiffLineCounts added={entry.added} removed={entry.removed} />
-        <span
-          className="w-4 shrink-0 text-center text-[10px] font-bold"
-          style={{ color: STATUS_COLORS[entry.status] }}
-        >
+        <DiffLineCounts added={entry.added} removed={entry.removed} muted />
+        <span className="w-4 shrink-0 text-center text-[10px] font-bold">
           {STATUS_LABELS[entry.status]}
         </span>
       </div>

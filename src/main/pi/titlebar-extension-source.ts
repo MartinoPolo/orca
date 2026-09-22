@@ -1,5 +1,5 @@
 import { getPiTitlebarLifetimeSourceLines } from './titlebar-extension-lifetime-source'
-import { getPiTitlebarPromptSourceLines } from './titlebar-extension-prompt-source'
+import { getPiTitlebarPromptHandlersSourceLines } from './titlebar-prompt-handlers-source'
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 import { getPiOmpRuntimeDetectionSourceLines } from './agent-status-runtime-detection-source'
 import { getPiTerminalOwnerContextSourceLines } from './terminal-owner-context-source'
@@ -244,7 +244,7 @@ export function getPiTitlebarExtensionSource(kind: PiAgentKind = 'pi'): string {
     "    if (typeof pendingAgentEndCheck.unref === 'function') pendingAgentEndCheck.unref()",
     '  })',
     '',
-    ...getPiTitlebarPromptSourceLines(kind),
+    ...getPiTitlebarPromptHandlersSourceLines(kind),
     "  on('auto_compaction_start', async (event, ctx) => {",
     "    if (event?.reason !== 'idle') return",
     '    // Why: the idle worker can fire against a turn that just started, and reason alone does',
