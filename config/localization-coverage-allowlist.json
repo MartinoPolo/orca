@@ -21,6 +21,13 @@
     "count": 1
   },
   {
+    "filePath": "src/renderer/src/components/settings/AgentLaunchDefaultsEditor.tsx",
+    "kind": "jsx-attribute:placeholder",
+    "text": "/skill:mpx-execute",
+    "dynamic": true,
+    "count": 1
+  },
+  {
     "filePath": "src/renderer/src/components/settings/appearance-search.ts",
     "kind": "object-property:keywords",
     "text": "语言",
