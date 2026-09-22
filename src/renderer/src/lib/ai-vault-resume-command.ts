@@ -10,11 +10,11 @@ import {
   type SleepingAgentLaunchConfig
 } from '../../../shared/agent-session-resume'
 import { normalizeAiVaultResumeFilePath } from '../../../shared/ai-vault-resume-path'
+import { parseWslUncPath } from '../../../shared/wsl-paths'
 import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
 } from '../../../shared/tui-agent-launch-defaults'
-import { parseWslUncPath } from '../../../shared/wsl-paths'
 import type { AgentStartupShell } from '../../../shared/tui-agent-startup-shell'
 import type { AppState } from '@/store/types'
 import type { AiVaultSessionDragPayload } from '@/lib/ai-vault-session-drag'
@@ -24,9 +24,15 @@ import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { LOCAL_EXECUTION_HOST_ID, parseExecutionHostId } from '../../../shared/execution-host'
 import {
+  getAiVaultResumeCodexHome,
   getAiVaultResumeWorkspacePath,
   resolveAiVaultResumeStartupShell
 } from '@/lib/ai-vault-resume-shell'
+import { PiResumeProfileError } from '@/lib/pi-profile-resume-provenance'
+import { resolveAiVaultPiLaunchInputs } from '@/lib/ai-vault-pi-profile-resume'
+import { getAiVaultAgentProviderSession } from '@/lib/ai-vault-provider-session'
+
+export { getAiVaultAgentProviderSession } from '@/lib/ai-vault-provider-session'
 
 type AiVaultResumeCommandSession = Pick<
   AiVaultSession,
@@ -43,6 +49,7 @@ export type AiVaultResumeStartup = {
   envToDelete?: string[]
   launchConfig?: SleepingAgentLaunchConfig
   providerSession?: AgentProviderSessionMetadata
+  blockedReason?: string
 }
 
 type AiVaultResumeWorktreeArgs = {
@@ -78,7 +85,14 @@ export function buildAiVaultResumeCopyCommandForWorktree(args: AiVaultResumeWork
 export function buildAiVaultResumeStartupForWorktree(
   args: AiVaultResumeWorktreeArgs
 ): AiVaultResumeStartup {
-  return buildAiVaultResumeForWorktree(args, false)
+  try {
+    return buildAiVaultResumeForWorktree(args, false)
+  } catch (error) {
+    if (error instanceof PiResumeProfileError) {
+      return { command: '', blockedReason: error.message }
+    }
+    throw error
+  }
 }
 
 /**
@@ -160,21 +174,44 @@ function buildAiVaultResumeForWorktree(
       : undefined
   const cwd = embedCwd ? args.session.cwd : null
   const startupCwd = !embedCwd && args.session.cwd ? { cwd: args.session.cwd } : {}
+  const defaultAgentArgs = resolveTuiAgentLaunchArgs(
+    args.session.agent,
+    args.state.settings?.agentDefaultArgs
+  )
+  const defaultAgentEnv = resolveTuiAgentLaunchEnv(
+    args.session.agent,
+    args.state.settings?.agentDefaultEnv
+  )
+  const {
+    launchConfig: piLaunchConfig,
+    agentArgs: effectiveAgentArgs,
+    agentEnv: effectiveAgentEnv,
+    accountEnvironment: piAccountEnvironment,
+    commandOverride: effectiveCommandOverride
+  } = resolveAiVaultPiLaunchInputs({
+    agent: args.session.agent,
+    transcriptPath: args.session.filePath,
+    sessionExecutionHostId: args.session.executionHostId,
+    worktreeId: args.worktreeId,
+    state: args.state,
+    commandOverride: args.commandOverride,
+    agentArgs: defaultAgentArgs,
+    agentEnv: defaultAgentEnv
+  })
   if (providerSession && isResumableTuiAgent(args.session.agent)) {
     const startupPlan = buildAgentResumeStartupPlan({
       agent: args.session.agent,
       providerSession,
       cmdOverrides: {
         ...args.state.settings?.agentCmdOverrides,
-        ...(args.commandOverride?.trim() ? { [args.session.agent]: args.commandOverride } : {})
+        ...(effectiveCommandOverride?.trim()
+          ? { [args.session.agent]: effectiveCommandOverride }
+          : {})
       },
       platform,
       shell: liveShell,
-      agentArgs: resolveTuiAgentLaunchArgs(
-        args.session.agent,
-        args.state.settings?.agentDefaultArgs
-      ),
-      agentEnv: resolveTuiAgentLaunchEnv(args.session.agent, args.state.settings?.agentDefaultEnv),
+      agentArgs: effectiveAgentArgs,
+      agentEnv: effectiveAgentEnv,
       ...(args.session.agent === 'omp' && resumeFilePath
         ? { ompResumeFilePath: resumeFilePath }
         : {})
@@ -192,7 +229,8 @@ function buildAiVaultResumeForWorktree(
                 commandOverride: startupPlan.launchConfig.agentCommand,
                 codexHome,
                 shell: liveShell,
-                clearEnvNames
+                clearEnvNames,
+                ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
               })
             : buildAiVaultResumeShellCommand({
                 resumeCommand: startupPlan.launchCommand,
@@ -200,7 +238,8 @@ function buildAiVaultResumeForWorktree(
                 platform,
                 codexHome,
                 shell: liveShell,
-                clearEnvNames
+                clearEnvNames,
+                ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
               }),
         ...(startupPlan.env ? { env: startupPlan.env } : {}),
         ...realHomeCodexResumeEnvDeletion(args.session),
@@ -221,15 +260,23 @@ function buildAiVaultResumeForWorktree(
       resumeFilePath,
       cwd,
       platform,
-      commandOverride: args.commandOverride,
+      commandOverride: effectiveCommandOverride,
       codexHome,
       // Why: non-resumable agents queue through this fallback too, so it must
       // quote for the live Windows shell like the startup-plan branch above.
       shell: liveShell,
-      clearEnvNames
+      clearEnvNames,
+      ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
     }),
     ...startupCwd,
-    ...realHomeCodexResumeEnvDeletion(args.session)
+    ...realHomeCodexResumeEnvDeletion(args.session),
+    ...(piLaunchConfig
+      ? {
+          env: { ...piLaunchConfig.agentEnv },
+          launchConfig: piLaunchConfig,
+          ...(providerSession ? { providerSession } : {})
+        }
+      : {})
   }
 }
 
@@ -248,35 +295,6 @@ function resolveAiVaultResumeShell(args: AiVaultResumeWorktreeArgs): AgentStartu
     platform,
     isLocalSession
   })
-}
-
-export function getAiVaultAgentProviderSession(
-  session: Pick<AiVaultSession, 'agent' | 'sessionId'> & { filePath?: string }
-): AgentProviderSessionMetadata | null {
-  if (!isResumableTuiAgent(session.agent)) {
-    return null
-  }
-  if (session.agent === 'antigravity') {
-    return { key: 'conversation_id', id: session.sessionId }
-  }
-  if (session.agent === 'pi' || session.agent === 'prime-agent') {
-    return session.filePath
-      ? { key: 'session_id', id: session.sessionId, transcriptPath: session.filePath }
-      : null
-  }
-  return { key: 'session_id', id: session.sessionId }
-}
-
-function getAiVaultResumeCodexHome(
-  codexHome: string | null,
-  platform: NodeJS.Platform
-): string | null {
-  // Why: WSL UNC Codex homes must be POSIX when invoking Linux commands.
-  // Keep original paths unchanged for non-Linux targets.
-  if (!codexHome || platform !== 'linux') {
-    return codexHome
-  }
-  return parseWslUncPath(codexHome)?.linuxPath ?? codexHome
 }
 
 export function getAiVaultResumePlatform(

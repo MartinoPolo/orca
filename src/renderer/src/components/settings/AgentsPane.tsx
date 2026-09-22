@@ -46,6 +46,7 @@ import {
 import { AgentAvailabilityControl, type AgentCatalogRowProps } from './AgentCatalogRow'
 import { AgentDefaultSetting } from './AgentDefaultSetting'
 import { AgentDetectionCatalog } from './AgentDetectionCatalog'
+import { PiLaunchProfilesSetting } from './PiLaunchProfilesSetting'
 
 export {
   buildAgentAvailabilitySettingsUpdate,
@@ -175,6 +176,7 @@ export function AgentsPane({
     refresh: refreshTargetAgents
   } = useDetectedAgents(agentDetectionTarget)
   const refreshLocalAgents = useAppStore((state) => state.refreshDetectedAgents)
+  const updateSettingsOrThrow = useAppStore((state) => state.updateSettingsOrThrow)
   const activeServerName = useAppStore((state) =>
     activeServerEnvironmentId
       ? (state.runtimeEnvironments.find(
@@ -278,6 +280,9 @@ export function AgentsPane({
         wslDistros={wslDistros}
         wslCapabilitiesLoading={wslCapabilitiesLoading}
       />
+      {!isPairedWebClientWindow() && !activeServerEnvironmentId ? (
+        <PiLaunchProfilesSetting settings={settings} updateSettings={updateSettingsOrThrow} />
+      ) : null}
       <AgentStatusHooksSetting settings={settings} updateSettings={updateSettings} />
       <AgentGeneratedTabTitlesSetting settings={settings} updateSettings={updateSettings} />
       {!isPairedWebClientWindow() ? (

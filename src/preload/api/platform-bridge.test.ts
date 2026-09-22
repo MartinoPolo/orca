@@ -9,6 +9,8 @@ vi.mock('../preload-runtime-support', () => ({
 
 // Electron declares getSystemVersion as required on NodeJS.Process; Node does not have it.
 const mutableProcess = process as unknown as { getSystemVersion?: () => string }
+const originalHome = process.env.HOME
+const originalUserProfile = process.env.USERPROFILE
 
 async function loadPlatformApi(): Promise<typeof platformApi> {
   vi.resetModules()
@@ -22,6 +24,16 @@ describe('platformApi.get', () => {
 
   afterEach(() => {
     delete mutableProcess.getSystemVersion
+    if (originalHome === undefined) {
+      delete process.env.HOME
+    } else {
+      process.env.HOME = originalHome
+    }
+    if (originalUserProfile === undefined) {
+      delete process.env.USERPROFILE
+    } else {
+      process.env.USERPROFILE = originalUserProfile
+    }
   })
 
   it('resolves the immutable payload once and returns the identical object', async () => {
@@ -39,6 +51,16 @@ describe('platformApi.get', () => {
     expect(first.platform).toBe(process.platform)
     expect(first.arch).toBe(process.arch)
     expect(first.osRelease).toBe('25.3.0')
+  })
+
+  it('exposes only the platform-native login home as trusted local metadata', async () => {
+    process.env.HOME = '/home/preload-user'
+    process.env.USERPROFILE = 'C:\\Users\\preload-user'
+    const platformApi = await loadPlatformApi()
+
+    expect(platformApi.get().homeDirectory).toBe(
+      process.platform === 'win32' ? 'C:\\Users\\preload-user' : '/home/preload-user'
+    )
   })
 
   it('freezes the payload so no consumer can corrupt the shared instance', async () => {
