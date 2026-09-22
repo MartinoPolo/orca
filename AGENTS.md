@@ -14,6 +14,7 @@
 - **Implemented:** Per-agent linked work-item prompt templates can prefill issue and review workspaces with workflows such as `/skill:mpx-execute {{artifact_url}}` while keeping launch drafts reviewable.
 - **Implemented:** Local-native named Pi profiles capture a concrete command and account root so launches and resumes cannot drift to another account; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md#named-launch-profiles).
 - **Implemented:** Agent launch watchdog timeouts report a delayed terminal start rather than claiming the launch failed.
+- **Implemented:** Run upstream community PR project tracking only in `stablyai/orca`; forks do not use the upstream GitHub App credentials or project.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 
