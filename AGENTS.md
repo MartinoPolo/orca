@@ -12,6 +12,7 @@
 - **Implemented:** Preserve snapshot mouse encoding and negotiated Alt shortcuts, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
 - **Implemented:** Windows desktop port discovery uses unfiltered `netstat` enumeration so IPv4 and IPv6 TCP listeners reach the existing scanner and workspace attribution. Parsing still requires the English `LISTENING` state.
 - **Implemented:** Per-agent linked work-item prompt templates can prefill issue and review workspaces with workflows such as `/skill:mpx-execute {{artifact_url}}` while keeping launch drafts reviewable.
+- **Implemented:** Community-PR tracking runs only in `stablyai/orca`; fork CI does not access upstream organization projects or require upstream bot credentials.
 - **Implemented:** Source control starts “Committed on Branch” collapsed on panel mount and workspace switches; committed files and their header use muted styling on a secondary surface, separated from visible active changes by a gap and divider.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
