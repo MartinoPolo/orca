@@ -8,6 +8,9 @@ import { resolveElectronProbeLaunch } from './electron-probe-display-launch'
 
 const electronBinary = createRequire(import.meta.url)('electron') as string
 const fixtureRoots: string[] = []
+const startupWatchdogMilliseconds = 20_000
+const probeWatchdogMilliseconds = 20_000
+const processTimeoutMilliseconds = startupWatchdogMilliseconds + probeWatchdogMilliseconds + 5_000
 
 type ProbeResult = {
   packets: number
@@ -36,6 +39,8 @@ const dgram = require('node:dgram')
 const net = require('node:net')
 const os = require('node:os')
 const { writeFileSync } = require('node:fs')
+
+app.disableHardwareAcceleration()
 
 function bind(socket, host) {
   return new Promise((resolve, reject) => {
@@ -115,12 +120,28 @@ async function probe() {
   return { packets: packets.length, policy, resolvedProxy }
 }
 
+function exitAfterTimeout(phase, timeoutMilliseconds) {
+  writeFileSync(
+    ${JSON.stringify(resultPath)},
+    JSON.stringify({ error: phase + ' timed out after ' + timeoutMilliseconds + 'ms' })
+  )
+  app.exit(2)
+}
+
 async function run() {
-  const timeout = setTimeout(() => app.exit(2), 20000)
+  const startupWatchdog = setTimeout(
+    () => exitAfterTimeout('Electron startup', ${startupWatchdogMilliseconds}),
+    ${startupWatchdogMilliseconds}
+  )
   await app.whenReady()
+  clearTimeout(startupWatchdog)
+  const probeWatchdog = setTimeout(
+    () => exitAfterTimeout('WebRTC network probe', ${probeWatchdogMilliseconds}),
+    ${probeWatchdogMilliseconds}
+  )
   const result = await probe()
+  clearTimeout(probeWatchdog)
   writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(result))
-  clearTimeout(timeout)
   app.quit()
 }
 
@@ -145,7 +166,11 @@ function runProbe(protectedGuest: boolean): ProbeResult {
     platform: process.platform,
     display: env.DISPLAY
   })
-  const run = spawnSync(executable, args, { encoding: 'utf8', env, timeout: 30_000 })
+  const run = spawnSync(executable, args, {
+    encoding: 'utf8',
+    env: { ...env, ORCA_BACKGROUND_LAUNCH: '1' },
+    timeout: processTimeoutMilliseconds
+  })
   const rawResult = existsSync(resultPath) ? readFileSync(resultPath, 'utf8') : 'no result'
   expect(run.error).toBeUndefined()
   expect(run.status, `${rawResult}\n${run.stdout}\n${run.stderr}`).toBe(0)
@@ -168,5 +193,5 @@ describe('browser route WebRTC egress under Electron', () => {
     expect(baseline.packets).toBeGreaterThan(0)
     expect(protectedGuest.policy).toBe('disable_non_proxied_udp')
     expect(protectedGuest.packets).toBe(0)
-  }, 45_000)
+  }, 100_000)
 })
