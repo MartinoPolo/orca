@@ -11,7 +11,8 @@ export function SectionHeader({
   conflictCount = 0,
   isCollapsed,
   onToggle,
-  actions
+  actions,
+  muted = false
 }: {
   label: string
   count: number
@@ -21,6 +22,7 @@ export function SectionHeader({
   isCollapsed: boolean
   onToggle: () => void
   actions?: React.ReactNode
+  muted?: boolean
 }): React.JSX.Element {
   // Why: shared rounded container so the hover background spans the whole row instead of clipping around the label.
   return (
@@ -34,27 +36,34 @@ export function SectionHeader({
           onClick={onToggle}
           aria-expanded={!isCollapsed}
         >
-          <ChevronDown
-            className={cn('size-3.5 shrink-0 transition-transform', isCollapsed && '-rotate-90')}
-          />
-          <span className="min-w-0 flex-1">
-            <span className="flex min-w-0 items-center gap-1">
-              <span className="min-w-0 truncate" title={label}>
-                {label}
-              </span>
-              {/* Why: no aria-label here — inside the toggle button it would rewrite the
-              button's accessible name; the explanation stays a hover-only title. */}
-              <span className="shrink-0 text-[11px] font-medium tabular-nums" title={countTitle}>
-                {count}
-              </span>
-            </span>
-            {conflictCount > 0 && (
-              <span className="block truncate text-[11px] font-medium text-destructive/80">
-                {conflictCount}{' '}
-                {translate('auto.components.right.sidebar.SourceControl.413a3ba113', 'conflict')}
-                {conflictCount === 1 ? '' : 's'}
-              </span>
+          <span
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-1',
+              muted && 'font-medium text-muted-foreground'
             )}
+          >
+            <ChevronDown
+              className={cn('size-3.5 shrink-0 transition-transform', isCollapsed && '-rotate-90')}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-center gap-1">
+                <span className="min-w-0 truncate" title={label}>
+                  {label}
+                </span>
+                {/* Why: no aria-label here — inside the toggle button it would rewrite the
+              button's accessible name; the explanation stays a hover-only title. */}
+                <span className="shrink-0 text-[11px] font-medium tabular-nums" title={countTitle}>
+                  {count}
+                </span>
+              </span>
+              {conflictCount > 0 && (
+                <span className="block truncate text-[11px] font-medium text-destructive/80">
+                  {conflictCount}{' '}
+                  {translate('auto.components.right.sidebar.SourceControl.413a3ba113', 'conflict')}
+                  {conflictCount === 1 ? '' : 's'}
+                </span>
+              )}
+            </span>
           </span>
         </Button>
         <div className="ml-auto flex shrink-0 items-center justify-end">{actions}</div>

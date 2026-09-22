@@ -1,4 +1,5 @@
 import React from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { translate } from '@/i18n/i18n'
 import type {
@@ -16,6 +17,7 @@ import { SourceControlVirtualFileList } from './virtual-file-list'
 
 export function SourceControlBranchSection({
   branchSummary,
+  hasVisibleUncommittedChanges = false,
   filteredBranchEntries,
   totalBranchEntryCount,
   collapsedSections,
@@ -34,6 +36,7 @@ export function SourceControlBranchSection({
   diffCommentCountByPath
 }: {
   branchSummary: GitBranchCompareSummary
+  hasVisibleUncommittedChanges?: boolean
   filteredBranchEntries: GitBranchChangeEntry[]
   totalBranchEntryCount: number
   collapsedSections: Set<string>
@@ -77,8 +80,14 @@ export function SourceControlBranchSection({
       : undefined
 
   return (
-    <div>
+    <div
+      className={cn(
+        'bg-muted/30 pb-2',
+        hasVisibleUncommittedChanges && 'mt-6 border-t border-border pt-2'
+      )}
+    >
       <SectionHeader
+        muted
         label={translate(
           'auto.components.right.sidebar.SourceControl.d7ae61269b',
           'Committed on Branch'
