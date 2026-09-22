@@ -7,6 +7,7 @@ import {
   piAccountDirectoriesOverlap,
   type PiLaunchProfile
 } from '../../../../shared/pi-launch-profiles'
+import { translate } from '@/i18n/i18n'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
@@ -61,7 +62,12 @@ export function PiLaunchProfilesSetting({
     }
     const profile = normalizePiLaunchProfile({ ...draft, id: draft.id ?? createProfileId() })
     if (!profile) {
-      setError('Enter a name, command, and explicit absolute account directory.')
+      setError(
+        translate(
+          'settings.piLaunchProfiles.invalidProfile',
+          'Enter a name, command, and explicit absolute account directory.'
+        )
+      )
       return
     }
     const duplicateName = profiles.some(
@@ -70,7 +76,9 @@ export function PiLaunchProfilesSetting({
         normalizePiProfileName(candidate.name) === normalizePiProfileName(profile.name)
     )
     if (duplicateName) {
-      setError('Profile names must be unique.')
+      setError(
+        translate('settings.piLaunchProfiles.duplicateName', 'Profile names must be unique.')
+      )
       return
     }
     const conflicts = profiles.some(
@@ -79,13 +87,26 @@ export function PiLaunchProfilesSetting({
         piAccountDirectoriesOverlap(candidate.agentDirectory, profile.agentDirectory)
     )
     if (conflicts) {
-      setError('Account directories cannot be the same or nested inside one another.')
+      setError(
+        translate(
+          'settings.piLaunchProfiles.overlappingDirectory',
+          'Account directories cannot be the same or nested inside one another.'
+        )
+      )
       return
     }
     const nextProfiles = draft.id
       ? profiles.map((candidate) => (candidate.id === draft.id ? profile : candidate))
       : [...profiles, profile]
-    if (await commitProfiles(nextProfiles, 'Could not save this Pi profile. Try again.')) {
+    if (
+      await commitProfiles(
+        nextProfiles,
+        translate(
+          'settings.piLaunchProfiles.saveError',
+          'Could not save this Pi profile. Try again.'
+        )
+      )
+    ) {
       setDraft(null)
     }
   }
@@ -96,15 +117,21 @@ export function PiLaunchProfilesSetting({
     }
     await commitProfiles(
       profiles.filter((candidate) => candidate.id !== profileId),
-      'Could not remove this Pi profile. Try again.'
+      translate(
+        'settings.piLaunchProfiles.removeError',
+        'Could not remove this Pi profile. Try again.'
+      )
     )
   }
 
   return (
     <section className="space-y-3">
       <SettingsSubsectionHeader
-        title="Pi profiles"
-        description="Add local-native Pi accounts with a fixed command and account directory; credentials stay in that directory. Profiles are not offered for WSL, SSH, or paired runtimes. On Windows, the command must be valid in the configured native terminal shell (for example Git Bash for POSIX wrapper functions)."
+        title={translate('settings.piLaunchProfiles.title', 'Pi profiles')}
+        description={translate(
+          'settings.piLaunchProfiles.description',
+          'Add local-native Pi accounts with a fixed command and account directory; credentials stay in that directory. Profiles are not offered for WSL, SSH, or paired runtimes. On Windows, the command must be valid in the configured native terminal shell (for example Git Bash for POSIX wrapper functions).'
+        )}
         action={
           <Button
             type="button"
@@ -120,7 +147,7 @@ export function PiLaunchProfilesSetting({
             }}
           >
             <Plus />
-            Add profile
+            {translate('settings.piLaunchProfiles.addProfile', 'Add profile')}
           </Button>
         }
       />
@@ -138,7 +165,11 @@ export function PiLaunchProfilesSetting({
                 type="button"
                 size="icon-sm"
                 variant="ghost"
-                aria-label={`Edit ${profile.name}`}
+                aria-label={translate(
+                  'settings.piLaunchProfiles.editProfile',
+                  'Edit {{profileName}}',
+                  { profileName: profile.name }
+                )}
                 disabled={pending}
                 onClick={() => {
                   if (pendingRef.current) {
@@ -154,7 +185,11 @@ export function PiLaunchProfilesSetting({
                 type="button"
                 size="icon-sm"
                 variant="ghost"
-                aria-label={`Remove ${profile.name}`}
+                aria-label={translate(
+                  'settings.piLaunchProfiles.removeProfile',
+                  'Remove {{profileName}}',
+                  { profileName: profile.name }
+                )}
                 disabled={pending}
                 onClick={() => void removeProfile(profile.id)}
               >
@@ -164,7 +199,9 @@ export function PiLaunchProfilesSetting({
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Default Pi remains available.</p>
+        <p className="text-xs text-muted-foreground">
+          {translate('settings.piLaunchProfiles.defaultAvailable', 'Default Pi remains available.')}
+        </p>
       )}
       {error ? (
         <p role="alert" className="text-xs text-destructive">
@@ -174,7 +211,9 @@ export function PiLaunchProfilesSetting({
       {draft ? (
         <div className="space-y-3 rounded-md border border-border p-3">
           <div className="space-y-1">
-            <Label htmlFor="pi-profile-name">Name</Label>
+            <Label htmlFor="pi-profile-name">
+              {translate('settings.piLaunchProfiles.nameLabel', 'Name')}
+            </Label>
             <Input
               id="pi-profile-name"
               value={draft.name}
@@ -184,7 +223,9 @@ export function PiLaunchProfilesSetting({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="pi-profile-command">Command</Label>
+            <Label htmlFor="pi-profile-command">
+              {translate('settings.piLaunchProfiles.commandLabel', 'Command')}
+            </Label>
             <Input
               id="pi-profile-command"
               value={draft.command}
@@ -194,7 +235,9 @@ export function PiLaunchProfilesSetting({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="pi-profile-directory">Account directory</Label>
+            <Label htmlFor="pi-profile-directory">
+              {translate('settings.piLaunchProfiles.accountDirectoryLabel', 'Account directory')}
+            </Label>
             <Input
               id="pi-profile-directory"
               value={draft.agentDirectory}
@@ -217,10 +260,10 @@ export function PiLaunchProfilesSetting({
                 }
               }}
             >
-              Cancel
+              {translate('settings.piLaunchProfiles.cancel', 'Cancel')}
             </Button>
             <Button type="button" size="sm" disabled={pending} onClick={() => void saveDraft()}>
-              Save
+              {translate('settings.piLaunchProfiles.save', 'Save')}
             </Button>
           </div>
         </div>

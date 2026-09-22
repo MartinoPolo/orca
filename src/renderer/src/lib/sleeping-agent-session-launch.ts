@@ -76,7 +76,12 @@ export function launchSleepingAgentSession(
   const piProfileTarget =
     record.agent === 'pi' ? resolvePiProfileLaunchTarget(state, record.worktreeId) : null
   if (piProfileTarget === 'unresolved') {
-    toast.error('Cannot resume Pi until its workspace owner is available.')
+    toast.error(
+      translate(
+        'lib.sleepingAgentSessionLaunch.workspaceOwnerUnavailable',
+        'Cannot resume Pi until its workspace owner is available.'
+      )
+    )
     return false
   }
   const capturedLaunchConfig = record.launchConfig
@@ -100,7 +105,10 @@ export function launchSleepingAgentSession(
       toast.error(
         error instanceof PiResumeProfileError
           ? error.message
-          : 'This Pi session cannot be associated with an account safely.'
+          : translate(
+              'lib.sleepingAgentSessionLaunch.piAccountUnresolved',
+              'This Pi session cannot be associated with an account safely.'
+            )
       )
       return false
     }
