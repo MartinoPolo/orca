@@ -71,7 +71,13 @@ try {
   for (const kind of ['pi', 'omp', 'prime-agent']) {
     const ownerKey =
       kind === 'prime-agent' ? 'ORCA_PRIME_AGENT_STATUS_OWNED' : 'ORCA_PI_STATUS_OWNED'
-    for (const scenario of ['baseline-dead', 'fixed-dead', 'fixed-live']) {
+    const scenarios = [
+      ...(kind === 'pi' ? ['sdk-dead'] : []),
+      'baseline-dead',
+      'fixed-dead',
+      'fixed-live'
+    ]
+    for (const scenario of scenarios) {
       let source = getPiAgentStatusExtensionSource(kind)
       if (scenario === 'baseline-dead') {
         const guard = 'if (ownerPid && ownerPid !== selfPid && isStatusOwnerAlive(ownerPid)) return'
@@ -87,7 +93,7 @@ try {
       const owner = scenario === 'fixed-live' ? process.pid : deadPid
       const child = await runProcess({
         program: process.execPath,
-        args: [worker, extension, ownerKey],
+        args: [worker, extension, ownerKey, ...(scenario === 'sdk-dead' ? [] : ['--print'])],
         cwd: scratch,
         env: {
           ...process.env,
@@ -113,7 +119,9 @@ try {
         `${kind}/${scenario}: HTTP delivery`
       )
       assert.equal(observation.owner, String(shouldReport ? observation.pid : owner))
-      assert.equal(observation.handlers > 0, shouldReport)
+      if (scenario !== 'sdk-dead') {
+        assert.equal(observation.handlers > 0, shouldReport)
+      }
       if (shouldReport) {
         assert.equal(received.at(-1).payload.hook_event_name, 'agent_start')
       }

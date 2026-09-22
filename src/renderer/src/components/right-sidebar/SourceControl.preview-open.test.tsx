@@ -264,14 +264,28 @@ function doubleClickUncommitted(path: string): void {
   })
 }
 
+function getCommittedOnBranchToggle(): HTMLButtonElement {
+  const toggle = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.includes('Committed on Branch')
+  )
+  expect(toggle).toBeDefined()
+  if (!toggle) {
+    throw new Error('Committed on Branch toggle not found')
+  }
+  return toggle
+}
+
 function clickBranchRow(init: MouseEventInit = {}): void {
   const label = [...container.querySelectorAll('span')].find(
     (candidate) => candidate.textContent === 'branch.ts'
   )
   const row = label?.closest('div')
   expect(row).not.toBeNull()
+  if (!row) {
+    throw new Error('Branch row not found')
+  }
   act(() => {
-    row?.dispatchEvent(new MouseEvent('click', { bubbles: true, ...init }))
+    row.dispatchEvent(new MouseEvent('click', { bubbles: true, ...init }))
   })
 }
 
@@ -520,6 +534,14 @@ describe('SourceControl preview row opens', () => {
     })
     renderSourceControl()
 
+    const branchToggle = getCommittedOnBranchToggle()
+    expect(branchToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(container.textContent).not.toContain('branch.ts')
+
+    act(() => {
+      branchToggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(branchToggle.getAttribute('aria-expanded')).toBe('true')
     clickBranchRow()
 
     expect(mocks.calls.openBranchDiff).toHaveBeenCalledWith(

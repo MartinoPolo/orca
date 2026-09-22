@@ -188,6 +188,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
       {branchSummary?.status === 'ready' && hasFilteredBranchEntries && (
         <SourceControlBranchSection
           branchSummary={branchSummary}
+          hasVisibleUncommittedChanges={hasFilteredUncommittedEntries}
           filteredBranchEntries={filteredBranchEntries}
           totalBranchEntryCount={branchEntries.length}
           collapsedSections={collapsedSections}
