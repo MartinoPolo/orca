@@ -12,7 +12,8 @@ export function SectionHeader({
   conflictCount = 0,
   isCollapsed,
   onToggle,
-  actions
+  actions,
+  muted = false
 }: {
   label: string
   count: number
@@ -22,6 +23,7 @@ export function SectionHeader({
   isCollapsed: boolean
   onToggle: () => void
   actions?: React.ReactNode
+  muted?: boolean
 }): React.JSX.Element {
   const t = useTranslate()
   // Folder cards keep the gap above the first file equal to the one below the last.
@@ -42,9 +44,18 @@ export function SectionHeader({
           aria-expanded={!isCollapsed}
         >
           <ChevronDown
-            className={cn('size-3.5 shrink-0 transition-transform', isCollapsed && '-rotate-90')}
+            className={cn(
+              'size-3.5 shrink-0 transition-transform',
+              isCollapsed && '-rotate-90',
+              muted && 'text-muted-foreground'
+            )}
           />
-          <span className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wider text-foreground/70 group-hover/section:text-accent-foreground">
+          <span
+            className={cn(
+              'min-w-0 flex-1 text-xs uppercase tracking-wider group-hover/section:text-accent-foreground',
+              muted ? 'font-medium text-muted-foreground' : 'font-semibold text-foreground/70'
+            )}
+          >
             <span className="flex min-w-0 items-center gap-1">
               <span className="min-w-0 truncate" title={label}>
                 {label}

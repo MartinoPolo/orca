@@ -15,7 +15,6 @@ import {
   SOURCE_CONTROL_TREE_FILE_PADDING_PX,
   SOURCE_CONTROL_TREE_INDENT_PX
 } from './row-layout'
-import { STATUS_COLORS } from '../../../../lib/source-control/paths/git-path-decoration'
 import { STATUS_LABELS } from '../../../../../../shared/git/status/git-status-labels'
 import { useTranslate } from '@/i18n/use-translate'
 
@@ -62,7 +61,7 @@ export function BranchEntryRow({
         data-source-control-area="branch"
         data-current={isOpenFile ? 'true' : undefined}
         className={cn(
-          'group flex cursor-pointer items-center gap-1 pr-3 py-1 transition-colors',
+          'group flex cursor-pointer items-center gap-1 pr-3 py-1 text-muted-foreground transition-colors',
           getSourceControlRowHighlightClass(isOpenFile)
         )}
         style={{
@@ -80,11 +79,10 @@ export function BranchEntryRow({
       >
         {React.createElement(FileTypeIcon, {
           filePath: entry.path,
-          className: 'size-3.5 shrink-0',
-          style: { color: STATUS_COLORS[entry.status] }
+          className: 'size-3.5 shrink-0'
         })}
         <span className="min-w-0 flex-1 truncate text-xs">
-          <span className="text-foreground">{fileName}</span>
+          <span>{fileName}</span>
           {showPathHint && dirPath && (
             <span className="ml-1.5 text-[11px] text-muted-foreground">{dirPath}</span>
           )}
@@ -98,11 +96,8 @@ export function BranchEntryRow({
             <span className="tabular-nums">{commentCount}</span>
           </span>
         )}
-        <DiffLineCounts added={entry.added} removed={entry.removed} />
-        <span
-          className="w-4 shrink-0 text-center text-[10px] font-bold"
-          style={{ color: STATUS_COLORS[entry.status] }}
-        >
+        <DiffLineCounts added={entry.added} removed={entry.removed} muted />
+        <span className="w-4 shrink-0 text-center text-[10px] font-bold">
           {STATUS_LABELS[entry.status]}
         </span>
       </div>

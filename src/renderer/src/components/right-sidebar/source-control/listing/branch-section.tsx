@@ -1,4 +1,5 @@
 import React from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useTranslate } from '@/i18n/use-translate'
 import type {
@@ -17,6 +18,7 @@ import { VirtualizedList } from '../../../virtualized-list'
 export function SourceControlBranchSection({
   activeOpenRowKeys,
   branchSummary,
+  hasVisibleUncommittedChanges = false,
   filteredBranchEntries,
   totalBranchEntryCount,
   collapsedSections,
@@ -36,6 +38,7 @@ export function SourceControlBranchSection({
 }: {
   activeOpenRowKeys: ReadonlySet<string>
   branchSummary: GitBranchCompareSummary
+  hasVisibleUncommittedChanges?: boolean
   filteredBranchEntries: GitBranchChangeEntry[]
   totalBranchEntryCount: number
   collapsedSections: Set<string>
@@ -75,8 +78,14 @@ export function SourceControlBranchSection({
       : undefined
 
   return (
-    <div>
+    <div
+      className={cn(
+        'bg-muted/30 pb-2',
+        hasVisibleUncommittedChanges && 'mt-6 border-t border-border pt-2'
+      )}
+    >
       <SectionHeader
+        muted
         label={t('auto.components.right.sidebar.SourceControl.d7ae61269b', 'Committed on Branch')}
         count={fileCount}
         countTitle={countTitle}

@@ -214,6 +214,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
         <SourceControlBranchSection
           activeOpenRowKeys={activeOpenRowKeys}
           branchSummary={branchSummary}
+          hasVisibleUncommittedChanges={hasFilteredUncommittedEntries}
           filteredBranchEntries={filteredBranchEntries}
           totalBranchEntryCount={branchEntries.length}
           collapsedSections={collapsedSections}
