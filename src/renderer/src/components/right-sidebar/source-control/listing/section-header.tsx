@@ -11,7 +11,8 @@ export function SectionHeader({
   conflictCount = 0,
   isCollapsed,
   onToggle,
-  actions
+  actions,
+  muted = false
 }: {
   label: string
   count: number
@@ -21,6 +22,7 @@ export function SectionHeader({
   isCollapsed: boolean
   onToggle: () => void
   actions?: React.ReactNode
+  muted?: boolean
 }): React.JSX.Element {
   // Share the rounded container so hover styling spans the whole row.
   return (
@@ -34,28 +36,35 @@ export function SectionHeader({
           onClick={onToggle}
           aria-expanded={!isCollapsed}
         >
-          <ChevronDown
-            className={cn('size-3.5 shrink-0 transition-transform', isCollapsed && '-rotate-90')}
-          />
-          <span className="min-w-0 flex-1">
-            <span className="flex min-w-0 items-center gap-1">
-              <span className="min-w-0 truncate" title={label}>
-                {label}
-              </span>
-              {/* Use title only; aria-label here would replace the parent toggle's accessible name. */}
-              <span className="shrink-0 text-[11px] font-medium tabular-nums" title={countTitle}>
-                {count}
-              </span>
-            </span>
-            {conflictCount > 0 && (
-              <span className="block truncate text-[11px] font-medium text-destructive/80">
-                {translate(
-                  'auto.components.right.sidebar.SourceControl.conflictCount',
-                  '{{count}} conflicts',
-                  { count: conflictCount, defaultValue_one: '{{count}} conflict' }
-                )}
-              </span>
+          <span
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-1',
+              muted && 'font-medium text-muted-foreground'
             )}
+          >
+            <ChevronDown
+              className={cn('size-3.5 shrink-0 transition-transform', isCollapsed && '-rotate-90')}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="flex min-w-0 items-center gap-1">
+                <span className="min-w-0 truncate" title={label}>
+                  {label}
+                </span>
+                {/* Use title only; aria-label here would replace the parent toggle's accessible name. */}
+                <span className="shrink-0 text-[11px] font-medium tabular-nums" title={countTitle}>
+                  {count}
+                </span>
+              </span>
+              {conflictCount > 0 && (
+                <span className="block truncate text-[11px] font-medium text-destructive/80">
+                  {translate(
+                    'auto.components.right.sidebar.SourceControl.conflictCount',
+                    '{{count}} conflicts',
+                    { count: conflictCount, defaultValue_one: '{{count}} conflict' }
+                  )}
+                </span>
+              )}
+            </span>
           </span>
         </Button>
         <div className="ml-auto flex shrink-0 items-center justify-end">{actions}</div>

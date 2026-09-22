@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { scanWorkspacePorts } from './local-workspace-port-scanner'
 import { resetWorkspacePortScanTimeoutBackoffForTests } from './local-workspace-port-scan-state'
@@ -56,6 +57,8 @@ describe('Windows desktop workspace port scanning', () => {
   })
 
   it('dispatches unfiltered netstat and preserves TCP listener identity and attribution', async () => {
+    const resolveWindowsPath = path.win32.resolve.bind(path.win32)
+    vi.spyOn(path, 'resolve').mockImplementation(resolveWindowsPath)
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     runPortScanCommandMock.mockResolvedValue({ stdout: netstatOutput, spawnMs: 5 })
     readWindowsProcessTableMock.mockResolvedValue([
