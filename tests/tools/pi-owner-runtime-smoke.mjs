@@ -87,7 +87,7 @@ try {
       const owner = scenario === 'fixed-live' ? process.pid : deadPid
       const child = await runProcess({
         program: process.execPath,
-        args: [worker, extension, ownerKey],
+        args: [worker, extension, ownerKey, '--print'],
         cwd: scratch,
         env: {
           ...process.env,
