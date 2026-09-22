@@ -16,6 +16,7 @@ import { normalizeOpenInApplications } from '../../../../shared/open-in-applicat
 import { createSettingsSearchState, type SettingsSearchState } from './settings-search-state'
 import { isRuntimeCatalogListingStale } from './runtime-status-hydration'
 import { normalizeDisabledTuiAgents } from '../../../../shared/tui-agent-selection'
+import { normalizePiLaunchProfiles } from '../../../../shared/pi-launch-profiles'
 import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
 import {
   normalizeTuiAgentArgsRecord,
@@ -103,6 +104,9 @@ function normalizeSettingsUpdates(
   }
   if ('disabledTuiAgents' in updates) {
     sanitizedUpdates.disabledTuiAgents = normalizeDisabledTuiAgents(updates.disabledTuiAgents)
+  }
+  if ('piLaunchProfiles' in updates) {
+    sanitizedUpdates.piLaunchProfiles = normalizePiLaunchProfiles(updates.piLaunchProfiles)
   }
   if ('agentDefaultArgs' in updates) {
     sanitizedUpdates.agentDefaultArgs = normalizeTuiAgentArgsRecord(updates.agentDefaultArgs)

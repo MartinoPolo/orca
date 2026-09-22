@@ -4,6 +4,7 @@ import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { Tab } from '../../../../shared/tab-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
 import type { ProjectExecutionRuntimeResolution } from '../../../../shared/project-execution-runtime'
 import { useAppStore } from '../../store'
 import { buildStatusMap } from '../right-sidebar/status-display'
@@ -31,6 +32,7 @@ import { DEFAULT_DISABLED_TUI_AGENTS } from '../../../../shared/tui-agent-select
 import { shouldShowWindowsShellMenu } from './windows-shell-menu-visibility'
 import { createUnifiedTabLookup } from './tab-bar-item-model'
 import { getClientCreationActionPolicy } from '@/lib/client-creation-action-policy'
+import { isLocalNativePiProfileTarget } from '@/lib/pi-profile-launch-target'
 
 const isWindows = navigator.userAgent.includes('Windows')
 export const isMacOs = navigator.userAgent.includes('Mac')
@@ -38,6 +40,7 @@ type AppStoreState = ReturnType<typeof useAppStore.getState>
 type GitStatusEntries = AppStoreState['gitStatusByWorktree'][string]
 const EMPTY_GIT_STATUS_ENTRIES: GitStatusEntries = []
 const EMPTY_AGENT_CMD_OVERRIDES: Partial<Record<TuiAgent, string>> = {}
+const EMPTY_PI_LAUNCH_PROFILES: readonly PiLaunchProfile[] = []
 const EMPTY_UNIFIED_TABS: readonly Tab[] = []
 const EMPTY_PROJECTS: AppStoreState['projects'] = []
 const EMPTY_REPOS: AppStoreState['repos'] = []
@@ -148,15 +151,21 @@ export function useTabBarRuntimeModel({
   const agentCmdOverrides = useAppStore(
     (s) => s.settings?.agentCmdOverrides ?? EMPTY_AGENT_CMD_OVERRIDES
   )
+  const piLaunchProfiles = useAppStore((s) =>
+    isLocalNativePiProfileTarget(s, worktreeId)
+      ? (s.settings?.piLaunchProfiles ?? EMPTY_PI_LAUNCH_PROFILES)
+      : EMPTY_PI_LAUNCH_PROFILES
+  )
   const agentDetectionTarget = useAgentDetectionTargetForWorktree(worktreeId)
   const { detectedIds } = useDetectedAgents(agentDetectionTarget)
   const agentLaunchOptions = useMemo(
     () =>
       buildTabAgentLaunchOptions(
         orderTabLaunchAgents(defaultAgent, detectedIds ?? [], disabledTuiAgents),
-        agentCmdOverrides
+        agentCmdOverrides,
+        piLaunchProfiles
       ),
-    [agentCmdOverrides, defaultAgent, detectedIds, disabledTuiAgents]
+    [agentCmdOverrides, defaultAgent, detectedIds, disabledTuiAgents, piLaunchProfiles]
   )
   const isWebClient = (globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ === true
   const windowsTerminalCapabilityOwnerKey = getWindowsTerminalCapabilityOwnerKey(

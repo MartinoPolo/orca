@@ -17,6 +17,11 @@ import {
 } from '../../../../shared/tui-agent-selection'
 import { translate } from '@/i18n/i18n'
 import { useStructuredAgentLaunchStatus } from '@/lib/structured-agent-session-launch'
+import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import { isLocalNativePiProfileTarget } from '@/lib/pi-profile-launch-target'
+import { getTabAgentLaunchOptionLabel } from './tab-agent-launch-options'
+
+const EMPTY_PI_LAUNCH_PROFILES: readonly PiLaunchProfile[] = []
 
 export type QuickLaunchAgentMenuItemsProps = {
   worktreeId: string
@@ -39,10 +44,6 @@ export type QuickLaunchAgentMenuItemsProps = {
   onPromptDelivered?: () => void
 }
 
-function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string } | null {
-  return getAgentCatalog().find((a) => a.id === agent) ?? null
-}
-
 function orderAgents(
   defaultAgent: TuiAgent | 'blank' | null | undefined,
   detected: TuiAgent[]
@@ -63,7 +64,7 @@ export function shouldShowLaunchWatchdogTimeout({ hasPty }: { hasPty: boolean })
 }
 
 function getLaunchWatchdogTimeoutMessage(label: string): string {
-  return `Couldn't launch ${label} — the terminal did not start.`
+  return `Still waiting for the ${label} terminal to start.`
 }
 
 function getTerminalLaunchState(tabId: string): { stillOpen: boolean; hasPty: boolean } {
@@ -115,6 +116,11 @@ function QuickLaunchAgentMenuItemsInner({
   const disabledAgents = useAppStore(
     (s) => s.settings?.disabledTuiAgents ?? DEFAULT_DISABLED_TUI_AGENTS
   )
+  const piLaunchProfiles = useAppStore((state) =>
+    isLocalNativePiProfileTarget(state, worktreeId)
+      ? (state.settings?.piLaunchProfiles ?? EMPTY_PI_LAUNCH_PROFILES)
+      : EMPTY_PI_LAUNCH_PROFILES
+  )
   const openSettingsPage = useAppStore((s) => s.openSettingsPage)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
   const newAgentShortcut = useOptionalShortcutLabel('tab.newAgent')
@@ -131,11 +137,11 @@ function QuickLaunchAgentMenuItemsInner({
   }, [openSettingsPage, openSettingsTarget])
 
   const runLaunch = useCallback(
-    (agent: TuiAgent) => {
-      const entry = getCatalogEntry(agent)
-      const label = entry?.label ?? agent
+    (agent: TuiAgent, piLaunchProfile?: PiLaunchProfile) => {
+      const label = getTabAgentLaunchOptionLabel(agent, piLaunchProfile)
       const result = launchAgentInNewTab({
         agent,
+        ...(piLaunchProfile ? { piLaunchProfile } : {}),
         worktreeId,
         groupId,
         ...(prompt !== undefined ? { prompt } : {}),
@@ -184,10 +190,28 @@ function QuickLaunchAgentMenuItemsInner({
 
   const enabledDetectedIds = detectedIds ? filterEnabledTuiAgents(detectedIds, disabledAgents) : []
   const agents = detectedIds ? orderAgents(defaultAgent, enabledDetectedIds) : []
+  const piProfileLaunchOptions = piLaunchProfiles.map((profile) => ({
+    agent: 'pi' as const,
+    key: `pi-profile:${profile.id}`,
+    label: getTabAgentLaunchOptionLabel('pi', profile),
+    profile
+  }))
+  const launchOptions = agents.flatMap((agent) => {
+    const options: { agent: TuiAgent; key: string; label: string; profile?: PiLaunchProfile }[] = [
+      { agent, key: agent, label: getTabAgentLaunchOptionLabel(agent) }
+    ]
+    if (agent === 'pi') {
+      options.push(...piProfileLaunchOptions)
+    }
+    return options
+  })
+  if (!agents.includes('pi')) {
+    launchOptions.push(...piProfileLaunchOptions)
+  }
 
   return (
     <>
-      {agents.length === 0 ? (
+      {launchOptions.length === 0 ? (
         <DropdownMenuItem
           disabled
           className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 text-muted-foreground"
@@ -200,31 +224,33 @@ function QuickLaunchAgentMenuItemsInner({
               )}
         </DropdownMenuItem>
       ) : null}
-      {agents.map((agent) => {
-        const entry = getCatalogEntry(agent)
-        const label = entry?.label ?? agent
+      {launchOptions.map((option) => {
         const isStructuredLaunchPending =
-          isAgentSessionHandleProvider(agent) && structuredLaunchStatusByAgent[agent] === 'pending'
+          isAgentSessionHandleProvider(option.agent) &&
+          structuredLaunchStatusByAgent[option.agent] === 'pending'
         const showsDefaultAgentShortcut =
-          newAgentShortcut !== null && defaultAgent !== 'blank' && agent === defaultAgent
+          !option.profile &&
+          newAgentShortcut !== null &&
+          defaultAgent !== 'blank' &&
+          option.agent === defaultAgent
         return (
           <DropdownMenuItem
-            key={agent}
+            key={option.key}
             disabled={isStructuredLaunchPending}
-            onSelect={() => runLaunch(agent)}
+            onSelect={() => runLaunch(option.agent, option.profile)}
             className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
             title={translate(
               'auto.components.tab.bar.QuickLaunchButton.ec2adf093e',
               'Launch {{value0}} in a new terminal',
-              { value0: label }
+              { value0: option.label }
             )}
           >
             {isStructuredLaunchPending ? (
               <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
             ) : (
-              <AgentIcon agent={agent} size={14} />
+              <AgentIcon agent={option.agent} size={14} />
             )}
-            <span className="flex-1">{label}</span>
+            <span className="flex-1">{option.label}</span>
             {showsDefaultAgentShortcut ? (
               <DropdownMenuShortcut>{newAgentShortcut}</DropdownMenuShortcut>
             ) : null}

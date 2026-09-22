@@ -18,6 +18,13 @@ function resolvePlatformInfo(): PlatformInfo {
     // Why: these identify the default shell without probing user config files.
     // process.env is available in the sandboxed preload; node:os is not.
     shell: process.env.SHELL?.trim() || process.env.ComSpec?.trim() || '',
+    ...(process.platform === 'win32'
+      ? process.env.USERPROFILE?.trim()
+        ? { homeDirectory: process.env.USERPROFILE.trim() }
+        : {}
+      : process.env.HOME?.trim()
+        ? { homeDirectory: process.env.HOME.trim() }
+        : {}),
     displayServer: getLinuxDisplayServer()
   })
 }

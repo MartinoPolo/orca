@@ -1,5 +1,5 @@
-import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { attributePortToWorkspace } from './local-workspace-port-attribution'
 import { scanWorkspacePorts } from './local-workspace-port-scanner'
 import { resetWorkspacePortScanTimeoutBackoffForTests } from './local-workspace-port-scan-state'
 
@@ -57,8 +57,6 @@ describe('Windows desktop workspace port scanning', () => {
   })
 
   it('dispatches unfiltered netstat and preserves TCP listener identity and attribution', async () => {
-    const resolveWindowsPath = path.win32.resolve.bind(path.win32)
-    vi.spyOn(path, 'resolve').mockImplementation(resolveWindowsPath)
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     runPortScanCommandMock.mockResolvedValue({ stdout: netstatOutput, spawnMs: 5 })
     readWindowsProcessTableMock.mockResolvedValue([
@@ -116,5 +114,40 @@ describe('Windows desktop workspace port scanning', () => {
         )
     ).toBe(true)
     expect(scan.ports.some((port) => port.port === 4300 || port.port === 4400)).toBe(false)
+  })
+
+  it('uses Windows path semantics without reinterpreting remote POSIX paths', () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const candidates = [
+      windowsWorkspaces[0],
+      {
+        id: 'folder::\\\\server\\share\\Repo',
+        repoId: 'network-folder',
+        displayName: 'Network folder',
+        path: '\\\\server\\share\\Repo'
+      },
+      {
+        id: 'folder::/srv/remote-repo',
+        repoId: 'remote-folder',
+        displayName: 'Remote folder',
+        path: '/srv/remote-repo'
+      }
+    ]
+
+    expect(
+      attributePortToWorkspace(
+        { commandLine: 'node C:\\Projects\\Repo\\worktrees\\feature\\server.js' },
+        candidates
+      )
+    ).toMatchObject({ worktreeId: windowsWorkspaces[0].id })
+    expect(
+      attributePortToWorkspace(
+        { commandLine: 'node "\\\\server\\share\\Repo\\packages\\app\\server.js"' },
+        candidates
+      )
+    ).toMatchObject({ worktreeId: 'folder::\\\\server\\share\\Repo' })
+    expect(
+      attributePortToWorkspace({ cwd: '/srv/remote-repo/packages/app' }, candidates)
+    ).toMatchObject({ worktreeId: 'folder::/srv/remote-repo' })
   })
 })

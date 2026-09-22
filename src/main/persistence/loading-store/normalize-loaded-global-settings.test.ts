@@ -21,6 +21,25 @@ function normalizeLegacyProfile(overrides: Record<string, unknown>): PersistedSt
   return normalizeLoadedGlobalSettings(parsed, terminal, profile)
 }
 
+describe('Pi launch profile persistence', () => {
+  it('loads only valid local profiles with distinguishable normalized names', () => {
+    expect(
+      normalizeLegacyProfile({
+        piLaunchProfiles: [
+          { id: 'work', name: ' Work ', command: ' piw ', agentDirectory: '/accounts/work' },
+          {
+            id: 'personal',
+            name: 'work',
+            command: 'pip',
+            agentDirectory: '/accounts/personal'
+          },
+          { id: 'relative', name: 'Relative', command: 'pi', agentDirectory: 'accounts/relative' }
+        ]
+      }).piLaunchProfiles
+    ).toEqual([{ id: 'work', name: 'Work', command: 'piw', agentDirectory: '/accounts/work' }])
+  })
+})
+
 describe('retired Agents sidebar setting', () => {
   it('does not mark new profiles as migrated', () => {
     expect(normalizeLegacyProfile({}).agentsSidebarMigratedFromExperimental).toBe(false)

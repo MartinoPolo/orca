@@ -197,6 +197,15 @@ describe('AgentsPane', () => {
     }
   })
 
+  it('hides local-native Pi profiles in a runtime settings context', () => {
+    const markup = renderPane({
+      ...getDefaultSettings('/tmp'),
+      activeRuntimeEnvironmentId: 'env-1'
+    })
+
+    expect(markup).not.toContain('Pi profiles')
+  })
+
   it('shows a retryable error when initial remote detection fails', () => {
     detectedAgentsMock.detectedIds = null
     detectedAgentsMock.isLoading = false
@@ -256,6 +265,7 @@ describe('AgentsPane', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     try {
       expect(renderPane(getDefaultSettings('/tmp'))).not.toContain('Keep computer awake')
+      expect(renderPane(getDefaultSettings('/tmp'))).not.toContain('Pi profiles')
       expect(
         matchesSettingsSearch('awake', getAgentsPaneSearchEntries({ includeAgentAwake: false }))
       ).toBe(false)

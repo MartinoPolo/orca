@@ -206,6 +206,24 @@
         "restartRequired": "Restart required",
         "unavailable": "Browser identity is unavailable."
       }
+    },
+    "piLaunchProfiles": {
+      "invalidProfile": "Enter a name, command, and explicit absolute account directory.",
+      "duplicateName": "Profile names must be unique.",
+      "overlappingDirectory": "Account directories cannot be the same or nested inside one another.",
+      "saveError": "Could not save this Pi profile. Try again.",
+      "removeError": "Could not remove this Pi profile. Try again.",
+      "title": "Pi profiles",
+      "description": "Add local-native Pi accounts with a fixed command and account directory; credentials stay in that directory. Profiles are not offered for WSL, SSH, or paired runtimes. On Windows, the command must be valid in the configured native terminal shell (for example Git Bash for POSIX wrapper functions).",
+      "addProfile": "Add profile",
+      "editProfile": "Edit {{profileName}}",
+      "removeProfile": "Remove {{profileName}}",
+      "defaultAvailable": "Default Pi remains available.",
+      "nameLabel": "Name",
+      "commandLabel": "Command",
+      "accountDirectoryLabel": "Account directory",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "menu": {
@@ -18076,5 +18094,11 @@
   },
   "common": {
     "retry": "Retry"
+  },
+  "lib": {
+    "sleepingAgentSessionLaunch": {
+      "workspaceOwnerUnavailable": "Cannot resume Pi until its workspace owner is available.",
+      "piAccountUnresolved": "This Pi session cannot be associated with an account safely."
+    }
   }
 }

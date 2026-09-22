@@ -9,6 +9,8 @@ import type { AiVaultSessionWorktreeInfo } from './ai-vault-session-worktree'
 import { searchHit } from '../../../../shared/ai-vault-search-test-fixture'
 import type { AiVaultSearchHit } from '../../../../shared/ai-vault-search-types'
 import type { AiVaultSubagentResumeActions } from './AiVaultSessionSubagents'
+import type { AiVaultResumeStartup } from '@/lib/ai-vault-resume-command'
+import { AI_VAULT_SESSION_DRAG_TYPE, readAiVaultSessionDragData } from '@/lib/ai-vault-session-drag'
 import { VaultSessionRow } from './AiVaultSessionRow'
 
 const session = {
@@ -40,6 +42,23 @@ const worktreeInfo: AiVaultSessionWorktreeInfo = {
   path: '/home/a/worktrees/feature-branch'
 }
 
+class FakeDataTransfer {
+  effectAllowed = 'all'
+  types: string[] = []
+  private readonly data = new Map<string, string>()
+
+  setData(type: string, value: string): void {
+    if (!this.types.includes(type)) {
+      this.types.push(type)
+    }
+    this.data.set(type, value)
+  }
+
+  getData(type: string): string {
+    return this.data.get(type) ?? ''
+  }
+}
+
 beforeEach(() => {
   // The expanded details panel reads these while rendering (first-prompt card)
   // and on mount (subagent list), so the row cannot expand without them.
@@ -68,6 +87,8 @@ function renderRow(
     worktreeInfo?: AiVaultSessionWorktreeInfo | null
     onToggleDetails?: () => void
     onRequestDelete?: () => void
+    resumeStartup?: AiVaultResumeStartup
+    realHomeResumeStartup?: AiVaultResumeStartup
   } = {}
 ) {
   return render(
@@ -77,8 +98,10 @@ function renderRow(
         searchHit={overrides.searchHit}
         subagentResume={overrides.subagentResume}
         liveState={null}
-        resumeStartup={{ command: 'gemini --resume sess-1' }}
-        realHomeResumeStartup={{ command: 'gemini --resume sess-1' }}
+        resumeStartup={overrides.resumeStartup ?? { command: 'gemini --resume sess-1' }}
+        realHomeResumeStartup={
+          overrides.realHomeResumeStartup ?? { command: 'gemini --resume sess-1' }
+        }
         worktreeInfo={overrides.worktreeInfo ?? null}
         vaultScope="all"
         detailsExpanded={overrides.detailsExpanded ?? false}
@@ -139,6 +162,53 @@ describe('VaultSessionRow details toggle', () => {
     await user.click(title as Element)
 
     expect(onToggleDetails).toHaveBeenCalledTimes(1)
+  })
+})
+
+it('serializes local Pi provenance and the captured launch snapshot when dragging', () => {
+  const piSession: AiVaultSession = {
+    ...session,
+    id: 'local:pi:session-1:/accounts/work/sessions/session-1.jsonl',
+    executionHostId: 'local',
+    agent: 'pi',
+    sessionId: 'session-1',
+    filePath: '/accounts/work/sessions/session-1.jsonl',
+    resumeCommand: '/tools/pi-work --session /accounts/work/sessions/session-1.jsonl'
+  }
+  const launchConfig = {
+    agentCommand: '/tools/pi-work --model work',
+    agentArgs: '--model work',
+    agentEnv: {
+      PI_CODING_AGENT_DIR: '/accounts/work',
+      ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work'
+    }
+  }
+  const { container } = renderRow({
+    session: piSession,
+    resumeStartup: {
+      command: '/tools/pi-work --model work --session /accounts/work/sessions/session-1.jsonl',
+      env: launchConfig.agentEnv,
+      launchConfig
+    }
+  })
+  const title = container.querySelector('[title="Drag to resume in a new tab"]')
+  if (!title) {
+    throw new Error('Expected the Pi session title drag handle')
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The drag handler only reads the DataTransfer members implemented by this focused fake.
+  const dataTransfer = new FakeDataTransfer() as unknown as DataTransfer
+
+  const dragStart = new Event('dragstart', { bubbles: true, cancelable: true })
+  Object.defineProperty(dragStart, 'dataTransfer', { value: dataTransfer })
+  fireEvent(title, dragStart)
+
+  expect(dataTransfer.getData(AI_VAULT_SESSION_DRAG_TYPE)).not.toBe('')
+  expect(readAiVaultSessionDragData(dataTransfer)).toMatchObject({
+    agent: 'pi',
+    sessionExecutionHostId: 'local',
+    sessionFilePath: '/accounts/work/sessions/session-1.jsonl',
+    env: launchConfig.agentEnv,
+    launchConfig
   })
 })
 

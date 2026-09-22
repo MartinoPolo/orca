@@ -268,7 +268,7 @@ describe('TabBarCreateEntry search behavior', () => {
       { id: 'new-browser', kind: 'new-browser', keywords: ['gem'], label: 'Gem action' }
     ]
     const agentOptions: TabAgentLaunchOption[] = [
-      { agent: 'gemini', aliases: ['gem'], label: 'Gemini' }
+      { id: 'agent:gemini', agent: 'gemini', aliases: ['gem'], label: 'Gemini' }
     ]
     const onOpenEntry = vi.fn().mockResolvedValue(undefined)
     renderEntry({ agentOptions, menuOptions, onOpenEntry })
@@ -304,7 +304,7 @@ describe('TabBarCreateEntry search behavior', () => {
       menuOptions: [
         { id: 'new-browser', kind: 'new-browser', keywords: ['x'], label: 'New Browser' }
       ],
-      agentOptions: [{ agent: 'gemini', aliases: ['x'], label: 'Gemini' }]
+      agentOptions: [{ id: 'agent:gemini', agent: 'gemini', aliases: ['x'], label: 'Gemini' }]
     })
     setQuery(`?${'x'.repeat(QUICK_OPEN_QUERY_MAX_BYTES)}`)
 
