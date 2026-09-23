@@ -1,7 +1,9 @@
 import { migrationUnsupportedToAgentStatusEntry } from '../../../../shared/migration-unsupported-agent-entry'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { Repo } from '../../../../shared/repository/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { ActivityLiveAgentSnapshot, ActivityEvent } from './activity-thread-types'
@@ -14,11 +16,12 @@ export function appendUnsupportedEvents(context: {
   cache: ActivityEventBuildCache | undefined
   seenCacheKeys: Set<string> | null
   liveAgentByPaneKey: Record<string, ActivityLiveAgentSnapshot>
-  tabContext: Map<string, { worktreeId: string; tab: TerminalTab }>
+  tabContext: Map<string, { worktreeId: string; tab: TerminalTab; projectedTab?: Tab }>
   resolveOwner: (
     context: { worktreeId: string; tab: TerminalTab },
     entry: AgentStatusEntry,
-    terminalPtyId?: string | null
+    terminalPtyId?: string | null,
+    capturedExecutionHostId?: ExecutionHostId
   ) => { worktree: Worktree; repo: Repo | null; knownWorktree: boolean }
   pushPaneEvents: (paneEvents: ActivityEvent[], rowEntry: AgentStatusEntry) => void
 }): void {
@@ -44,7 +47,7 @@ export function appendUnsupportedEvents(context: {
     if (!entry || !tabEntry) {
       continue
     }
-    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId)
+    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId, undefined)
     const {
       events: paneEvents,
       live,
@@ -58,9 +61,11 @@ export function appendUnsupportedEvents(context: {
         worktree: owner.worktree,
         repo: owner.repo,
         tab: tabEntry.tab,
+        projectedTab: tabEntry.projectedTab,
         agentType: entry.agentType ?? 'unknown',
         agentAlive: false,
-        acknowledgedAt: args.acknowledgedAgentsByPaneKey[entry.paneKey] ?? 0,
+        // Migration support is a visible compatibility notice, not a factual unread turn.
+        acknowledgedAt: Number.MAX_SAFE_INTEGER,
         clearedAt: args.activityClearedAtByPaneKey?.[entry.paneKey] ?? 0,
         migrationUnsupportedPtyId: unsupported.ptyId,
         liveState: 'blocked'

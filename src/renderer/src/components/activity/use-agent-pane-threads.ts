@@ -43,6 +43,7 @@ export function useAllAgentPaneThreads({ badgeOnly = false }: { badgeOnly?: bool
   allThreads: AgentPaneThread[]
 } {
   const storeData = useAllAgentPaneThreadStoreData()
+  const defaultHostId = useAgentPaneThreadsDefaultHostId()
   // Why: agentStatusEpoch is a dep (not used in the body) so the memo recomputes when freshness boundaries expire even without new PTY data.
   const agentStatusEpoch = useAppStore((s) => s.agentStatusEpoch)
   const chatNames = useStructuredChatTabNames()
@@ -106,11 +107,21 @@ export function useAllAgentPaneThreads({ badgeOnly = false }: { badgeOnly?: bool
             : allEvents,
           liveAgentByPaneKey,
           paneEntryByPaneKey,
-          generatedTitlesEnabled: storeData.generatedTitlesEnabled
+          generatedTitlesEnabled: storeData.generatedTitlesEnabled,
+          sessionAttentionMetadataByIdentity: storeData.sessionAttentionMetadataByIdentity,
+          defaultHostId
         },
         threadReuseCacheRef.current
       ),
-    [allEvents, liveAgentByPaneKey, paneEntryByPaneKey, storeData.generatedTitlesEnabled, badgeOnly]
+    [
+      allEvents,
+      liveAgentByPaneKey,
+      paneEntryByPaneKey,
+      defaultHostId,
+      storeData.generatedTitlesEnabled,
+      storeData.sessionAttentionMetadataByIdentity,
+      badgeOnly
+    ]
   )
 
   return { storeData, allThreads }
@@ -223,12 +234,10 @@ export function useAgentPaneThreads(args: {
     const matchesSearchQuery =
       normalizedQuery === null ? null : createActivityThreadSearchMatcher(normalizedQuery)
     return scopeVisibleThreads.filter((thread) => {
-      // Keep live agents and the selected row visible after marking read; migration blocks are unavailable.
+      // Why: keep the just-selected thread visible after auto-mark-read clears its attention, else the clicked row vanishes.
       if (
-        readFilter === 'unread' &&
-        !thread.unread &&
-        (!isRunningActivityState(thread.currentAgentState) ||
-          thread.migrationUnsupportedPtyId !== undefined) &&
+        readFilter === 'attention' &&
+        !thread.attentionEligible &&
         thread.paneKey !== effectiveSelectedPaneKey
       ) {
         return false

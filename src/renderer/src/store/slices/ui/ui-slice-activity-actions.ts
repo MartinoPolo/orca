@@ -8,6 +8,7 @@ import {
   resolvePaneKeyWorktreeIdFromTabs,
   usableTimestamp
 } from './ui-slice-agent-notification-acknowledgement'
+import { updateSessionAttentionForReadState } from '../agent-status/session-attention-transition'
 
 type ActivityActions = Pick<
   UISlice,
@@ -18,6 +19,9 @@ type ActivityActions = Pick<
   | 'applyActivityClearedAt'
   | 'manuallyUnreadTurnsByPaneKey'
   | 'clearManuallyUnreadTurns'
+  | 'sessionAttentionMetadataByIdentity'
+  | 'setSessionPriority'
+  | 'setSessionSavedMarker'
 >
 
 export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): ActivityActions {
@@ -70,7 +74,13 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
             delete nextManual[key]
           }
         }
-        if (!next && !nextUnreadCompletions && !nextManual) {
+        const nextAttentionMetadata = updateSessionAttentionForReadState(s, paneKeys, false)
+        if (
+          !next &&
+          !nextUnreadCompletions &&
+          !nextManual &&
+          nextAttentionMetadata === s.sessionAttentionMetadataByIdentity
+        ) {
           return s
         }
         return {
@@ -85,7 +95,10 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
               }
             : {}),
           ...(nextUnreadCompletions ? { unreadAgentCompletionPanes: nextUnreadCompletions } : {}),
-          ...(nextManual ? { manuallyUnreadTurnsByPaneKey: nextManual } : {})
+          ...(nextManual ? { manuallyUnreadTurnsByPaneKey: nextManual } : {}),
+          ...(nextAttentionMetadata !== s.sessionAttentionMetadataByIdentity
+            ? { sessionAttentionMetadataByIdentity: nextAttentionMetadata }
+            : {})
         }
       })
       // Dismiss main’s announced subjects; rebuilt IDs cover restart-empty notification records.
@@ -114,7 +127,12 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
             nextManual[key] = turnTimestamp
           }
         }
-        if (!next && !nextManual) {
+        const nextAttentionMetadata = updateSessionAttentionForReadState(s, paneKeys, true)
+        if (
+          !next &&
+          !nextManual &&
+          nextAttentionMetadata === s.sessionAttentionMetadataByIdentity
+        ) {
           return s
         }
         return {
@@ -128,7 +146,67 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
                 )
               }
             : {}),
-          ...(nextManual ? { manuallyUnreadTurnsByPaneKey: nextManual } : {})
+          ...(nextManual ? { manuallyUnreadTurnsByPaneKey: nextManual } : {}),
+          ...(nextAttentionMetadata !== s.sessionAttentionMetadataByIdentity
+            ? { sessionAttentionMetadataByIdentity: nextAttentionMetadata }
+            : {})
+        }
+      }),
+    sessionAttentionMetadataByIdentity: {},
+    setSessionPriority: (identity, priority) =>
+      set((s) => {
+        if (!identity) {
+          return s
+        }
+        const previous = s.sessionAttentionMetadataByIdentity[identity]
+        if (previous?.priority === priority) {
+          return s
+        }
+        return {
+          sessionAttentionMetadataByIdentity: {
+            ...s.sessionAttentionMetadataByIdentity,
+            [identity]: { ...previous, priority }
+          }
+        }
+      }),
+    setSessionSavedMarker: (identity, color) =>
+      set((s) => {
+        if (!identity) {
+          return s
+        }
+        const previous = s.sessionAttentionMetadataByIdentity[identity]
+        if (color === null) {
+          if (!previous?.savedColor) {
+            return s
+          }
+          if (previous.priority === 3 && previous.attentionEpisodeStartedAt === undefined) {
+            const next = { ...s.sessionAttentionMetadataByIdentity }
+            delete next[identity]
+            return { sessionAttentionMetadataByIdentity: next }
+          }
+          const withoutSavedMarker = { ...previous }
+          delete withoutSavedMarker.savedColor
+          delete withoutSavedMarker.savedAt
+          return {
+            sessionAttentionMetadataByIdentity: {
+              ...s.sessionAttentionMetadataByIdentity,
+              [identity]: withoutSavedMarker
+            }
+          }
+        }
+        if (previous?.savedColor === color) {
+          return s
+        }
+        return {
+          sessionAttentionMetadataByIdentity: {
+            ...s.sessionAttentionMetadataByIdentity,
+            [identity]: {
+              ...previous,
+              priority: previous?.priority ?? 3,
+              savedColor: color,
+              savedAt: previous?.savedAt ?? Date.now()
+            }
+          }
         }
       }),
     manuallyUnreadTurnsByPaneKey: {},

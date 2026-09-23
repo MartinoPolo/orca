@@ -33,6 +33,9 @@ export type AllAgentPaneThreadsStoreData = Pick<
   | 'activityClearedAtByPaneKey'
   | 'acknowledgeAgents'
   | 'unacknowledgeAgents'
+  | 'sessionAttentionMetadataByIdentity'
+  | 'setSessionPriority'
+  | 'setSessionSavedMarker'
 > & {
   /** Current native-chat originals and terminal tabs with semantic identity reuse. */
   activityTabs: ActivityTabProjection
@@ -86,6 +89,9 @@ export function useAllAgentPaneThreadStoreData(): AllAgentPaneThreadsStoreData {
       activityClearedAtByPaneKey: s.activityClearedAtByPaneKey,
       acknowledgeAgents: s.acknowledgeAgents,
       unacknowledgeAgents: s.unacknowledgeAgents,
+      sessionAttentionMetadataByIdentity: s.sessionAttentionMetadataByIdentity,
+      setSessionPriority: s.setSessionPriority,
+      setSessionSavedMarker: s.setSessionSavedMarker,
       generatedTitlesEnabled: s.settings?.tabAutoGenerateTitle === true
     }))
   )

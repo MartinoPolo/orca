@@ -19,6 +19,11 @@ import type {
   AutomationsPageLocation,
   AutomationsPageVisitMode
 } from './automations-page-location'
+import type {
+  SessionAttentionMetadata,
+  SessionPriority,
+  SessionSavedColor
+} from '../../../../../shared/session-attention'
 
 /** Open an automation (runId null) or one of its runs once its host's list has loaded. */
 export type PendingAutomationRunNavigation = {
@@ -170,6 +175,9 @@ export type UISliceCore = {
   /** Session-local protection for turns explicitly marked unread. */
   manuallyUnreadTurnsByPaneKey: Record<string, number>
   clearManuallyUnreadTurns: (paneKeys: string[]) => void
+  sessionAttentionMetadataByIdentity: Record<string, SessionAttentionMetadata>
+  setSessionPriority: (identity: string, priority: SessionPriority) => void
+  setSessionSavedMarker: (identity: string, color: SessionSavedColor | null) => void
   activeView: TopLevelView
   previousViewBeforeTasks: Exclude<UiViewHistory, 'tasks'>
   previousViewBeforeSettings: Exclude<UiViewHistory, 'settings'>

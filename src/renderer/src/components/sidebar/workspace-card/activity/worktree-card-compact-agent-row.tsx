@@ -28,6 +28,16 @@ import {
 } from '../../../../../../shared/program-status/presentation'
 import { resolveRowProgramStatus } from '@/lib/program-status/agent-row-presentation'
 import { useTranslate, type Translate } from '@/i18n/use-translate'
+import { useAgentRowSessionAttention } from '@/attention/use-agent-row-session-attention'
+import {
+  sessionAttentionMetadataClass,
+  sessionAttentionSurfaceClass
+} from '@/attention/session-attention-components'
+import {
+  activateAgentRowFromKeyboard,
+  AgentRowSessionAttentionMenu,
+  AgentRowSessionMarkers
+} from '@/attention/agent-row-session-attention'
 
 function getCompactAgentPrimary(
   agent: DashboardAgentRowData,
@@ -142,6 +152,11 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   const hideIcon = hideIdentityIcon || agent.rowSource === 'subagent'
   const { presentation, dotStateOverride } = resolveRowProgramStatus(agent)
   const dotState = dotStateOverride ?? getAgentDotState(agent)
+  const attention = useAgentRowSessionAttention(agent, dotState, isUnvisited)
+  const attentionMetadataClass = highlighted
+    ? undefined
+    : sessionAttentionMetadataClass(attention.tone)
+  const rowRef = useRef<HTMLDivElement | null>(null)
   const { name: conversationName, forked } = useAgentRowConversationNaming(agent)
   const primary = getCompactAgentPrimary(agent, conversationName)
   const forkNamed = forked && conversationName !== null
@@ -205,7 +220,8 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     <span
       className={cn(
         'shrink-0 text-[10px] tabular-nums',
-        highlighted ? 'text-foreground/70' : 'text-muted-foreground/60'
+        highlighted ? 'text-foreground/70' : 'text-muted-foreground/60',
+        attentionMetadataClass
       )}
     >
       {shortTime}
@@ -215,7 +231,12 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   // Focused fills wash out muted text; brighten the lead while preserving unread emphasis.
   const leadClassName = cn(
     isUnvisited ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground/90',
-    highlighted && !isUnvisited && 'text-foreground'
+    highlighted && !isUnvisited && 'text-foreground',
+    !isUnvisited && attentionMetadataClass
+  )
+  const trailClassName = cn(
+    highlighted ? 'text-foreground/70' : 'text-muted-foreground/65',
+    attentionMetadataClass
   )
 
   const rowBody = (
@@ -226,7 +247,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
           row={agent.childRow}
           now={now}
           leadClassName={leadClassName}
-          trailClassName={highlighted ? 'text-foreground/70' : 'text-muted-foreground/65'}
+          trailClassName={trailClassName}
           separator=" - "
           dotTitle={sendTargetDisabledReason ? null : undefined}
           tooltipSide="right"
@@ -253,12 +274,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
             title={sendTargetDisabledReason ? undefined : rowTitle}
           >
             <span className={leadClassName}>{shownNode(leadingText)}</span>
-            {trailingText && (
-              <span className={highlighted ? 'text-foreground/70' : 'text-muted-foreground/65'}>
-                {' '}
-                - {shownNode(trailingText)}
-              </span>
-            )}
+            {trailingText && <span className={trailClassName}> - {shownNode(trailingText)}</span>}
           </span>
         </>
       )}
@@ -266,7 +282,8 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         <span
           className={cn(
             'min-w-0 max-w-24 truncate font-mono text-3xs',
-            highlighted ? 'text-foreground/70' : 'text-muted-foreground/70'
+            highlighted ? 'text-foreground/70' : 'text-muted-foreground/70',
+            attentionMetadataClass
           )}
           title={model}
         >
@@ -277,7 +294,8 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         <span
           className={cn(
             'inline-flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums',
-            highlighted ? 'text-foreground/70' : 'text-muted-foreground/70'
+            highlighted ? 'text-foreground/70' : 'text-muted-foreground/70',
+            attentionMetadataClass
           )}
         >
           {collapsedChildAgentsState && (
@@ -286,6 +304,12 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
           +{childAgentCount}
         </span>
       )}
+      <AgentRowSessionMarkers
+        paneKey={agent.paneKey}
+        sessionName={primary}
+        attention={attention}
+        className="flex w-16 shrink-0 items-center justify-end gap-1"
+      />
       {cacheTimer && <CacheTimer startedAt={cacheTimer.startedAt} ttlMs={cacheTimer.ttlMs} />}
       {hasChildDisclosure ? (
         <DashboardAgentChildDisclosure
@@ -300,8 +324,11 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     </>
   )
 
-  return (
+  const row = (
     <div
+      ref={rowRef}
+      tabIndex={attention.isSession ? 0 : undefined}
+      onKeyDown={activateAgentRowFromKeyboard}
       draggable={false}
       className={cn(
         'compact-agent-row agent-disclosure-row group/compact-agent-row min-w-0 cursor-pointer rounded-sm px-1 text-[11px] leading-none',
@@ -309,6 +336,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         hasChildDisclosure && 'worktree-agent-lineage-parent-row',
         isLineageChild && 'worktree-agent-lineage-child-row',
         'flex h-6 items-center gap-1',
+        sessionAttentionSurfaceClass(attention.tone, attention.unread),
         highlighted && 'bg-worktree-sidebar-accent',
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
         sendTargetStatus === 'disabled' && 'cursor-default opacity-60'
@@ -330,5 +358,15 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     >
       {rowBody}
     </div>
+  )
+  return (
+    <AgentRowSessionAttentionMenu
+      paneKey={agent.paneKey}
+      sessionName={primary}
+      attention={attention}
+      triggerRef={rowRef}
+    >
+      {row}
+    </AgentRowSessionAttentionMenu>
   )
 })

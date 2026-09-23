@@ -195,6 +195,9 @@ function threadCurrentState(
 }
 
 export function threadAgentStateLabel(thread: AgentPaneThread, t: Translate = translate): string {
+  if (thread.migrationUnsupportedPtyId !== undefined) {
+    return t('sessionAttention.migrationNotice', 'Migration notice')
+  }
   // Literal translation keys/fallbacks register catalog references and avoid bundling every state string at boot.
   switch (activityThreadStatusId(thread)) {
     case 'working':
@@ -265,6 +268,20 @@ export function activityThreadRowCopy(
   const liveState = threadCurrentState(thread)
   const toolPreviewState = liveState === 'monitoring' ? null : liveState
   const state = activityThreadStatusId(thread)
+  if (thread.migrationUnsupportedPtyId !== undefined) {
+    return {
+      taskTitle,
+      statusLine:
+        renderedPreview ||
+        translate(
+          'sessionAttention.migrationNoticeDetail',
+          'Restart this terminal so Orca can attach a stable pane identity.'
+        ),
+      statusKind: 'message',
+      needsAttention: false,
+      workspaceLabel
+    }
+  }
   const needsAttention = state === 'waiting' || state === 'blocked' || state === 'permission'
   if (
     state !== 'unverifiable' &&

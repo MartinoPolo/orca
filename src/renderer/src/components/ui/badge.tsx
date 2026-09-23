@@ -28,7 +28,17 @@ const badgeVariants = cva(
           'h-4 border-current/30 px-1.5 py-0 align-[1px] text-3xs font-semibold tracking-wider uppercase',
         /** A skill or file sitting inline in the chat message box, ringed while selected. */
         promptPill:
-          'max-w-full border-border bg-secondary px-1.5 py-0 align-baseline text-muted-foreground data-[selected=true]:ring-1 data-[selected=true]:ring-ring'
+          'max-w-full border-border bg-secondary px-1.5 py-0 align-baseline text-muted-foreground data-[selected=true]:ring-1 data-[selected=true]:ring-ring',
+        priorityP1:
+          'h-4 min-w-6 rounded border-session-priority-p1-border bg-session-priority-p1 px-1 text-[9px] font-semibold leading-none text-session-priority-p1-foreground',
+        priorityP2:
+          'h-4 min-w-6 rounded border-session-priority-p2-border bg-session-priority-p2 px-1 text-[9px] font-semibold leading-none text-session-priority-p2-foreground',
+        priorityP3:
+          'h-4 min-w-6 rounded border-session-priority-p3 bg-session-priority-p3 px-1 text-[9px] font-semibold leading-none text-white',
+        priorityP4:
+          'h-4 min-w-6 rounded border-session-priority-p4-border bg-session-priority-p4 px-1 text-[9px] font-semibold leading-none text-session-priority-p4-foreground',
+        priorityP5:
+          'h-4 min-w-6 rounded border-session-priority-p5-border bg-session-priority-p5 px-1 text-[9px] font-semibold leading-none text-session-priority-p5-foreground'
       }
     },
     defaultVariants: {

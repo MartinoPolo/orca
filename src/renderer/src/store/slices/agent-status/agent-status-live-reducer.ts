@@ -9,6 +9,7 @@ import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-builde
 import { agentProviderSessionsEqual } from '../../../../../shared/agent-session/lifecycle/resume/agent-provider-session-equality'
 import { liveResumeRecordChange } from '../../../../../shared/agent-session/lifecycle/resume/agent-resume-record-from-status'
 import { retiresLaunch } from './agent-status-launch-config'
+import { updateSessionAttentionForAcceptedStatus } from './session-attention-transition'
 
 export type AgentStatusLiveUpdateReduction = {
   patch: Partial<AppState>
@@ -109,6 +110,7 @@ export function reduceAgentStatusLiveUpdate(
     sleepingAgentSessionsByPaneKey: nextSleepingAgentSessions,
     agentLaunchConfigByPaneKey: nextLaunchConfigs,
     migrationUnsupportedByPtyId: migrationUnsupported.next,
+    sessionAttentionMetadataByIdentity: updateSessionAttentionForAcceptedStatus(state, build),
     agentStatusEpoch:
       aggregateRelevantChange || migrationUnsupported.changed || evictedOrphans
         ? state.agentStatusEpoch + 1

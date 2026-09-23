@@ -2,6 +2,7 @@ import {
   pickHostTurnEnd,
   type AgentStatusEntry
 } from '../../../../../shared/agent-status/contracts/agent-status-types'
+import { agentProviderSessionsEqual } from '../../../../../shared/agent-session/lifecycle/resume/agent-provider-session-equality'
 import { sameAgentStatusSessionOwner } from '../../../../../shared/agent-status/identity/agent-status-terminal-owner'
 import type {
   AgentStatusMetadata,
@@ -57,11 +58,14 @@ export function resolveAgentStatusLiveEntryTiming(
   commandCodeNewTurn: boolean
 ) {
   const previousTurn = previousLiveTurnContext(existing, agentType, routing, metadata)
+  const incomingProviderSessionChanged =
+    Boolean(metadata?.providerSession && existing?.providerSession) &&
+    !agentProviderSessionsEqual(agentType, metadata?.providerSession, existing?.providerSession)
   const stateStartedAt =
     timing?.stateStartedAt ??
     (commandCodeNewTurn
       ? updatedAt
-      : previousTurn && previousTurn.state === payload.state
+      : previousTurn && previousTurn.state === payload.state && !incomingProviderSessionChanged
         ? previousTurn.stateStartedAt
         : updatedAt)
   const turnStartedAt =

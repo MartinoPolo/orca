@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { cn } from '@/lib/class-names'
 import {
   opensClaudeParentConversation,
@@ -48,6 +48,16 @@ import {
 import { translate } from '@/i18n/i18n'
 import { useTranslate, type Translate } from '@/i18n/use-translate'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
+import { useAgentRowSessionAttention } from '@/attention/use-agent-row-session-attention'
+import {
+  sessionAttentionMetadataClass,
+  sessionAttentionSurfaceClass
+} from '@/attention/session-attention-components'
+import {
+  activateAgentRowFromKeyboard,
+  AgentRowSessionAttentionMenu,
+  AgentRowSessionMarkers
+} from '@/attention/agent-row-session-attention'
 
 function formatTimeAgo(ts: number, now: number, t: Translate = translate): string {
   const delta = now - ts
@@ -224,6 +234,9 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
     isUnvisited && dotState === 'done'
       ? t('workspace.activity.unreadLabel', '{{status}} · Unread', { status: dotStatusLabel })
       : dotStatusLabel
+  const attention = useAgentRowSessionAttention(agent, dotState, isUnvisited)
+  const attentionMetadataClass = sessionAttentionMetadataClass(attention.tone)
+  const rowRef = useRef<HTMLDivElement | null>(null)
   // Unverifiable rows expose elapsed silence in their timestamp slot; do not hide their only content in a tooltip.
   const noUpdateLabel = dotState === 'unverifiable' ? rowNoUpdateLabel(agent, now) : null
 
@@ -248,9 +261,12 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
 
   const titleParts = sendTargetDisabledReason ? [sendTargetDisabledReason, ...tsParts] : tsParts
 
-  return (
+  const row = (
     // Why: no role="button" — nested interactive children (buttons, tooltip triggers) would violate ARIA nesting rules.
     <div
+      ref={rowRef}
+      tabIndex={attention.isSession ? 0 : undefined}
+      onKeyDown={activateAgentRowFromKeyboard}
       onClickCapture={handleSendTargetClickCapture}
       onClick={handleActivate}
       className={cn(
@@ -259,6 +275,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         isLineageChild ? 'pl-5 pr-2' : 'px-2',
         // Why: hover wash stays softer than the enclosing card's highlight.
         'cursor-pointer rounded-sm worktree-agent-row-hover',
+        sessionAttentionSurfaceClass(attention.tone, attention.unread),
         hasChildDisclosure && 'worktree-agent-lineage-parent-row',
         isLineageChild && 'worktree-agent-lineage-child-row',
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
@@ -338,6 +355,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             'transition-[height] duration-200 ease-out [interpolate-size:allow-keywords]',
             expanded ? 'h-auto whitespace-pre-wrap break-words' : 'h-[1lh] truncate',
             isUnvisited ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground',
+            !isUnvisited && !isFocusedPane && attentionMetadataClass,
             // Why: the selected-row fill washes out muted text — keep it readable.
             highlighted && !isUnvisited && 'text-foreground/90'
           )}
@@ -353,7 +371,8 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
               sendTargetStatus === 'eligible' || sendTargetStatus === 'sending'
                 ? 'min-w-0'
                 : 'shrink-0',
-              'truncate font-mono text-3xs text-muted-foreground/70'
+              'truncate font-mono text-3xs text-muted-foreground/70',
+              !isFocusedPane && attentionMetadataClass
             )}
             title={model}
           >
@@ -369,6 +388,11 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             <span aria-hidden>+{childAgentCount}</span>
           </span>
         )}
+        <AgentRowSessionMarkers
+          paneKey={agent.paneKey}
+          sessionName={displayLabel}
+          attention={attention}
+        />
         <DashboardAgentRowTrailingControls
           paneKey={agent.paneKey}
           relativeTimestamp={relativeTimestamp}
@@ -409,6 +433,16 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         lastAssistantMessage={lastAssistantMessage}
       />
     </div>
+  )
+  return (
+    <AgentRowSessionAttentionMenu
+      paneKey={agent.paneKey}
+      sessionName={displayLabel}
+      attention={attention}
+      triggerRef={rowRef}
+    >
+      {row}
+    </AgentRowSessionAttentionMenu>
   )
 })
 

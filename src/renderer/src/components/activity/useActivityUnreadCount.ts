@@ -1,6 +1,5 @@
 import { useState } from 'react'
 
-import { migrationUnsupportedToAgentStatusEntry } from '../../../../shared/migration-unsupported-agent-entry'
 import { useAppStore } from '@/store'
 import { createAgentStatusEpochSelector } from '@/lib/agent-status/evidence/agent-status-epoch-selector'
 import type { AppState } from '@/store/types'
@@ -10,7 +9,7 @@ import { freshActivityLiveAgentState, isHistoricalActivityState } from './activi
 
 type ActivityUnreadCountSource = Pick<
   AppState,
-  'acknowledgedAgentsByPaneKey' | 'agentStatusByPaneKey' | 'migrationUnsupportedByPtyId'
+  'acknowledgedAgentsByPaneKey' | 'agentStatusByPaneKey'
 > & {
   /** Per-pane "Clear completed" cutoffs; hidden events must not count as unread. */
   activityClearedAtByPaneKey?: Record<string, number>
@@ -47,14 +46,6 @@ export function countActivityUnread(source: ActivityUnreadCountSource, now = Dat
     seenPaneKeys.add(paneKey)
     countEntry(entry, source.acknowledgedAgentsByPaneKey[paneKey] ?? 0, true)
   }
-  for (const unsupported of Object.values(source.migrationUnsupportedByPtyId)) {
-    const entry = migrationUnsupportedToAgentStatusEntry(unsupported)
-    if (entry && !seenPaneKeys.has(entry.paneKey)) {
-      seenPaneKeys.add(entry.paneKey)
-      countEntry(entry, source.acknowledgedAgentsByPaneKey[entry.paneKey] ?? 0)
-    }
-  }
-
   return count
 }
 
@@ -63,13 +54,11 @@ const createActivityUnreadCountSelector = () =>
   createAgentStatusEpochSelector(
     (
       state: AppState,
-      migrationUnsupportedByPtyId: AppState['migrationUnsupportedByPtyId'],
       acknowledgedAgentsByPaneKey: AppState['acknowledgedAgentsByPaneKey'],
       activityClearedAtByPaneKey: AppState['activityClearedAtByPaneKey']
     ) =>
       countActivityUnread({
         agentStatusByPaneKey: state.agentStatusByPaneKey,
-        migrationUnsupportedByPtyId,
         acknowledgedAgentsByPaneKey,
         activityClearedAtByPaneKey
       })
@@ -80,7 +69,6 @@ export function useActivityUnreadCount(): number {
   return useAppStore((state) =>
     selectActivityUnreadCount(
       state,
-      state.migrationUnsupportedByPtyId,
       state.acknowledgedAgentsByPaneKey,
       state.activityClearedAtByPaneKey
     )

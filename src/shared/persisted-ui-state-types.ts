@@ -32,6 +32,7 @@ import type {
 import type { WorkspaceStatusDefinition } from './worktree/types'
 import type { PersistedAutomationHostFilter } from './automations/ownership/automation-host-filter'
 import type { PendingRuntimeRepoRemoval } from './remote-runtime/host-catalog/pending-runtime-repo-removal'
+import type { SessionAttentionMetadata } from './session-attention'
 
 export type PersistedUIState = {
   gitGraphFiltersByWorktree?: Record<string, GitHistoryRefs>
@@ -106,8 +107,8 @@ export type PersistedUIState = {
   agentsCompactMode?: boolean
   /** Agents sidebar search field visibility. Absent means on. */
   agentsShowSearch?: boolean
-  /** Agents-view unread-only thread filter. Absent means 'all'. */
-  agentsReadFilter?: ThreadReadFilter
+  /** Agents-view scope. Legacy `unread` hydrates as `attention`. */
+  agentsReadFilter?: ThreadReadFilter | 'unread'
   /** Agents-view thread grouping. Absent means 'status'. */
   agentsGroupBy?: ActivityGroupBy
   collapsedGroups: string[]
@@ -174,6 +175,8 @@ export type PersistedUIState = {
   activityClearedAtByPaneKey?: Record<string, number>
   /** Renderer ui:set explicit unread turn stamps survive restart alongside acknowledgments and cutoffs. */
   manuallyUnreadTurnsByPaneKey?: Record<string, number>
+  /** Priority and saved-for-later facts keyed by stable host/workspace/provider session identity. */
+  sessionAttentionMetadataByIdentity?: Record<string, SessionAttentionMetadata>
   /** User-hidden setup-guide sidebar entry; a reversible declutter pref (Help menu stays available), not completion. */
   setupGuideSidebarDismissed?: boolean
   /** One-shot marker for the browser setup-guide milestone; profiles missing it are evaluated once in the renderer (completion needs runtime probes). */

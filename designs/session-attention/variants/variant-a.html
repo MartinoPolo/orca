@@ -1,0 +1,1949 @@
+<!doctype html>
+<html lang="en" data-attention-style="tint-unread-outline" data-state-palette="a">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orca session attention — variant A</title>
+    <style>
+      @font-face {
+        font-family: Geist;
+        src: url('../../../src/renderer/src/assets/fonts/Geist-Variable.woff2') format('woff2');
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+        --font: Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --mono:
+          'SF Mono', SFMono-Regular, ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+        --background: #fff;
+        --foreground: #0a0a0a;
+        --muted: #f5f5f5;
+        --muted-foreground: #737373;
+        --accent: #f5f5f5;
+        --accent-foreground: #171717;
+        --border: #e5e5e5;
+        --ring: #a1a1a1;
+        --popover: #fff;
+        --popover-foreground: #0a0a0a;
+        --editor-surface: #f7f7f8;
+        --worktree-sidebar: #f5f5f5;
+        --worktree-sidebar-foreground: #0a0a0a;
+        --worktree-sidebar-accent: #eaeaea;
+        --worktree-sidebar-border: #e5e5e5;
+        --worktree-sidebar-ring: #a1a1a1;
+        --input-foreground: #b42318;
+        --input-border: #d92d20;
+        --input-surface: #fde8e7;
+        --outcome-foreground: #6d28d9;
+        --outcome-border: #7c3aed;
+        --outcome-surface: #f0e9ff;
+        --agent-question: var(--input-foreground);
+        --destructive: var(--outcome-foreground);
+        --done: #047857;
+        --done-surface: #e8f8f1;
+        --danger: var(--outcome-foreground);
+        --attention-secondary-foreground: #525252;
+        --working: #ca8a04;
+        --working-glyph: #a16207;
+        --unverifiable: #b45309;
+        --idle: #737373;
+        --unread-outline: #b54708;
+        --p1: #1d4ed8;
+        --p1-foreground: #fff;
+        --p2: #15803d;
+        --p2-foreground: #fff;
+        --p3: #737373;
+        --p3-foreground: #fff;
+        --p4: #f59e0b;
+        --p4-foreground: #2b1800;
+        --p5: #dc2626;
+        --p5-foreground: #fff;
+        --saved-blue: #2563eb;
+        --saved-violet: #7c3aed;
+        --saved-teal: #0f766e;
+        --saved-rose: #e11d48;
+        --shadow-floating: 0 10px 24px rgb(0 0 0 / 0.18);
+      }
+
+      :root.dark {
+        color-scheme: dark;
+        --background: #0a0a0a;
+        --foreground: #fafafa;
+        --muted: #262626;
+        --muted-foreground: #a1a1a1;
+        --accent: #404040;
+        --accent-foreground: #fafafa;
+        --border: rgb(255 255 255 / 0.07);
+        --ring: #737373;
+        --popover: #171717;
+        --popover-foreground: #fafafa;
+        --editor-surface: #1e1e1e;
+        --worktree-sidebar: #2a2a2a;
+        --worktree-sidebar-foreground: #fafafa;
+        --worktree-sidebar-accent: #353535;
+        --worktree-sidebar-border: rgb(255 255 255 / 0.07);
+        --worktree-sidebar-ring: #737373;
+        --input-foreground: #ff9b94;
+        --input-border: #ff6b63;
+        --input-surface: #4a2726;
+        --outcome-foreground: #c4b5fd;
+        --outcome-border: #a78bfa;
+        --outcome-surface: #45345f;
+        --agent-question: var(--input-foreground);
+        --destructive: var(--outcome-foreground);
+        --done: #34d399;
+        --done-surface: #153128;
+        --danger: var(--outcome-foreground);
+        --attention-secondary-foreground: #e5e5e5;
+        --working: #facc15;
+        --working-glyph: var(--working);
+        --unverifiable: #f59e0b;
+        --idle: #a1a1a1;
+        --unread-outline: #ffb454;
+        --p1: #1d4ed8;
+        --p1-foreground: #fff;
+        --p2: #15803d;
+        --p2-foreground: #fff;
+        --p3: #737373;
+        --p3-foreground: #fff;
+        --p4: #f59e0b;
+        --p4-foreground: #2b1800;
+        --p5: #dc2626;
+        --p5-foreground: #fff;
+        --saved-blue: #60a5fa;
+        --saved-violet: #a78bfa;
+        --saved-teal: #2dd4bf;
+        --saved-rose: #fb7185;
+      }
+
+      :root[data-state-palette='b'] {
+        --outcome-foreground: #1d4ed8;
+        --outcome-border: #2563eb;
+        --outcome-surface: #e8f1ff;
+      }
+
+      :root.dark[data-state-palette='b'] {
+        --outcome-foreground: #93c5fd;
+        --outcome-border: #60a5fa;
+        --outcome-surface: #1b2b45;
+      }
+
+      :root[data-state-palette='c'] {
+        --outcome-foreground: #713f12;
+        --outcome-border: #a16207;
+        --outcome-surface: #f5e7b0;
+      }
+
+      :root.dark[data-state-palette='c'] {
+        --outcome-foreground: #f6c453;
+        --outcome-border: #d6a82c;
+        --outcome-surface: #57451b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-width: 1024px;
+        min-height: 948px;
+        background: #eceef1;
+      }
+      body {
+        font-family: var(--font);
+        color: var(--foreground);
+        letter-spacing: 0.01em;
+      }
+      button {
+        font: inherit;
+      }
+      svg {
+        display: block;
+      }
+
+      .prototype-bar {
+        height: 104px;
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) auto;
+        grid-template-rows: 28px 34px 20px;
+        align-items: center;
+        gap: 4px 16px;
+        padding: 7px 18px;
+        color: #1f2937;
+        background: #f8fafc;
+        border-bottom: 1px solid #d9dde3;
+      }
+      .prototype-title {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-width: 0;
+      }
+      .prototype-title strong {
+        font-size: 14px;
+      }
+      .prototype-title span {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .prototype-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .demo-group {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid #d5dae1;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .demo-button {
+        min-height: 28px;
+        border: 0;
+        border-radius: 6px;
+        padding: 0 10px;
+        color: #475569;
+        background: transparent;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 550;
+      }
+      .demo-button:hover,
+      .demo-button[aria-pressed='true'] {
+        background: #e9edf2;
+        color: #0f172a;
+      }
+      .demo-button:focus-visible {
+        outline: 2px solid #64748b;
+        outline-offset: 2px;
+      }
+      .comparison-controls {
+        grid-column: 1 / -1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .style-selector,
+      .palette-selector {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        border: 0;
+        padding: 0;
+      }
+      .style-selector legend,
+      .palette-selector legend {
+        flex: none;
+        padding: 0;
+        color: #475569;
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .style-options,
+      .palette-options {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid #d5dae1;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .style-option,
+      .palette-option {
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 6px;
+        padding: 0 10px;
+        color: #475569;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .style-option:hover,
+      .palette-option:hover,
+      .style-options input:checked + .style-option,
+      .palette-options input:checked + .palette-option {
+        color: #0f172a;
+        background: #e9edf2;
+      }
+      .style-options input:focus-visible + .style-option,
+      .palette-options input:focus-visible + .palette-option {
+        outline: 2px solid #64748b;
+        outline-offset: 1px;
+      }
+      .recommended-note {
+        color: #64748b;
+        font-size: 9px;
+        font-weight: 650;
+      }
+      .preview-legend {
+        grid-column: 1 / -1;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .stage {
+        height: 844px;
+        padding: 12px 18px;
+        background: #eceef1;
+      }
+      .app {
+        width: min(1440px, calc(100vw - 36px));
+        height: 820px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #cfd3d9;
+        border-radius: 10px;
+        background: var(--background);
+        box-shadow: 0 18px 50px rgb(15 23 42 / 0.15);
+      }
+      .titlebar {
+        height: 38px;
+        display: grid;
+        grid-template-columns: 280px 1fr auto;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+        user-select: none;
+      }
+      .titlebar-brand {
+        padding-left: 14px;
+        font-size: 12px;
+        font-weight: 650;
+        color: var(--muted-foreground);
+      }
+      .titlebar-file {
+        justify-self: center;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+      .titlebar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-right: 14px;
+        color: var(--muted-foreground);
+      }
+      .app-body {
+        height: calc(100% - 62px);
+        display: flex;
+        min-height: 0;
+      }
+      .sidebar {
+        position: relative;
+        container: sidebar / inline-size;
+        width: 280px;
+        min-width: 220px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        color: var(--worktree-sidebar-foreground);
+        background: var(--worktree-sidebar);
+        border-right: 1px solid var(--worktree-sidebar-border);
+      }
+      .sidebar::after {
+        content: '';
+        position: absolute;
+        z-index: 4;
+        right: -1px;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        cursor: col-resize;
+      }
+      .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 8px 4px;
+      }
+      .nav-row {
+        height: 29px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 6px;
+        padding: 0 8px;
+        color: color-mix(in srgb, var(--worktree-sidebar-foreground) 60%, transparent);
+        background: transparent;
+        font-size: 13px;
+        font-weight: 540;
+        text-align: left;
+      }
+      .nav-row.search {
+        background: color-mix(in srgb, var(--worktree-sidebar-foreground) 5%, transparent);
+      }
+      .nav-row .icon {
+        opacity: 0.52;
+      }
+      .sidebar-header {
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 8px 8px 0;
+      }
+      .section-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 8px;
+        color: color-mix(in srgb, var(--muted-foreground) 80%, transparent);
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .icon-button {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 6px;
+        color: var(--muted-foreground);
+        background: transparent;
+        cursor: pointer;
+      }
+      .icon-button:hover {
+        background: var(--worktree-sidebar-accent);
+        color: var(--foreground);
+      }
+      .icon-button[aria-pressed='true'] {
+        color: var(--foreground);
+        background: color-mix(in srgb, var(--foreground) 12%, transparent);
+      }
+      .icon-button:focus-visible,
+      .session-row:focus-visible,
+      .activity-row:focus-visible {
+        outline: 2px solid var(--worktree-sidebar-ring);
+        outline-offset: 2px;
+      }
+      .sidebar-scroll {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding: 2px 6px 12px;
+        scrollbar-width: thin;
+      }
+
+      .workspace-card {
+        margin: 4px 0;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 5px 4px 6px;
+      }
+      .workspace-card.current {
+        border-color: color-mix(
+          in srgb,
+          var(--worktree-sidebar-foreground) 14%,
+          var(--worktree-sidebar-border)
+        );
+        background: color-mix(in srgb, var(--worktree-sidebar-foreground) 6%, transparent);
+      }
+      .workspace-head {
+        height: 27px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 4px;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .workspace-head .label {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .aggregate {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--agent-question);
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .branch {
+        height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 4px 0 20px;
+        color: var(--muted-foreground);
+        font-family: var(--mono);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .agent-list {
+        margin-left: 8px;
+      }
+      .session-row,
+      .activity-row {
+        --attention-surface: transparent;
+        --status-foreground: var(--idle);
+      }
+      .session-row {
+        position: relative;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 100%;
+        overflow: hidden;
+        border: 0;
+        border-radius: 4px;
+        padding: 0 4px 0 5px;
+        color: var(--muted-foreground);
+        background: transparent;
+        cursor: pointer;
+        font-size: 11px;
+        text-align: left;
+      }
+      .session-row[data-attention='true'] {
+        color: var(--foreground);
+        font-weight: 580;
+      }
+      .session-row[data-attention='true'] .secondary,
+      .activity-row[data-attention='true'] .activity-meta {
+        color: var(--attention-secondary-foreground);
+      }
+      .session-row:hover {
+        background: color-mix(in srgb, var(--worktree-sidebar-foreground) 6%, transparent);
+      }
+      .session-row[data-current='true'] {
+        color: var(--foreground);
+        background: color-mix(
+          in srgb,
+          var(--worktree-sidebar-foreground) 12%,
+          var(--worktree-sidebar-accent)
+        );
+      }
+      .status-glyph {
+        width: 14px;
+        min-width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--status-foreground);
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      [data-status='waiting'],
+      [data-status='permission'] {
+        --attention-surface: var(--input-surface);
+        --status-foreground: var(--input-foreground);
+      }
+      [data-status='blocked'],
+      [data-status='interrupted'],
+      [data-status='failed'] {
+        --attention-surface: var(--outcome-surface);
+        --status-foreground: var(--outcome-foreground);
+      }
+      [data-status='done'] {
+        --attention-surface: var(--done-surface);
+        --status-foreground: var(--done);
+      }
+      [data-status='working'],
+      [data-status='monitoring'] {
+        --status-foreground: var(--working);
+      }
+      [data-status='unverifiable'] {
+        --status-foreground: var(--unverifiable);
+      }
+      [data-status='idle'] {
+        --status-foreground: color-mix(in srgb, var(--idle) 55%, transparent);
+      }
+      .status-glyph.waiting,
+      .status-glyph.permission {
+        color: var(--input-foreground);
+      }
+      .status-glyph.blocked,
+      .status-glyph.interrupted,
+      .status-glyph.failed {
+        color: var(--outcome-foreground);
+      }
+      .status-glyph.done {
+        color: var(--done);
+      }
+      .status-glyph.working,
+      .status-glyph.monitoring {
+        color: var(--working-glyph);
+      }
+      .status-glyph.unverifiable {
+        color: var(--unverifiable);
+      }
+      .status-glyph.idle {
+        color: color-mix(in srgb, var(--idle) 55%, transparent);
+      }
+      .spinner {
+        width: 10px;
+        height: 10px;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+      }
+      .session-icon {
+        width: 13px;
+        height: 13px;
+        display: grid;
+        place-items: center;
+        border: 1px solid color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+        border-radius: 3px;
+        color: var(--muted-foreground);
+        font-size: 8px;
+        font-weight: 750;
+      }
+      .session-copy {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .session-copy .secondary {
+        color: color-mix(in srgb, var(--muted-foreground) 65%, transparent);
+      }
+      .row-trailing {
+        width: 66px;
+        min-width: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+      }
+      .priority {
+        width: 24px;
+        min-width: 24px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 0;
+        color: var(--priority-foreground);
+        background: var(--priority-color);
+        font-size: 9px;
+        font-weight: 750;
+        line-height: 1;
+      }
+      .saved {
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--saved-color);
+      }
+      .read-button {
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 4px;
+        padding: 0;
+        color: var(--unread-outline);
+        background: transparent;
+        cursor: pointer;
+      }
+      .unread-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .read-button:hover {
+        color: var(--unread-outline);
+        background: color-mix(in srgb, var(--foreground) 9%, transparent);
+      }
+      .read-button:focus-visible {
+        outline: 2px solid var(--ring);
+      }
+      .activity-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 5px 8px 6px;
+        border-bottom: 1px solid var(--worktree-sidebar-border);
+      }
+      .activity-tools[hidden] {
+        display: none;
+      }
+      .scope-tabs {
+        display: inline-flex;
+        gap: 2px;
+        padding: 2px;
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--worktree-sidebar-foreground) 5%, transparent);
+      }
+      .scope-button {
+        height: 24px;
+        border: 0;
+        border-radius: 5px;
+        padding: 0 9px;
+        color: var(--muted-foreground);
+        background: transparent;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 620;
+      }
+      .scope-button[aria-pressed='true'] {
+        color: var(--foreground);
+        background: var(--worktree-sidebar);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      }
+      .scope-button:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 1px;
+      }
+      .queue-rule {
+        padding: 6px 9px 4px;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+      .status-group {
+        margin-top: 4px;
+      }
+      .group-title {
+        height: 25px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 7px;
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .group-count {
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
+      .activity-row {
+        position: relative;
+        width: 100%;
+        min-height: 68px;
+        display: flex;
+        gap: 7px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 7px 6px;
+        color: var(--foreground);
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+      .activity-row:hover {
+        background: color-mix(in srgb, var(--worktree-sidebar-foreground) 5%, transparent);
+      }
+      .activity-row[data-attention='true'] .activity-summary {
+        color: color-mix(in srgb, var(--foreground) 82%, transparent);
+      }
+
+      :root[data-attention-style='strong-tint'] [data-attention='true'],
+      :root[data-attention-style='tint-unread-outline'] [data-attention='true'] {
+        background: var(--attention-surface);
+      }
+      :root[data-attention-style] [data-attention='true']:hover {
+        background: color-mix(in srgb, var(--attention-surface) 88%, var(--foreground));
+      }
+      :root[data-attention-style='tint-unread-outline'] [data-unread='true'] {
+        box-shadow: inset 0 0 0 2px var(--unread-outline);
+      }
+      :root[data-attention-style] .session-row[data-current='true'] {
+        color: var(--foreground);
+        background: color-mix(
+          in srgb,
+          var(--worktree-sidebar-foreground) 12%,
+          var(--worktree-sidebar-accent)
+        );
+      }
+
+      .activity-main {
+        min-width: 0;
+        flex: 1;
+      }
+      .activity-title-line {
+        display: flex;
+        align-items: start;
+        gap: 6px;
+        min-width: 0;
+      }
+      .activity-title {
+        min-width: 0;
+        flex: 1 1 0;
+        overflow: hidden;
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 630;
+        line-height: 18px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .activity-summary {
+        margin-top: 2px;
+        overflow: hidden;
+        color: color-mix(in srgb, var(--foreground) 75%, transparent);
+        font-size: 11px;
+        line-height: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .activity-meta {
+        height: 18px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 4px;
+        color: var(--muted-foreground);
+        font-size: 10px;
+      }
+      .activity-meta .workspace {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .empty {
+        display: grid;
+        place-items: center;
+        gap: 8px;
+        padding: 62px 18px;
+        color: var(--muted-foreground);
+        text-align: center;
+        font-size: 12px;
+      }
+      .empty strong {
+        color: var(--foreground);
+        font-size: 13px;
+      }
+
+      .sidebar-toolbar {
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px;
+        border-top: 1px solid var(--worktree-sidebar-border);
+      }
+      .toolbar-side {
+        display: flex;
+        gap: 4px;
+      }
+
+      .workbench {
+        min-width: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--editor-surface);
+      }
+      .tabs {
+        height: 36px;
+        display: flex;
+        align-items: end;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+      }
+      .tab {
+        height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 180px;
+        padding: 0 12px;
+        border-right: 1px solid var(--border);
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+      .tab.active {
+        color: var(--foreground);
+        background: var(--editor-surface);
+      }
+      .terminal {
+        min-height: 0;
+        flex: 1;
+        padding: 24px 30px;
+        overflow: hidden;
+        color: #a1a1aa;
+        background: var(--editor-surface);
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .terminal .command {
+        color: #d4d4d8;
+      }
+      :root:not(.dark) .terminal {
+        color: #71717a;
+      }
+      :root:not(.dark) .terminal .command {
+        color: #27272a;
+      }
+      .prompt-line {
+        margin-top: 18px;
+        color: color-mix(in srgb, var(--foreground) 75%, transparent);
+      }
+      .caret {
+        display: inline-block;
+        width: 7px;
+        height: 15px;
+        margin-left: 3px;
+        vertical-align: -2px;
+        background: color-mix(in srgb, var(--foreground) 72%, transparent);
+      }
+      .statusbar {
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        border-top: 1px solid var(--border);
+        color: var(--muted-foreground);
+        background: var(--background);
+        font-size: 10px;
+      }
+
+      .context-menu,
+      .submenu {
+        position: fixed;
+        z-index: 100;
+        min-width: 184px;
+        display: none;
+        padding: 4px;
+        border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
+        border-radius: 11px;
+        color: var(--popover-foreground);
+        background: color-mix(in srgb, var(--popover) 96%, transparent);
+        box-shadow: var(--shadow-floating);
+        backdrop-filter: blur(16px);
+      }
+      .context-menu.open,
+      .submenu.open {
+        display: block;
+      }
+      .menu-item {
+        position: relative;
+        width: 100%;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 6px;
+        padding: 0 8px;
+        color: inherit;
+        background: transparent;
+        cursor: default;
+        font-size: 12px;
+        font-weight: 450;
+        text-align: left;
+      }
+      .menu-item:hover,
+      .menu-item:focus {
+        outline: 0;
+        background: color-mix(in srgb, var(--foreground) 9%, transparent);
+      }
+      .menu-icon {
+        width: 14px;
+        display: inline-flex;
+        justify-content: center;
+        color: var(--muted-foreground);
+      }
+      .menu-label {
+        flex: 1;
+      }
+      .menu-check {
+        width: 12px;
+        color: var(--foreground);
+      }
+      .menu-separator {
+        height: 1px;
+        margin: 3px 2px;
+        background: var(--border);
+      }
+      .swatch {
+        width: 9px;
+        height: 9px;
+        border: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+        border-radius: 50%;
+        color: var(--swatch);
+        background: currentColor;
+      }
+      .menu-hint {
+        color: var(--muted-foreground);
+        font-size: 10px;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="m20 20-4-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24">
+        <path
+          d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24">
+        <path
+          d="M6 3h12v18l-6-4-6 4z"
+          fill="currentColor"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-question" viewBox="0 0 24 24">
+        <path
+          d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4A9 9 0 1 1 21 12Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M9.6 9a2.5 2.5 0 1 1 4 2c-1 .6-1.6 1-1.6 2M12 16h.01"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-check-circle" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="m8 12 2.5 2.5L16 9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-circle-dashed" viewBox="0 0 24 24">
+        <path
+          d="M8 3.5A9 9 0 0 1 20.5 8M20.5 16A9 9 0 0 1 16 20.5M8 20.5A9 9 0 0 1 3.5 16M3.5 8A9 9 0 0 1 8 3.5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24">
+        <path
+          d="M3 6h7l2 2h9v11H3z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-more" viewBox="0 0 24 24">
+        <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 14 5.6L13.7 3h-4L9.4 5.6A8 8 0 0 0 7 7L4.6 6 2.7 9.5l2 1.5a7 7 0 0 0 0 2l-2 1.5L4.6 18 7 17a8 8 0 0 0 2.4 1.4l.3 2.6h4l.3-2.6A8 8 0 0 0 16.5 17l2.4 1 2-3.5-2-1.5a7 7 0 0 0 .1-1Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+        />
+      </symbol>
+      <symbol id="i-kanban" viewBox="0 0 24 24">
+        <rect
+          x="3"
+          y="4"
+          width="7"
+          height="16"
+          rx="1"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <rect
+          x="14"
+          y="4"
+          width="7"
+          height="10"
+          rx="1"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24">
+        <path
+          d="m9 18 6-6-6-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </symbol>
+    </svg>
+
+    <header class="prototype-bar">
+      <div class="prototype-title">
+        <strong>Session attention · Variant A</strong
+        ><span>Prototype controls — outside the Orca product frame</span>
+      </div>
+      <div class="prototype-controls">
+        <div class="demo-group" aria-label="Prototype view">
+          <button class="demo-button" id="show-workspaces" aria-pressed="true">Workspaces</button>
+          <button class="demo-button" id="show-activity" aria-pressed="false">Activity</button>
+        </div>
+        <button class="demo-button" id="theme-toggle">Dark theme</button>
+        <button class="demo-button" id="reset-demo">Reset demo</button>
+      </div>
+      <div class="comparison-controls">
+        <fieldset class="style-selector">
+          <legend>Mockup only · Attention style</legend>
+          <div class="style-options">
+            <input
+              class="sr-only"
+              type="radio"
+              name="attention-style"
+              id="attention-style-strong-tint"
+              value="strong-tint"
+            />
+            <label class="style-option" for="attention-style-strong-tint">Strong tint</label>
+            <input
+              class="sr-only"
+              type="radio"
+              name="attention-style"
+              id="attention-style-tint-unread-outline"
+              value="tint-unread-outline"
+              checked
+            />
+            <label class="style-option" for="attention-style-tint-unread-outline"
+              >Tint + unread outline&nbsp;<span class="recommended-note">default</span></label
+            >
+          </div>
+        </fieldset>
+        <fieldset class="palette-selector">
+          <legend>Mockup only · State palette</legend>
+          <div class="palette-options">
+            <input
+              class="sr-only"
+              type="radio"
+              name="state-palette"
+              id="state-palette-a"
+              value="a"
+              checked
+            />
+            <label class="palette-option" for="state-palette-a">A · Red / violet</label>
+            <input
+              class="sr-only"
+              type="radio"
+              name="state-palette"
+              id="state-palette-b"
+              value="b"
+            />
+            <label class="palette-option" for="state-palette-b">B · Red / blue</label>
+            <input
+              class="sr-only"
+              type="radio"
+              name="state-palette"
+              id="state-palette-c"
+              value="c"
+            />
+            <label class="palette-option" for="state-palette-c">C · Red / dark yellow</label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="preview-legend">
+        Background = state · Outline/dot = unread · Badge = priority · Bookmark = saved
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="app" aria-label="Orca desktop mockup">
+        <div class="titlebar">
+          <div class="titlebar-brand">ORCA</div>
+          <div class="titlebar-file">notifications — martas/notifications</div>
+          <div class="titlebar-actions"><span>—</span><span>□</span><span>×</span></div>
+        </div>
+        <div class="app-body">
+          <aside class="sidebar" aria-label="Workspace sidebar">
+            <nav class="sidebar-nav" aria-label="Sidebar navigation">
+              <button class="nav-row search">
+                <svg class="icon" width="16" height="16"><use href="#i-search" /></svg
+                ><span>Search</span
+                ><span style="margin-left: auto; font-size: 10px; opacity: 0.6">Ctrl + K</span>
+              </button>
+              <button class="nav-row">
+                <svg class="icon" width="16" height="16"><use href="#i-check-circle" /></svg
+                ><span>Tasks</span>
+              </button>
+              <button class="nav-row">
+                <svg class="icon" width="16" height="16"><use href="#i-folder" /></svg
+                ><span>Automations</span>
+              </button>
+            </nav>
+
+            <div class="sidebar-header">
+              <span class="section-title" id="sidebar-title">Workspaces</span>
+              <div class="header-actions">
+                <button
+                  class="icon-button"
+                  id="activity-trigger"
+                  aria-label="View activity"
+                  aria-pressed="false"
+                  title="View activity"
+                >
+                  <svg width="14" height="14"><use href="#i-bell" /></svg>
+                </button>
+                <button
+                  class="icon-button"
+                  aria-label="More sidebar actions"
+                  title="More sidebar actions"
+                >
+                  <svg width="14" height="14"><use href="#i-more" /></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="activity-tools" id="activity-tools" hidden>
+              <div class="scope-tabs" aria-label="Activity scope">
+                <button class="scope-button" data-scope="attention" aria-pressed="true">
+                  Attention
+                </button>
+                <button class="scope-button" data-scope="all" aria-pressed="false">All</button>
+              </div>
+              <button class="icon-button" aria-label="Activity options" title="Activity options">
+                <svg width="14" height="14"><use href="#i-more" /></svg>
+              </button>
+            </div>
+
+            <div class="sidebar-scroll" id="sidebar-content"></div>
+
+            <div class="sidebar-toolbar">
+              <div class="toolbar-side">
+                <button class="icon-button" aria-label="Settings and help">
+                  <svg width="14" height="14"><use href="#i-settings" /></svg>
+                </button>
+              </div>
+              <div class="toolbar-side">
+                <button class="icon-button" aria-label="Workspace board">
+                  <svg width="14" height="14"><use href="#i-kanban" /></svg>
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <section class="workbench" aria-label="Terminal workbench">
+            <div class="tabs">
+              <div class="tab active">
+                <span class="dot" style="color: var(--working)"></span> Session attention
+              </div>
+              <div class="tab">Preview</div>
+            </div>
+            <div class="terminal" aria-label="Muted terminal context">
+              <div class="command">$ pnpm test src/renderer/src/components/activity</div>
+              <div>PASS activity-thread-grouping.test.ts</div>
+              <div>PASS agent-attention-policy.test.ts</div>
+              <div>PASS session-preferences.test.ts</div>
+              <div style="margin-top: 14px">Tests: 18 passed</div>
+              <div>Time: 2.41s</div>
+              <div class="prompt-line">
+                notifications <span style="color: var(--done)">martas/notifications</span> $<span
+                  class="caret"
+                ></span>
+              </div>
+            </div>
+          </section>
+        </div>
+        <footer class="statusbar">
+          <span>notifications · local</span><span>UTF-8&nbsp;&nbsp; Ln 1, Col 1</span>
+        </footer>
+      </section>
+    </main>
+
+    <div class="context-menu" id="context-menu" role="menu" aria-label="Session actions">
+      <button class="menu-item" role="menuitem" data-open-submenu="priority">
+        <span class="menu-icon">P</span><span class="menu-label">Priority</span
+        ><span class="menu-hint" id="current-priority">P3</span
+        ><svg width="13" height="13"><use href="#i-chevron" /></svg>
+      </button>
+      <button class="menu-item" role="menuitem" data-open-submenu="saved">
+        <span class="menu-icon"
+          ><svg width="13" height="13"><use href="#i-bookmark" /></svg></span
+        ><span class="menu-label">Saved marker</span
+        ><svg width="13" height="13"><use href="#i-chevron" /></svg>
+      </button>
+      <button class="menu-item" role="menuitem" id="remove-saved">
+        <span class="menu-icon">×</span><span class="menu-label">Remove saved marker</span>
+      </button>
+      <div class="menu-separator"></div>
+      <button class="menu-item" role="menuitem" id="toggle-read">
+        <span class="menu-icon"
+          ><svg width="13" height="13"><use href="#i-bell" /></svg></span
+        ><span class="menu-label">Mark read</span>
+      </button>
+    </div>
+
+    <div class="submenu" id="priority-submenu" role="menu" aria-label="Priority">
+      <button class="menu-item" role="menuitemradio" data-priority="5">
+        <span class="menu-check"></span><span class="swatch" style="--swatch: var(--p5)"></span
+        ><span class="menu-label">P5 · Highest</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-priority="4">
+        <span class="menu-check"></span><span class="swatch" style="--swatch: var(--p4)"></span
+        ><span class="menu-label">P4</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-priority="3">
+        <span class="menu-check"></span><span class="swatch" style="--swatch: var(--p3)"></span
+        ><span class="menu-label">P3 · Default</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-priority="2">
+        <span class="menu-check"></span><span class="swatch" style="--swatch: var(--p2)"></span
+        ><span class="menu-label">P2</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-priority="1">
+        <span class="menu-check"></span><span class="swatch" style="--swatch: var(--p1)"></span
+        ><span class="menu-label">P1</span>
+      </button>
+    </div>
+
+    <div class="submenu" id="saved-submenu" role="menu" aria-label="Saved marker color">
+      <button class="menu-item" role="menuitemradio" data-saved="blue">
+        <span class="menu-check"></span
+        ><span class="swatch" style="--swatch: var(--saved-blue)"></span
+        ><span class="menu-label">Blue</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-saved="violet">
+        <span class="menu-check"></span
+        ><span class="swatch" style="--swatch: var(--saved-violet)"></span
+        ><span class="menu-label">Violet</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-saved="teal">
+        <span class="menu-check"></span
+        ><span class="swatch" style="--swatch: var(--saved-teal)"></span
+        ><span class="menu-label">Teal</span>
+      </button>
+      <button class="menu-item" role="menuitemradio" data-saved="rose">
+        <span class="menu-check"></span
+        ><span class="swatch" style="--swatch: var(--saved-rose)"></span
+        ><span class="menu-label">Rose</span>
+      </button>
+    </div>
+
+    <div class="sr-only" aria-live="polite" id="live-region"></div>
+
+    <script>
+      const initialSessions = [
+        {
+          id: 'auth-question',
+          workspace: 'notifications',
+          title: 'Clarify auth migration behavior',
+          secondary: 'Waiting for input',
+          status: 'waiting',
+          priority: 5,
+          unread: true,
+          saved: null,
+          attentionAgeMinutes: 10
+        },
+        {
+          id: 'compatibility-question',
+          workspace: 'notifications',
+          title: 'Confirm API compatibility boundary',
+          secondary: 'Waiting for input',
+          status: 'waiting',
+          priority: 5,
+          unread: false,
+          saved: null,
+          attentionAgeMinutes: 35
+        },
+        {
+          id: 'deploy-blocked',
+          workspace: 'ssh · api-service',
+          title: 'Provide deployment credentials',
+          secondary: 'Blocked — provider question',
+          status: 'blocked',
+          priority: 5,
+          unread: false,
+          saved: null,
+          attentionAgeMinutes: 22
+        },
+        {
+          id: 'identity-question',
+          workspace: 'notifications',
+          title: 'Review session identity scope',
+          secondary: 'Waiting for input',
+          status: 'waiting',
+          priority: 4,
+          unread: true,
+          saved: 'violet',
+          attentionAgeMinutes: 25
+        },
+        {
+          id: 'tests-done',
+          workspace: 'notifications',
+          title: 'Run focused attention tests',
+          secondary: 'Done — turn ended',
+          status: 'done',
+          priority: 2,
+          unread: true,
+          saved: null,
+          attentionAgeMinutes: 40
+        },
+        {
+          id: 'remote-interrupted',
+          workspace: 'ssh · api-service',
+          title: 'Reconnect remote review agent',
+          secondary: 'Interrupted',
+          status: 'interrupted',
+          priority: 4,
+          unread: true,
+          saved: null,
+          attentionAgeMinutes: 30
+        },
+        {
+          id: 'implementation',
+          workspace: 'notifications',
+          title: 'Implement queue projection',
+          secondary: 'Working — activity-thread-builder.ts',
+          status: 'working',
+          priority: 3,
+          unread: false,
+          saved: null,
+          attentionAgeMinutes: null,
+          current: true
+        },
+        {
+          id: 'permission-request',
+          workspace: 'notifications',
+          title: 'Approve filesystem access',
+          secondary: 'Needs attention — permission',
+          status: 'permission',
+          priority: 4,
+          unread: true,
+          saved: null,
+          attentionAgeMinutes: 12
+        },
+        {
+          id: 'supported-failure',
+          workspace: 'notifications',
+          title: 'Publish desktop build',
+          secondary: 'Failed — reported by execution status',
+          status: 'failed',
+          priority: 4,
+          unread: false,
+          saved: null,
+          attentionAgeMinutes: 18,
+          failureIsAuthoritative: true
+        },
+        {
+          id: 'release-notes',
+          workspace: 'ssh · api-service',
+          title: 'Review release notes later',
+          secondary: 'Done — turn ended',
+          status: 'done',
+          priority: 1,
+          unread: true,
+          saved: 'blue',
+          attentionAgeMinutes: 5
+        },
+        {
+          id: 'remote-stale',
+          workspace: 'notifications',
+          title: 'Remote SSH smoke test',
+          secondary: 'No recent update · lost contact adds no Attention · 8m',
+          status: 'unverifiable',
+          priority: 3,
+          unread: false,
+          saved: null,
+          attentionAgeMinutes: null
+        }
+      ]
+
+      const groupOrder = [
+        'waiting',
+        'blocked',
+        'permission',
+        'interrupted',
+        'working',
+        'monitoring',
+        'unverifiable',
+        'failed',
+        'done',
+        'idle'
+      ]
+      const statusLabels = {
+        waiting: 'Waiting for input',
+        blocked: 'Blocked',
+        permission: 'Needs attention',
+        interrupted: 'Interrupted',
+        working: 'Working',
+        monitoring: 'Monitoring background tasks',
+        unverifiable: 'No recent update',
+        failed: 'Failed',
+        done: 'Done',
+        idle: 'Idle'
+      }
+      let sessions = structuredClone(initialSessions)
+      let view = 'workspaces'
+      let scope = 'attention'
+      let menuSessionId = null
+      let menuView = null
+
+      const content = document.getElementById('sidebar-content')
+      const title = document.getElementById('sidebar-title')
+      const activityTools = document.getElementById('activity-tools')
+      const activityTrigger = document.getElementById('activity-trigger')
+      const contextMenu = document.getElementById('context-menu')
+      const prioritySubmenu = document.getElementById('priority-submenu')
+      const savedSubmenu = document.getElementById('saved-submenu')
+      const liveRegion = document.getElementById('live-region')
+
+      function setAttentionStyle(style, announce = true) {
+        document.documentElement.dataset.attentionStyle = style
+        document.querySelector(`[name="attention-style"][value="${style}"]`).checked = true
+        if (announce) liveRegion.textContent = `Attention style: ${style.replaceAll('-', ' ')}.`
+      }
+
+      function setStatePalette(palette, announce = true) {
+        document.documentElement.dataset.statePalette = palette
+        document.querySelector(`[name="state-palette"][value="${palette}"]`).checked = true
+        if (announce) liveRegion.textContent = `State palette ${palette.toUpperCase()}.`
+      }
+
+      function icon(name, size = 12) {
+        return `<svg width="${size}" height="${size}" aria-hidden="true"><use href="#i-${name}"/></svg>`
+      }
+      function unresolvedStatusNeedsAttention(session) {
+        return (
+          ['waiting', 'blocked', 'permission'].includes(session.status) ||
+          (session.status === 'failed' && session.failureIsAuthoritative)
+        )
+      }
+      function attentionReason(session) {
+        return (
+          unresolvedStatusNeedsAttention(session) ||
+          (session.unread && ['done', 'interrupted'].includes(session.status))
+        )
+      }
+      function queueEligible(session) {
+        return attentionReason(session) || Boolean(session.saved)
+      }
+      function priorityBadge(session) {
+        return session.priority === 3
+          ? ''
+          : `<span class="priority" style="--priority-color:var(--p${session.priority});--priority-foreground:var(--p${session.priority}-foreground)" aria-label="Priority P${session.priority}">P${session.priority}</span>`
+      }
+      function savedMarker(session) {
+        return session.saved
+          ? `<span class="saved" style="--saved-color:var(--saved-${session.saved})" aria-label="Saved for later, ${session.saved}">${icon('bookmark', 12)}</span>`
+          : ''
+      }
+      function statusGlyph(session) {
+        if (session.status === 'waiting' || session.status === 'permission')
+          return `<span class="status-glyph ${session.status}" aria-label="${statusLabels[session.status]}">${icon('question', 14)}</span>`
+        if (session.status === 'done')
+          return `<span class="status-glyph done" aria-label="Done">${icon('check-circle', 14)}</span>`
+        if (session.status === 'unverifiable')
+          return `<span class="status-glyph unverifiable" aria-label="No recent update">${icon('circle-dashed', 14)}</span>`
+        if (session.status === 'working')
+          return `<span class="status-glyph working" aria-label="Working"><span class="spinner"></span></span>`
+        return `<span class="status-glyph ${session.status}" aria-label="${statusLabels[session.status]}"><span class="dot"></span></span>`
+      }
+      function readButton(session) {
+        if (!session.unread) return ''
+        const label = `Unread — mark read: ${session.title}`
+        return `<button class="read-button" data-read="${session.id}" aria-label="${label}" title="${label}"><span class="unread-dot" aria-hidden="true"></span></button>`
+      }
+      function rowAria(session) {
+        const facts = [session.title, statusLabels[session.status], `Priority P${session.priority}`]
+        if (session.unread) facts.push('Unread')
+        if (session.saved) facts.push(`Saved for later, ${session.saved}`)
+        return facts.join(', ')
+      }
+
+      function workspaceRow(session) {
+        const attention = attentionReason(session)
+        return `<div class="session-row" tabindex="0" role="treeitem" data-session-id="${session.id}" data-attention="${attention}" data-unread="${session.unread}" data-status="${session.status}" data-current="${Boolean(session.current)}" aria-label="${rowAria(session)}" aria-current="${session.current ? 'true' : 'false'}">
+        ${statusGlyph(session)}<span class="session-icon" aria-hidden="true">π</span>
+        <span class="session-copy"><span>${session.title}</span><span class="secondary"> — ${session.secondary}</span></span>
+        <span class="row-trailing">${readButton(session)}${priorityBadge(session)}${savedMarker(session)}</span>
+      </div>`
+      }
+
+      function workspaceCard(name, branch, items, current = false) {
+        const attentionCount = items.filter(queueEligible).length
+        return `<section class="workspace-card ${current ? 'current' : ''}" aria-label="${name} workspace">
+        <div class="workspace-head">${icon('chevron', 12)}<span class="label">${name}</span>${attentionCount ? `<span class="aggregate" aria-label="${attentionCount} sessions need attention">${icon('bell', 11)} ${attentionCount}</span>` : ''}</div>
+        <div class="branch">${branch}</div><div class="agent-list" role="tree">${items.map(workspaceRow).join('')}</div>
+      </section>`
+      }
+
+      function renderWorkspaces() {
+        const local = sessions.filter((session) => session.workspace === 'notifications')
+        const remote = sessions.filter((session) => session.workspace !== 'notifications')
+        content.innerHTML =
+          workspaceCard('notifications', 'martas/notifications', local, true) +
+          workspaceCard('ssh · api-service', 'feature/session-routing', remote)
+      }
+
+      function activityRow(session) {
+        const attention = attentionReason(session)
+        return `<div class="activity-row" tabindex="0" role="listitem" data-session-id="${session.id}" data-attention="${attention}" data-unread="${session.unread}" data-status="${session.status}" aria-label="${rowAria(session)}">
+        ${statusGlyph(session)}
+        <div class="activity-main">
+          <div class="activity-title-line"><span class="activity-title">${session.title}</span>${priorityBadge(session)}${savedMarker(session)}</div>
+          <div class="activity-summary">${session.secondary}</div>
+          <div class="activity-meta"><span class="session-icon" aria-hidden="true">π</span><span class="workspace">${session.workspace}</span>${readButton(session)}<span>${session.attentionAgeMinutes !== null ? session.attentionAgeMinutes + 'm' : 'now'}</span></div>
+        </div>
+      </div>`
+      }
+
+      function compareActivitySessions(a, b) {
+        return (
+          b.priority - a.priority ||
+          Number(b.unread) - Number(a.unread) ||
+          (b.attentionAgeMinutes ?? -Infinity) - (a.attentionAgeMinutes ?? -Infinity) ||
+          a.id.localeCompare(b.id)
+        )
+      }
+
+      function renderActivity() {
+        const visible = sessions.filter((session) => scope === 'all' || queueEligible(session))
+        if (!visible.length) {
+          content.innerHTML = `<div class="empty">${icon('check-circle', 24)}<strong>No sessions need attention</strong><span>Read and resolved sessions remain available in All.</span><button class="scope-button" data-empty-all="true">View all activity</button></div>`
+          return
+        }
+        let html = `<div class="queue-rule">Status (Waiting first) · Priority P5→P1 · Unread first · Oldest attention · Identity tie-break</div>`
+        groupOrder.forEach((status) => {
+          const grouped = visible
+            .filter((session) => session.status === status)
+            .sort(compareActivitySessions)
+          if (!grouped.length) return
+          html += `<section class="status-group"><div class="group-title">${statusGlyph(grouped[0])}<span>${statusLabels[status]}</span><span class="group-count">${grouped.length}</span></div><div role="list">${grouped.map(activityRow).join('')}</div></section>`
+        })
+        content.innerHTML = html
+      }
+
+      function render() {
+        title.textContent = view === 'activity' ? 'Activity' : 'Workspaces'
+        activityTools.hidden = view !== 'activity'
+        activityTrigger.setAttribute('aria-pressed', String(view === 'activity'))
+        activityTrigger.setAttribute(
+          'aria-label',
+          view === 'activity' ? 'Turn off activity view' : 'View activity'
+        )
+        document
+          .getElementById('show-workspaces')
+          .setAttribute('aria-pressed', String(view === 'workspaces'))
+        document
+          .getElementById('show-activity')
+          .setAttribute('aria-pressed', String(view === 'activity'))
+        document
+          .querySelectorAll('[data-scope]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', String(button.dataset.scope === scope))
+          )
+        view === 'activity' ? renderActivity() : renderWorkspaces()
+      }
+
+      function setView(next) {
+        view = next
+        closeMenus(false)
+        render()
+      }
+      function markRead(id) {
+        const session = sessions.find((item) => item.id === id)
+        if (!session) return
+        session.unread = false
+        liveRegion.textContent = `${session.title} marked read. ${unresolvedStatusNeedsAttention(session) ? 'Authoritative status remains in Attention.' : session.saved ? 'Saved marker remains in Attention.' : 'Completion attention cleared.'}`
+        render()
+        focusSessionRow(id)
+      }
+
+      function openMenu(event, row) {
+        event.preventDefault()
+        menuSessionId = row.dataset.sessionId
+        menuView = view
+        const session = sessions.find((item) => item.id === menuSessionId)
+        document.getElementById('current-priority').textContent = `P${session.priority}`
+        document.getElementById('remove-saved').hidden = !session.saved
+        document.querySelector('#toggle-read .menu-label').textContent = session.unread
+          ? 'Mark read'
+          : 'Mark unread'
+        document.querySelectorAll('[data-priority]').forEach((item) => {
+          item.setAttribute(
+            'aria-checked',
+            String(Number(item.dataset.priority) === session.priority)
+          )
+          item.querySelector('.menu-check').textContent =
+            Number(item.dataset.priority) === session.priority ? '●' : ''
+        })
+        document.querySelectorAll('[data-saved]').forEach((item) => {
+          item.setAttribute('aria-checked', String(item.dataset.saved === session.saved))
+          item.querySelector('.menu-check').textContent =
+            item.dataset.saved === session.saved ? '●' : ''
+        })
+        contextMenu.classList.add('open')
+        const left = Math.min(
+          event.clientX || row.getBoundingClientRect().right - 20,
+          innerWidth - 195
+        )
+        const top = Math.min(event.clientY || row.getBoundingClientRect().bottom, innerHeight - 160)
+        contextMenu.style.left = `${left}px`
+        contextMenu.style.top = `${top}px`
+        prioritySubmenu.classList.remove('open')
+        savedSubmenu.classList.remove('open')
+        requestAnimationFrame(() => contextMenu.querySelector('.menu-item:not([hidden])').focus())
+      }
+
+      function openSubmenu(name, trigger) {
+        const submenu = name === 'priority' ? prioritySubmenu : savedSubmenu
+        const other = name === 'priority' ? savedSubmenu : prioritySubmenu
+        other.classList.remove('open')
+        submenu.classList.add('open')
+        const rect = trigger.getBoundingClientRect()
+        const width = 184
+        submenu.style.left = `${rect.right + width > innerWidth ? rect.left - width - 4 : rect.right + 4}px`
+        submenu.style.top = `${Math.min(rect.top, innerHeight - submenu.offsetHeight - 8)}px`
+        submenu.querySelector('.menu-item').focus()
+      }
+
+      function focusSessionRow(sessionId) {
+        const row = [...content.querySelectorAll('[data-session-id]')].find(
+          (candidate) => candidate.dataset.sessionId === sessionId
+        )
+        row?.focus()
+      }
+
+      function focusMenuSessionRow() {
+        if (!menuSessionId || view !== menuView) return
+        focusSessionRow(menuSessionId)
+      }
+
+      function closeMenus(restoreFocus = true) {
+        contextMenu.classList.remove('open')
+        prioritySubmenu.classList.remove('open')
+        savedSubmenu.classList.remove('open')
+        if (restoreFocus) focusMenuSessionRow()
+      }
+
+      document.addEventListener('contextmenu', (event) => {
+        const row = event.target.closest('[data-session-id]')
+        if (row) openMenu(event, row)
+      })
+      content.addEventListener('keydown', (event) => {
+        const row = event.target.closest('[data-session-id]')
+        if (row && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')))
+          openMenu(event, row)
+      })
+      content.addEventListener('click', (event) => {
+        const read = event.target.closest('[data-read]')
+        if (read) {
+          event.stopPropagation()
+          markRead(read.dataset.read)
+          return
+        }
+        if (event.target.closest('[data-empty-all]')) {
+          scope = 'all'
+          render()
+        }
+      })
+
+      contextMenu.addEventListener('click', (event) => {
+        const submenuTrigger = event.target.closest('[data-open-submenu]')
+        if (submenuTrigger) {
+          openSubmenu(submenuTrigger.dataset.openSubmenu, submenuTrigger)
+          return
+        }
+        const session = sessions.find((item) => item.id === menuSessionId)
+        if (event.target.closest('#remove-saved')) {
+          session.saved = null
+          liveRegion.textContent = `${session.title} removed from saved.`
+          closeMenus(false)
+          render()
+          focusMenuSessionRow()
+        }
+        if (event.target.closest('#toggle-read')) {
+          session.unread = !session.unread
+          liveRegion.textContent = `${session.title} marked ${session.unread ? 'unread' : 'read'}.`
+          closeMenus(false)
+          render()
+          focusMenuSessionRow()
+        }
+      })
+      prioritySubmenu.addEventListener('click', (event) => {
+        const item = event.target.closest('[data-priority]')
+        if (!item) return
+        const session = sessions.find((value) => value.id === menuSessionId)
+        session.priority = Number(item.dataset.priority)
+        liveRegion.textContent = `${session.title} priority set to P${session.priority}. Workspace order unchanged.`
+        closeMenus(false)
+        render()
+        focusMenuSessionRow()
+      })
+      savedSubmenu.addEventListener('click', (event) => {
+        const item = event.target.closest('[data-saved]')
+        if (!item) return
+        const session = sessions.find((value) => value.id === menuSessionId)
+        session.saved = item.dataset.saved
+        liveRegion.textContent = `${session.title} saved with ${session.saved} marker.`
+        closeMenus(false)
+        render()
+        focusMenuSessionRow()
+      })
+
+      ;[contextMenu, prioritySubmenu, savedSubmenu].forEach((menu) =>
+        menu.addEventListener('keydown', (event) => {
+          const items = [...menu.querySelectorAll('.menu-item:not([hidden])')]
+          const index = items.indexOf(document.activeElement)
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            items[
+              (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+            ].focus()
+          }
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            closeMenus()
+          }
+          if (event.key === 'ArrowRight' && document.activeElement?.dataset.openSubmenu) {
+            event.preventDefault()
+            openSubmenu(document.activeElement.dataset.openSubmenu, document.activeElement)
+          }
+          if (event.key === 'ArrowLeft' && menu !== contextMenu) {
+            event.preventDefault()
+            menu.classList.remove('open')
+            contextMenu
+              .querySelector(
+                `[data-open-submenu="${menu === prioritySubmenu ? 'priority' : 'saved'}"]`
+              )
+              .focus()
+          }
+          if (
+            (event.key === 'Enter' || event.key === ' ') &&
+            document.activeElement?.classList.contains('menu-item')
+          ) {
+            event.preventDefault()
+            document.activeElement.click()
+          }
+        })
+      )
+
+      document.addEventListener('pointerdown', (event) => {
+        if (!event.target.closest('.context-menu,.submenu')) closeMenus(false)
+      })
+      document
+        .getElementById('show-workspaces')
+        .addEventListener('click', () => setView('workspaces'))
+      document.getElementById('show-activity').addEventListener('click', () => setView('activity'))
+      activityTrigger.addEventListener('click', () =>
+        setView(view === 'activity' ? 'workspaces' : 'activity')
+      )
+      document.querySelectorAll('[data-scope]').forEach((button) =>
+        button.addEventListener('click', () => {
+          scope = button.dataset.scope
+          render()
+        })
+      )
+      document.querySelectorAll('[name="attention-style"]').forEach((option) =>
+        option.addEventListener('change', () => {
+          if (option.checked) setAttentionStyle(option.value)
+        })
+      )
+      document.querySelectorAll('[name="state-palette"]').forEach((option) =>
+        option.addEventListener('change', () => {
+          if (option.checked) setStatePalette(option.value)
+        })
+      )
+      document.getElementById('theme-toggle').addEventListener('click', (event) => {
+        const dark = document.documentElement.classList.toggle('dark')
+        event.currentTarget.textContent = dark ? 'Light theme' : 'Dark theme'
+      })
+      document.getElementById('reset-demo').addEventListener('click', () => {
+        sessions = structuredClone(initialSessions)
+        scope = 'attention'
+        closeMenus(false)
+        setAttentionStyle('tint-unread-outline', false)
+        setStatePalette('a', false)
+        render()
+        liveRegion.textContent = 'Demo reset.'
+      })
+      render()
+    </script>
+  </body>
+</html>

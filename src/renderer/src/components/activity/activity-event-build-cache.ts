@@ -5,8 +5,10 @@ import type {
   AgentType
 } from '../../../../shared/agent-status/contracts/agent-status-types'
 import type { Repo } from '../../../../shared/repository/repo-types'
+import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { Worktree } from '../../../../shared/worktree/types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type {
   ActivityEvent,
   ActivityLiveAgentSnapshot,
@@ -39,6 +41,8 @@ type PaneActivityCacheEntry = {
   worktree: Worktree
   repo: Repo | null
   tab: TerminalTab
+  projectedTab: Tab | undefined
+  capturedExecutionHostId: ExecutionHostId | undefined
   events: ActivityEvent[]
   live: ActivityLiveAgentSnapshot | null
   rowEntry: AgentStatusEntry
@@ -94,6 +98,8 @@ export type PaneBuildRequest = {
   worktree: Worktree
   repo: Repo | null
   tab: TerminalTab
+  projectedTab?: Tab
+  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   agentAlive: boolean
   acknowledgedAt: number
@@ -117,7 +123,9 @@ export function resolvePaneBuild(
     cached.clearedAt === request.clearedAt &&
     cached.worktree === request.worktree &&
     cached.repo === request.repo &&
-    cached.tab === request.tab
+    cached.tab === request.tab &&
+    cached.projectedTab === request.projectedTab &&
+    cached.capturedExecutionHostId === request.capturedExecutionHostId
   const rowEntry = inputsUnchanged
     ? cached.rowEntry
     : entryWithRuntimeOrchestration(
@@ -144,6 +152,8 @@ export function resolvePaneBuild(
     worktree: request.worktree,
     repo: request.repo,
     tab: request.tab,
+    projectedTab: request.projectedTab,
+    capturedExecutionHostId: request.capturedExecutionHostId,
     agentType: request.agentType,
     agentAlive: request.agentAlive,
     acknowledgedAt: request.acknowledgedAt,
@@ -161,6 +171,8 @@ export function resolvePaneBuild(
           repo: request.repo,
           entry: rowEntry,
           tab: request.tab,
+          projectedTab: request.projectedTab,
+          capturedExecutionHostId: request.capturedExecutionHostId,
           agentType: request.agentType,
           migrationUnsupportedPtyId: request.migrationUnsupportedPtyId
         }
@@ -173,6 +185,8 @@ export function resolvePaneBuild(
     worktree: request.worktree,
     repo: request.repo,
     tab: request.tab,
+    projectedTab: request.projectedTab,
+    capturedExecutionHostId: request.capturedExecutionHostId,
     events,
     live,
     rowEntry

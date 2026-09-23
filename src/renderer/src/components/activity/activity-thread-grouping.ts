@@ -15,9 +15,12 @@ import {
 import { AGENT_LIST_STATUS_RANK } from '../../../../shared/agent-status/presentation/agent-list-status'
 import type { ActivityGroupBy } from '../../../../shared/agents-view-thread-filters'
 import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { compareAttentionThreads } from './session-attention-presentation'
 
 function activityStatusRank(thread: AgentPaneThread): number {
-  return AGENT_LIST_STATUS_RANK[activityThreadStatusId(thread)]
+  return thread.migrationUnsupportedPtyId !== undefined
+    ? AGENT_LIST_STATUS_RANK.idle
+    : AGENT_LIST_STATUS_RANK[activityThreadStatusId(thread)]
 }
 
 export function getActivityThreadGroup(
@@ -29,6 +32,12 @@ export function getActivityThreadGroup(
     return { key: 'all', label: '' }
   }
   if (groupBy === 'status') {
+    if (thread.migrationUnsupportedPtyId !== undefined) {
+      return {
+        key: 'migration-notice',
+        label: translate('sessionAttention.migrationNotice', 'Migration notice')
+      }
+    }
     // The key is the glyph every row in the group draws, so it heads the group too.
     const status = activityThreadStatusId(thread)
     return { key: status, label: threadAgentStateLabel(thread, t), state: status }
@@ -69,6 +78,9 @@ export function buildActivityThreadGroups(
   }
   if (groupBy !== 'status') {
     return groups
+  }
+  for (const group of groups) {
+    group.threads.sort(compareAttentionThreads)
   }
   return groups.sort((a, b) => activityStatusRank(a.threads[0]) - activityStatusRank(b.threads[0]))
 }

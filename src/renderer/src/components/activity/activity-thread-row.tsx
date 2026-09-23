@@ -1,5 +1,5 @@
 import React from 'react'
-import { Bell, ExternalLink, X } from 'lucide-react'
+import { ExternalLink, X } from 'lucide-react'
 import { AgentTypeIcon } from '@/components/agent/icons/agent-type-icon'
 import { formatAgentTypeLabel } from '../../../../shared/agent-status/presentation/agent-type-label'
 import { Button } from '@/components/ui/button'
@@ -8,13 +8,20 @@ import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import '../sidebar/workspace-card/activity/worktree-card-empty-inputs'
-import { FilledBellIcon } from '../sidebar/workspace-card/identity/worktree-card-glyphs'
 import CommentMarkdown from '../sidebar/CommentMarkdown'
 import { EventTime, ThreadAgentStateIndicator } from './activity-thread-controls'
 import { ActivityThreadHoverCard } from './activity-thread-hover-card'
-import { activityThreadRowCopy } from './activity-thread-presentation'
+import { activityThreadRowCopy, activityThreadStatusId } from './activity-thread-presentation'
 import type { AgentPaneThread } from './activity-thread-types'
 import type { ActivityThreadClickEvent } from './use-activity-thread-selection'
+import { sessionAttentionTone } from './session-attention-presentation'
+import {
+  SessionPriorityBadge,
+  SessionSavedMarker,
+  SessionUnreadDot,
+  sessionAttentionMetadataClass,
+  sessionAttentionSurfaceClass
+} from '@/attention/session-attention-components'
 
 function ActivityThreadRowAction({
   label,
@@ -63,11 +70,9 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onSelect,
   onJump,
   onMarkRead,
-  onMarkUnread,
   onClear,
   canJump,
   compactMode,
-  disableMarkUnread = false,
   showJumpAction = true,
   previewSuppressed = false
 }: {
@@ -78,11 +83,9 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   onSelect: (thread: AgentPaneThread, event: ActivityThreadClickEvent) => void
   onJump: (thread: AgentPaneThread) => void
   onMarkRead: (thread: AgentPaneThread) => void
-  onMarkUnread: (thread: AgentPaneThread) => void
   onClear?: (thread: AgentPaneThread) => void
   canJump: boolean
   compactMode: boolean
-  disableMarkUnread?: boolean
   showJumpAction?: boolean
   previewSuppressed?: boolean
 }): React.JSX.Element {
@@ -92,6 +95,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
     activityThreadRowCopy(thread, t)
   const showMarkdownStatus = statusKind === 'message'
   const agentLabel = formatAgentTypeLabel(thread.agentType)
+  const attentionTone =
+    thread.migrationUnsupportedPtyId === undefined
+      ? sessionAttentionTone({ status: activityThreadStatusId(thread), unread: thread.unread })
+      : null
 
   return (
     <ActivityThreadHoverCard
@@ -109,7 +116,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         role="listitem"
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
-        className="group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none worktree-sidebar-card-hover focus-visible:ring-1 focus-visible:ring-ring"
+        className={cn(
+          'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none worktree-sidebar-card-hover focus-visible:ring-1 focus-visible:ring-ring',
+          sessionAttentionSurfaceClass(attentionTone, thread.unread)
+        )}
       >
         <div className="flex min-w-0 items-start gap-1.5">
           <span className="mt-0.5 inline-flex shrink-0">
@@ -167,13 +177,25 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               )
             ) : null}
 
-            <div className="flex min-w-0 items-center gap-2 pt-0.5 text-[11px] text-muted-foreground">
+            <div
+              className={cn(
+                'flex min-w-0 items-center gap-2 pt-0.5 text-[11px] text-muted-foreground',
+                sessionAttentionMetadataClass(attentionTone)
+              )}
+            >
               <span className="inline-flex shrink-0" title={agentLabel}>
                 <AgentTypeIcon agentType={thread.agentType} size={13} />
               </span>
               <span className="min-w-0 flex-1 truncate" title={workspaceLabel}>
                 {workspaceLabel}
               </span>
+              {thread.unread ? (
+                <SessionUnreadDot sessionName={taskTitle} onMarkRead={() => onMarkRead(thread)} />
+              ) : null}
+              <SessionPriorityBadge priority={thread.priority ?? 3} />
+              {thread.savedMarker?.savedColor ? (
+                <SessionSavedMarker color={thread.savedMarker.savedColor} />
+              ) : null}
               <TooltipProvider delayDuration={800} skipDelayDuration={0}>
                 {canJump && showJumpAction ? (
                   <ActivityThreadRowAction
@@ -198,73 +220,6 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
                     <X className="size-2.75" />
                   </ActivityThreadRowAction>
                 ) : null}
-                <span
-                  data-activity-thread-control=""
-                  className="inline-flex size-4 shrink-0 items-center justify-center"
-                >
-                  {thread.unread ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onMarkRead(thread)
-                          }}
-                          onMouseDown={(event) => event.stopPropagation()}
-                          className="flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          aria-label={t(
-                            'auto.components.activity.ActivityPrototypePage.markThreadRead',
-                            'Mark thread as read'
-                          )}
-                        >
-                          <FilledBellIcon
-                            className="size-3 shrink-0 text-amber-500 drop-shadow-sm"
-                            aria-hidden="true"
-                          />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">
-                        {t(
-                          'auto.components.activity.ActivityPrototypePage.markThreadRead',
-                          'Mark thread as read'
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          disabled={disableMarkUnread}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            onMarkUnread(thread)
-                          }}
-                          onMouseDown={(event) => event.stopPropagation()}
-                          className={cn(
-                            'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded transition-opacity',
-                            'can-hover:opacity-0 can-hover:group-hover:opacity-100',
-                            'hover:bg-accent/80 active:scale-95',
-                            'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
-                          )}
-                          aria-label={t(
-                            'auto.components.activity.ActivityPrototypePage.59b131fbd9',
-                            'Mark thread unread'
-                          )}
-                        >
-                          <Bell className="size-2.75 text-muted-foreground" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">
-                        {t(
-                          'auto.components.activity.ActivityPrototypePage.59b131fbd9',
-                          'Mark thread unread'
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </span>
               </TooltipProvider>
             </div>
           </div>

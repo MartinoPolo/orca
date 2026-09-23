@@ -325,6 +325,7 @@ function setAgentLineageState(options: {
     reportVisibleGitHubPRRefreshCandidates: vi.fn(),
     setVisibleReviewCardWorktreeIds: mockStore.setVisibleReviewCardWorktreeIds,
     repos: [repo],
+    sessionAttentionMetadataByIdentity: {},
 
     revealWorktreeInSidebar: vi.fn(),
     runtimePaneTitlesByTabId: {},

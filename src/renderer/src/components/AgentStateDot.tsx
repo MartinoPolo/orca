@@ -146,7 +146,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={label}
       >
-        <CircleCheck className={cn('text-emerald-500', icon)} aria-hidden="true" />
+        <CircleCheck className={cn('text-session-attention-done', icon)} aria-hidden="true" />
       </span>
     )
   } else if (state === 'unverifiable' || state === 'unconfirmed') {
@@ -165,7 +165,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <AgentQuestionIcon className={icon} />
+        <AgentQuestionIcon className={cn('text-session-attention-input', icon)} />
       </span>
     )
   } else {
@@ -179,7 +179,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
             'block rounded-full',
             inner,
             state === 'blocked' || state === 'failed'
-              ? 'bg-red-500'
+              ? 'bg-session-attention-outcome'
               : // User Stop is muted, not a fault or completion.
                 state === 'interrupted'
                 ? 'bg-muted-foreground'

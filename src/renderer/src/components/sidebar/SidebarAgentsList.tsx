@@ -9,6 +9,7 @@ import { useTranslate } from '@/i18n/use-translate'
 import { hasActivityThreadWorkspace } from '@/components/activity/activity-thread-actions'
 import { useActivityThreadActionBindings } from '@/components/activity/use-activity-thread-action-bindings'
 import { ActivityThreadListPane } from '@/components/activity/activity-thread-list-pane'
+import { ActivityAttentionScopeControl } from '@/components/activity/activity-thread-list-toolbar'
 import { useAgentPaneThreads } from '@/components/activity/use-agent-pane-threads'
 import { ActivityThreadOptionsMenu } from '@/components/activity/activity-thread-controls'
 import type {
@@ -201,6 +202,9 @@ function SidebarAgentsListBody({
           />
         </div>
       ) : null}
+      <div className="flex shrink-0 justify-end border-b border-border px-2 py-1">
+        <ActivityAttentionScopeControl value={readFilter} onChange={setReadFilter} />
+      </div>
       <ActivityThreadListPane
         activityFilterInputRef={activityFilterInputRef}
         query={query}
@@ -249,8 +253,6 @@ function SidebarAgentsListBody({
               onClearCompleted={handleClearCompleted}
               showSearch={showSearch}
               onShowSearchChange={handleShowSearchChange}
-              unreadOnly={readFilter === 'unread'}
-              onUnreadOnlyChange={(unreadOnly) => setReadFilter(unreadOnly ? 'unread' : 'all')}
             />,
             optionsTarget
           )

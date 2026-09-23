@@ -12,9 +12,10 @@ An **agent session** is one CLI agent running in one terminal in one worktree. O
 Agent tabs and worktree rows use shared status glyphs:
 
 - **Spinner** — working
-- **Amber question mark** — waiting on you (permission / needs input); sidebar “Needs You” counts use the same glyph
-- **Emerald check** (dashboard) or **emerald dot** (sidebar) — done / quiet active
-- **Red dot** — blocked, interrupted, or failed
+- **Red question mark** — waiting on you (permission / needs input)
+- **Red dot** — blocked
+- **Emerald check** (dashboard) or **emerald dot** (sidebar) — done, not necessarily successful
+- **Violet dot** — interrupted or an explicitly reported failure
 - **Gray dot** — idle
 - **No indicator** — plain shell, not a recognized agent CLI
 
@@ -57,6 +58,14 @@ The board toolbar includes:
 - Nested Codex/Claude subagents can appear as expandable children under the parent row
 
 Worktree cards still inline agent rows with the same glyphs when the experimental board is off. If you don't see status indicators, the agent CLI in that session isn't one Orca recognizes — start it through the agent combobox rather than typing the binary by hand.
+
+## Session attention
+
+Inline workspace rows identify the exact session that needs attention. The background shows factual state, while an orange outline and dot mean the session is unread. Reading a waiting or blocked session removes only the unread signal; its status remains until the agent reports a new state.
+
+Open **Activity** to use the attention queue. **Attention** includes unresolved waiting or blocked sessions, unread completions or interruptions, explicit failures, and sessions saved for later; **All** shows the remainder. Within each status group, priority runs from P5 (highest) to P1, then unread and oldest outstanding attention.
+
+Right-click a session row to assign P1–P5, add or remove a colored saved marker, or mark the session read/unread. Priority and saved markers follow the provider session across restart and supported resume; they are unavailable until the provider reports a stable session identity.
 
 ## Launch defaults
 
