@@ -11,6 +11,7 @@ import { removePaneKeys } from './agent-status-pane-keyed-records'
 import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-builder'
 import { agentProviderSessionsEqual } from '../../../../../shared/agent-session-resume'
 import { liveResumeRecordChange } from '../../../../../shared/agent-resume-record-from-status'
+import { updateSessionAttentionForAcceptedStatus } from './session-attention-transition'
 
 export type AgentStatusLiveUpdateReduction = {
   patch: Partial<AppState>
@@ -120,6 +121,7 @@ export function reduceAgentStatusLiveUpdate(
     agentLaunchConfigByPaneKey: nextLaunchConfigs,
     migrationUnsupportedByPtyId: migrationUnsupported.next,
     retentionSuppressedPaneKeys: nextRetentionSuppressedPaneKeys,
+    sessionAttentionMetadataByIdentity: updateSessionAttentionForAcceptedStatus(state, build),
     agentStatusEpoch:
       retentionRelevantChange || migrationUnsupported.changed || evictedOrphans
         ? state.agentStatusEpoch + 1

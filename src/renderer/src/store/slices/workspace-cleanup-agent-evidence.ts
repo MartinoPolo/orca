@@ -105,6 +105,7 @@ export function getWorkspaceCleanupAgentEvidence(
             { worktreeId, tab: owner.tab },
             owner.entry,
             ptyId,
+            state.retainedAgentsByPaneKey[owner.paneKey]?.executionHostId,
             hostIndex
           )
         : undefined

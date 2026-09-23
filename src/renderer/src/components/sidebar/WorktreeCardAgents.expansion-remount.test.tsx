@@ -45,11 +45,15 @@ vi.mock('@/store', () => ({
       agentSendPopoverTargetMode: null,
       agentStatusByPaneKey: {},
       agentStatusEpoch: 0,
-      tabsByWorktree: {},
-      terminalLayoutsByTabId: {},
+      getKnownWorktreeById: () => undefined,
+      repos: [],
       runtimePaneTitlesByTabId: {},
       sendPromptToSidebarAgentTarget: vi.fn(),
-      settings: { promptCacheTimerEnabled: false, promptCacheTtlMs: 60_000 }
+      sessionAttentionMetadataByIdentity: {},
+      settings: { promptCacheTimerEnabled: false, promptCacheTtlMs: 60_000 },
+      tabsByWorktree: {},
+      terminalLayoutsByTabId: {},
+      unifiedTabsByWorktree: {}
     })
 }))
 

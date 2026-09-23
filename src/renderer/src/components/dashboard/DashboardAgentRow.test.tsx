@@ -251,17 +251,17 @@ describe('DashboardAgentRow', () => {
 
     expect(markup).toContain('aria-label="Waiting for input"')
     expect(markup).toContain('lucide-message-circle-question-mark')
-    expect(tokens).toContain('text-agent-question')
+    expect(tokens).toContain('text-session-attention-input')
     expect(tokens).not.toContain('text-amber-500')
-    expect(tokens).not.toContain('bg-red-500')
+    expect(tokens).not.toContain('bg-session-attention-outcome')
   })
 
-  it('keeps blocked rows red', () => {
+  it('keeps blocked rows on the outcome color', () => {
     const markup = renderRow(makeAgent({}, { state: 'blocked' }))
     const tokens = classTokens(markup)
 
     expect(markup).toContain('aria-label="Blocked"')
-    expect(tokens).toContain('bg-red-500')
+    expect(tokens).toContain('bg-session-attention-outcome')
     expect(tokens).not.toContain('bg-amber-500')
   })
 
@@ -313,13 +313,13 @@ describe('DashboardAgentRow', () => {
     )
   }
 
-  it('renders a crash-cut row as failed, with the red dot and no interrupted tag', () => {
+  it('renders a crash-cut row as failed, with the outcome dot and no interrupted tag', () => {
     const markup = renderEndedRow({
       mainAgent: { state: 'done', outcome: 'interruption', stateStartedAt: 2_000 }
     })
 
     expect(markup).toContain('aria-label="Failed"')
-    expect(markup).toContain('bg-red-500')
+    expect(markup).toContain('bg-session-attention-outcome')
     expect(markup).not.toContain('>interrupted<')
     expect(markup).not.toContain('lucide-circle-check')
   })
@@ -339,7 +339,7 @@ describe('DashboardAgentRow', () => {
       expect(markup).not.toContain('data-slot="badge"')
       expect(interruptedIndex).toBeGreaterThan(promptIndex)
       expect(markup).toContain('bg-muted-foreground')
-      expect(markup).not.toContain('bg-red-500')
+      expect(markup).not.toContain('bg-session-attention-outcome')
       expect(markup).not.toContain('lucide-circle-check')
     }
   )

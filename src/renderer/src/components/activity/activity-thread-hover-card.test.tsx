@@ -68,7 +68,6 @@ function Harness({
   onSelect = vi.fn(),
   onJump = vi.fn(),
   onMarkRead = vi.fn(),
-  onMarkUnread = vi.fn(),
   onClear
 }: {
   thread: AgentPaneThread
@@ -76,7 +75,6 @@ function Harness({
   onSelect?: () => void
   onJump?: () => void
   onMarkRead?: () => void
-  onMarkUnread?: () => void
   onClear?: (thread: AgentPaneThread) => void
 }): ReactElement {
   return (
@@ -87,7 +85,6 @@ function Harness({
         onSelect={onSelect}
         onJump={onJump}
         onMarkRead={onMarkRead}
-        onMarkUnread={onMarkUnread}
         onClear={onClear}
         canJump={true}
         compactMode={false}
@@ -129,7 +126,7 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     expect(card?.textContent).toContain('m4air-audit')
   })
 
-  it('marks an unread thread as read from its bell without selecting the row', async () => {
+  it('marks an unread thread as read from its unread dot without selecting the row', async () => {
     const thread = createTestThread({ unread: true })
     const onMarkRead = vi.fn()
     const onSelect = vi.fn()
@@ -139,7 +136,7 @@ describe('ActivityThreadHoverCard and ActivityThreadRow', () => {
     })
 
     const markReadButton = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Mark thread as read"]'
+      'button[aria-label="Unread — mark read: Audit current HEAD on m4air environment"]'
     )
     expect(markReadButton).not.toBeNull()
 

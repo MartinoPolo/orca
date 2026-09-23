@@ -82,6 +82,7 @@ function buildMockStoreState(): Record<string, unknown> {
     acknowledgeAgents: vi.fn(),
     agentSendPopoverTargetMode: null,
     agentStatusByPaneKey: mockAgentStatusByPaneKey,
+    sessionAttentionMetadataByIdentity: {},
     agentStatusEpoch: 0,
     activeTabId: mockActiveTabId,
     activeTabType: mockActiveTabType,
@@ -92,6 +93,8 @@ function buildMockStoreState(): Record<string, unknown> {
     terminalLayoutsByTabId: mockLayouts,
     ptyIdsByTabId: mockPtyIds,
     runtimePaneTitlesByTabId: {},
+    repos: [],
+    getKnownWorktreeById: vi.fn(() => undefined),
     sendPromptToSidebarAgentTarget: vi.fn(),
     settings: {
       promptCacheTimerEnabled: true,

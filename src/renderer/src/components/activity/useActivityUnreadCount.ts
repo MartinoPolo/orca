@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { migrationUnsupportedToAgentStatusEntry } from '../../../../shared/migration-unsupported-agent-entry'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
@@ -10,10 +9,7 @@ import { freshActivityLiveAgentState, isHistoricalActivityState } from './activi
 
 type ActivityUnreadCountSource = Pick<
   AppState,
-  | 'acknowledgedAgentsByPaneKey'
-  | 'agentStatusByPaneKey'
-  | 'migrationUnsupportedByPtyId'
-  | 'retainedAgentsByPaneKey'
+  'acknowledgedAgentsByPaneKey' | 'agentStatusByPaneKey' | 'retainedAgentsByPaneKey'
 > & {
   /** Per-pane "Clear completed" cutoffs; hidden events must not count as unread. */
   activityClearedAtByPaneKey?: Record<string, number>
@@ -58,21 +54,12 @@ export function countActivityUnread(source: ActivityUnreadCountSource, now = Dat
     seenPaneKeys.add(paneKey)
     countEntry(retained.entry, source.acknowledgedAgentsByPaneKey[paneKey] ?? 0)
   }
-  for (const unsupported of Object.values(source.migrationUnsupportedByPtyId)) {
-    const entry = migrationUnsupportedToAgentStatusEntry(unsupported)
-    if (entry && !seenPaneKeys.has(entry.paneKey)) {
-      seenPaneKeys.add(entry.paneKey)
-      countEntry(entry, source.acknowledgedAgentsByPaneKey[entry.paneKey] ?? 0)
-    }
-  }
-
   return count
 }
 
 export function useActivityUnreadCount(): number {
   const {
     agentStatusEpoch,
-    migrationUnsupportedByPtyId,
     retainedAgentsByPaneKey,
     acknowledgedAgentsByPaneKey,
     activityClearedAtByPaneKey
@@ -80,7 +67,6 @@ export function useActivityUnreadCount(): number {
     useShallow((state) => ({
       // Same-turn heartbeats preserve receipts; reducer/freshness epoch changes cover turn/state changes, stale revival and expiry.
       agentStatusEpoch: state.agentStatusEpoch,
-      migrationUnsupportedByPtyId: state.migrationUnsupportedByPtyId,
       retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
       acknowledgedAgentsByPaneKey: state.acknowledgedAgentsByPaneKey,
       activityClearedAtByPaneKey: state.activityClearedAtByPaneKey
@@ -91,7 +77,6 @@ export function useActivityUnreadCount(): number {
     void agentStatusEpoch
     return countActivityUnread({
       agentStatusByPaneKey: useAppStore.getState().agentStatusByPaneKey,
-      migrationUnsupportedByPtyId,
       retainedAgentsByPaneKey,
       acknowledgedAgentsByPaneKey,
       activityClearedAtByPaneKey
@@ -99,7 +84,6 @@ export function useActivityUnreadCount(): number {
   }, [
     acknowledgedAgentsByPaneKey,
     activityClearedAtByPaneKey,
-    migrationUnsupportedByPtyId,
     retainedAgentsByPaneKey,
     agentStatusEpoch
   ])

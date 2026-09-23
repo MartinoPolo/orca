@@ -38,7 +38,7 @@ export function ActivityThreadVirtualRow({
   getContextMenuTargets: ContextMenuProps['getTargets']
   onJumpToWorkspace: Parameters<typeof ActivityThreadRow>[0]['onJump']
   onMarkThreadRead: Parameters<typeof ActivityThreadRow>[0]['onMarkRead']
-  onMarkThreadUnread: Parameters<typeof ActivityThreadRow>[0]['onMarkUnread']
+  onMarkThreadUnread: ContextMenuProps['onMarkUnread']
   onMarkThreadsRead: ContextMenuProps['onMarkManyRead']
   onMarkThreadsUnread: ContextMenuProps['onMarkManyUnread']
   canJumpToWorkspace: (thread: AgentPaneThread) => boolean
@@ -90,11 +90,9 @@ export function ActivityThreadVirtualRow({
             onSelect={onSelectThread}
             onJump={onJumpToWorkspace}
             onMarkRead={onMarkThreadRead}
-            onMarkUnread={onMarkThreadUnread}
             onClear={isClearableActivityThread(item.thread) ? clearActivityThread : undefined}
             canJump={canJump}
             compactMode={compactMode}
-            disableMarkUnread={!canMarkThreadUnread(item.thread)}
             showJumpAction={showJumpAction}
             previewSuppressed={menuOpen}
           />

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { getDefaultUIState } from '../../../../shared/constants'
 import { PAIRING_LOCAL_UI_FIELDS } from '../../../../shared/pairing-local-ui-fields'
+import { UiUpdate } from '../../../../shared/rpc-contract/client-ui-params'
 import type { OrcaRuntimeService } from '../../orca-runtime'
 import type { RpcRequest } from '../core'
 import { RpcDispatcher } from '../dispatcher'
@@ -14,6 +15,20 @@ function makeRequest(method: string, params?: unknown): RpcRequest {
 
 // Pairing-local fields must cross neither boundary: persist no client value and return no host value.
 describe('client UI RPC pairing-local field seams', () => {
+  it('parses the session attention episode kind sent by ui.setWithAck', () => {
+    const payload = {
+      sessionAttentionMetadataByIdentity: {
+        session: {
+          priority: 5,
+          attentionEpisodeStartedAt: 456,
+          attentionEpisodeKind: 'unread-outcome'
+        }
+      }
+    }
+
+    expect(UiUpdate.parse(payload)).toEqual(payload)
+  })
+
   it('drops a paired client manualRepoOrder while forwarding the rest of the payload', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',
@@ -57,7 +72,14 @@ describe('client UI RPC pairing-local field seams', () => {
     agentsReadFilter: 'unread',
     agentsGroupBy: 'project',
     activityClearedAtByPaneKey: { 'tab-1:leaf-1': 123 },
-    manuallyUnreadTurnsByPaneKey: { 'tab-1:leaf-1': 321 }
+    manuallyUnreadTurnsByPaneKey: { 'tab-1:leaf-1': 321 },
+    sessionAttentionMetadataByIdentity: {
+      session: {
+        priority: 5,
+        attentionEpisodeStartedAt: 456,
+        attentionEpisodeKind: 'unread-outcome'
+      }
+    }
   }
 
   it.each(PAIRING_LOCAL_UI_FIELDS.map((field) => [field] as const))(

@@ -13,6 +13,7 @@ import {
   type ActivityThreadStatusId
 } from './activity-thread-presentation'
 import type { ActivityGroupBy, ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { compareAttentionThreads } from './session-attention-presentation'
 
 // Use exhaustive, unique attention ranks so new states fail typecheck and recency cannot reorder headers.
 const ACTIVITY_STATUS_GROUP_RANK: Record<ActivityThreadStatusId, number> = {
@@ -31,7 +32,9 @@ const ACTIVITY_STATUS_GROUP_RANK: Record<ActivityThreadStatusId, number> = {
 }
 
 function activityStatusRank(thread: AgentPaneThread): number {
-  return ACTIVITY_STATUS_GROUP_RANK[activityThreadStatusId(thread)]
+  return thread.migrationUnsupportedPtyId !== undefined
+    ? ACTIVITY_STATUS_GROUP_RANK.idle
+    : ACTIVITY_STATUS_GROUP_RANK[activityThreadStatusId(thread)]
 }
 
 export function getActivityThreadGroup(
@@ -42,6 +45,12 @@ export function getActivityThreadGroup(
     return { key: 'all', label: '' }
   }
   if (groupBy === 'status') {
+    if (thread.migrationUnsupportedPtyId !== undefined) {
+      return {
+        key: 'migration-notice',
+        label: translate('sessionAttention.migrationNotice', 'Migration notice')
+      }
+    }
     // The key is the glyph every row in the group draws, so it heads the group too.
     const status = activityThreadStatusId(thread)
     return { key: status, label: threadAgentStateLabel(thread), state: status }
@@ -84,6 +93,9 @@ export function buildActivityThreadGroups(
   }
   if (groupBy !== 'status') {
     return groups
+  }
+  for (const group of groups) {
+    group.threads.sort(compareAttentionThreads)
   }
   return groups.sort((a, b) => activityStatusRank(a.threads[0]) - activityStatusRank(b.threads[0]))
 }

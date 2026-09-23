@@ -137,7 +137,7 @@ import { formatShortTimeAgo } from '@/lib/short-time-ago'
       expect(newerWaiting.map((group) => group.key)).toEqual(['waiting', 'blocked'])
     })
 
-    it('keeps newest-first thread order inside each group', () => {
+    it('uses deterministic identity order when attention rank ties inside a group', () => {
       const groups = buildActivityThreadGroups(
         makeStatusThreads([
           { paneKey: PANE_KEY, state: 'done', at: 1_000 },
@@ -148,7 +148,7 @@ import { formatShortTimeAgo } from '@/lib/short-time-ago'
       )
 
       expect(groups.map((group) => group.key)).toEqual(['working', 'done'])
-      expect(groups[1].threads.map((thread) => thread.paneKey)).toEqual([PANE_KEY_3, PANE_KEY])
+      expect(groups[1].threads.map((thread) => thread.paneKey)).toEqual([PANE_KEY, PANE_KEY_3])
     })
 
     it('gives every status group a header state equal to its rows', () => {

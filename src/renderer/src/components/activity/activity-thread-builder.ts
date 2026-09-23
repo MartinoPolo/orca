@@ -1,4 +1,5 @@
 import {
+  activityThreadStatusId,
   paneTitleForEntry,
   paneTitleForEvent,
   statusPreviewForEntry
@@ -9,6 +10,17 @@ import type {
   ActivityLiveAgentSnapshot,
   AgentPaneThread
 } from './activity-thread-types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
+import type { SessionAttentionMetadata } from '../../../../shared/session-attention'
+import {
+  findSessionAttentionMetadata,
+  resolveSessionAttentionIdentity,
+  resolveSessionAttentionWorkspaceFallback
+} from '@/attention/session-attention-identity'
+import {
+  isAttentionQueueEligible,
+  resolveAttentionStartedAt
+} from './session-attention-presentation'
 
 /** Reuse unchanged thread objects and list identity so memoized rows/search caches survive unrelated store writes. */
 export type AgentPaneThreadReuseCache = {
@@ -44,6 +56,8 @@ function reuseThreadIfEqual(
     previous.worktree === next.worktree &&
     previous.repo === next.repo &&
     previous.tab === next.tab &&
+    previous.projectedTab === next.projectedTab &&
+    previous.capturedExecutionHostId === next.capturedExecutionHostId &&
     previous.agentType === next.agentType &&
     previous.currentAgentState === next.currentAgentState &&
     previous.currentAgentEntry === next.currentAgentEntry &&
@@ -53,6 +67,12 @@ function reuseThreadIfEqual(
     previous.latestEvent === next.latestEvent &&
     previous.migrationUnsupportedPtyId === next.migrationUnsupportedPtyId &&
     previous.unread === next.unread &&
+    previous.sessionIdentity === next.sessionIdentity &&
+    previous.priority === next.priority &&
+    previous.savedMarker?.savedColor === next.savedMarker?.savedColor &&
+    previous.savedMarker?.savedAt === next.savedMarker?.savedAt &&
+    previous.attentionStartedAt === next.attentionStartedAt &&
+    previous.attentionEligible === next.attentionEligible &&
     arrayItemsEqual(previous.events, next.events)
   ) {
     return previous
@@ -65,6 +85,8 @@ export function buildAgentPaneThreads(
     events: ActivityEvent[]
     liveAgentByPaneKey: Record<string, ActivityLiveAgentSnapshot>
     paneEntryByPaneKey?: Record<string, AgentStatusEntry>
+    sessionAttentionMetadataByIdentity?: Record<string, SessionAttentionMetadata>
+    defaultHostId?: ExecutionHostId
     generatedTitlesEnabled?: boolean
   },
   reuseCache?: AgentPaneThreadReuseCache
@@ -81,6 +103,8 @@ export function buildAgentPaneThreads(
         worktree: event.worktree,
         repo: event.repo,
         tab: event.tab,
+        projectedTab: event.projectedTab,
+        capturedExecutionHostId: event.capturedExecutionHostId,
         agentType: event.agentType,
         currentAgentState: null,
         currentAgentEntry: null,
@@ -90,7 +114,12 @@ export function buildAgentPaneThreads(
         latestEvent: event,
         events: [event],
         migrationUnsupportedPtyId: event.migrationUnsupportedPtyId,
-        unread: event.unread
+        unread: event.unread,
+        sessionIdentity: null,
+        priority: 3,
+        savedMarker: null,
+        attentionStartedAt: null,
+        attentionEligible: false
       })
       continue
     }
@@ -105,6 +134,8 @@ export function buildAgentPaneThreads(
       existing.paneTitle = paneTitleForEvent(event, generatedTitlesEnabled)
       existing.agentType = event.agentType
       existing.tab = event.tab
+      existing.projectedTab = event.projectedTab
+      existing.capturedExecutionHostId = event.capturedExecutionHostId
       existing.responsePreview = statusPreviewForEntry(
         event.entry,
         event.state,
@@ -122,6 +153,8 @@ export function buildAgentPaneThreads(
         worktree: liveAgent.worktree,
         repo: liveAgent.repo,
         tab: liveAgent.tab,
+        projectedTab: liveAgent.projectedTab,
+        capturedExecutionHostId: liveAgent.capturedExecutionHostId,
         agentType: liveAgent.agentType,
         currentAgentState: liveAgent.state,
         currentAgentEntry: liveAgent.entry,
@@ -130,7 +163,12 @@ export function buildAgentPaneThreads(
         latestTimestamp: liveAgent.timestamp,
         latestEvent: null,
         events: [],
-        unread: false
+        unread: false,
+        sessionIdentity: null,
+        priority: 3,
+        savedMarker: null,
+        attentionStartedAt: null,
+        attentionEligible: false
       })
       continue
     }
@@ -139,6 +177,8 @@ export function buildAgentPaneThreads(
     existing.worktree = liveAgent.worktree
     existing.repo = liveAgent.repo
     existing.tab = liveAgent.tab
+    existing.projectedTab = liveAgent.projectedTab
+    existing.capturedExecutionHostId = liveAgent.capturedExecutionHostId
     existing.agentType = liveAgent.agentType
     existing.currentAgentState = liveAgent.state
     existing.currentAgentEntry = liveAgent.entry
@@ -152,9 +192,60 @@ export function buildAgentPaneThreads(
 
   const built = Array.from(byPaneKey.values())
     .map((thread) => {
-      const next: AgentPaneThread = {
+      const entry = thread.currentAgentEntry ?? thread.latestEvent?.entry
+      const identity = entry
+        ? resolveSessionAttentionIdentity({
+            workspaceId: thread.worktree.id,
+            agentType: thread.agentType,
+            entry,
+            terminalTab: thread.tab,
+            projectedTab: thread.projectedTab,
+            capturedExecutionHostId: thread.capturedExecutionHostId,
+            resolveFallbackExecutionHostId: () =>
+              resolveSessionAttentionWorkspaceFallback({
+                worktree: thread.worktree,
+                repo: thread.repo ?? undefined,
+                defaultHostId: args.defaultHostId
+              })
+          })
+        : null
+      const sessionIdentity = identity?.sessionIdentity ?? null
+      const metadata = identity
+        ? findSessionAttentionMetadata(args.sessionAttentionMetadataByIdentity ?? {}, identity)
+        : undefined
+      const savedMarker = metadata?.savedColor
+        ? { savedColor: metadata.savedColor, savedAt: metadata.savedAt }
+        : null
+      const nextWithEvents: AgentPaneThread = {
         ...thread,
-        events: [...thread.events].sort((a, b) => b.observedAt - a.observedAt)
+        events: [...thread.events].sort((a, b) => b.observedAt - a.observedAt),
+        sessionIdentity,
+        priority: metadata?.priority ?? 3,
+        savedMarker,
+        attentionStartedAt: null,
+        attentionEligible: false
+      }
+      const status = activityThreadStatusId(nextWithEvents)
+      const statusStartedAt =
+        nextWithEvents.currentAgentEntry?.stateStartedAt ??
+        nextWithEvents.latestEvent?.timestamp ??
+        null
+      const supportsStatusAttention = nextWithEvents.migrationUnsupportedPtyId === undefined
+      const next: AgentPaneThread = {
+        ...nextWithEvents,
+        attentionStartedAt: resolveAttentionStartedAt({
+          status,
+          unread: supportsStatusAttention && nextWithEvents.unread,
+          statusStartedAt: metadata?.attentionEpisodeStartedAt ?? statusStartedAt,
+          savedAt: savedMarker?.savedAt,
+          supportsStatusAttention
+        }),
+        attentionEligible: isAttentionQueueEligible({
+          status,
+          unread: supportsStatusAttention && nextWithEvents.unread,
+          saved: savedMarker !== null,
+          supportsStatusAttention
+        })
       }
       return reuseThreadIfEqual(reuseCache?.previousByPaneKey.get(thread.paneKey), next)
     })

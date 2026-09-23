@@ -96,13 +96,13 @@ describe('Activity search query in the real hook', () => {
     expect(activity.result.current.visibleThreads).toEqual([])
   })
 
-  it('excludes acknowledged rows from an unread search', () => {
+  it('excludes acknowledged rows from an attention search', () => {
     const panes = installThreads(12)
     useAppStore.setState({
       acknowledgedAgentsByPaneKey: Object.fromEntries(panes.map((paneKey) => [paneKey, 100_000]))
     })
     const activity = renderHook(() =>
-      useAgentPaneThreads({ ...options(' PROJECT ☃ '), readFilter: 'unread' })
+      useAgentPaneThreads({ ...options(' PROJECT ☃ '), readFilter: 'attention' })
     )
     expect(activity.result.current.allThreads).toHaveLength(12)
     expect(activity.result.current.visibleThreads).toEqual([])
@@ -118,20 +118,23 @@ describe('Activity search query in the real hook', () => {
       },
       acknowledgedAgentsByPaneKey: { [child]: 100_000 }
     })
-    const activity = renderHook((input) => useAgentPaneThreads(input), {
-      initialProps: {
-        ...options('PROJECT'),
-        readFilter: 'unread' as const,
-        showChildAgents: false,
-        selectedPaneKey: child
+    const activity = renderHook(
+      (input: Parameters<typeof useAgentPaneThreads>[0]) => useAgentPaneThreads(input),
+      {
+        initialProps: {
+          ...options('PROJECT'),
+          readFilter: 'all',
+          showChildAgents: false,
+          selectedPaneKey: child
+        }
       }
-    })
+    )
     expect(activity.result.current.visibleThreads.map((thread) => thread.paneKey)).toEqual(panes)
     act(() => useAppStore.setState({ agentsVisibleHostIds: [toSshExecutionHostId('other')] }))
     expect(activity.result.current.visibleThreads.map((thread) => thread.paneKey)).toEqual([child])
     activity.rerender({
       ...options('NO MATCH'),
-      readFilter: 'unread',
+      readFilter: 'attention',
       showChildAgents: false,
       selectedPaneKey: child
     })

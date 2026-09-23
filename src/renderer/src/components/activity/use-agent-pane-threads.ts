@@ -54,6 +54,9 @@ export type AgentPaneThreadsStoreData = Pick<
   | 'activityClearedAtByPaneKey'
   | 'acknowledgeAgents'
   | 'unacknowledgeAgents'
+  | 'sessionAttentionMetadataByIdentity'
+  | 'setSessionPriority'
+  | 'setSessionSavedMarker'
 > & {
   /** Current native-chat originals and terminal tabs with semantic identity reuse. */
   activityTabs: ActivityTabProjection
@@ -137,6 +140,9 @@ export function useAgentPaneThreads(args: {
       activityClearedAtByPaneKey: s.activityClearedAtByPaneKey,
       acknowledgeAgents: s.acknowledgeAgents,
       unacknowledgeAgents: s.unacknowledgeAgents,
+      sessionAttentionMetadataByIdentity: s.sessionAttentionMetadataByIdentity,
+      setSessionPriority: s.setSessionPriority,
+      setSessionSavedMarker: s.setSessionSavedMarker,
       generatedTitlesEnabled: s.settings?.tabAutoGenerateTitle === true,
       defaultHostId: getSettingsFocusedExecutionHostId(s.settings)
     }))
@@ -188,11 +194,20 @@ export function useAgentPaneThreads(args: {
           events: allEvents,
           liveAgentByPaneKey,
           paneEntryByPaneKey,
+          sessionAttentionMetadataByIdentity: storeData.sessionAttentionMetadataByIdentity,
+          defaultHostId: storeData.defaultHostId,
           generatedTitlesEnabled: storeData.generatedTitlesEnabled
         },
         threadReuseCacheRef.current
       ),
-    [allEvents, liveAgentByPaneKey, paneEntryByPaneKey, storeData.generatedTitlesEnabled]
+    [
+      allEvents,
+      liveAgentByPaneKey,
+      paneEntryByPaneKey,
+      storeData.defaultHostId,
+      storeData.generatedTitlesEnabled,
+      storeData.sessionAttentionMetadataByIdentity
+    ]
   )
 
   const selectedPaneKeyIsLive =
@@ -244,10 +259,10 @@ export function useAgentPaneThreads(args: {
       : deferredQuery.trim().toLowerCase()
     let matchesSearchQuery: ReturnType<typeof createActivityThreadSearchMatcher> | undefined
     return scopeVisibleThreads.filter((thread) => {
-      // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
+      // Why: keep the just-selected thread visible after auto-mark-read clears its attention, else the clicked row vanishes.
       if (
-        readFilter === 'unread' &&
-        !thread.unread &&
+        readFilter === 'attention' &&
+        !thread.attentionEligible &&
         thread.paneKey !== effectiveSelectedPaneKey
       ) {
         return false

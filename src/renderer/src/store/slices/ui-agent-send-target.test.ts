@@ -749,6 +749,10 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
     const fallbackPaneKey = makePaneKey('tab-fallback', '44444444-4444-4444-8444-444444444444')
     store.setState({
       tabsByWorktree: {},
+      unifiedTabsByWorktree: {},
+      repos: [],
+      worktreesByRepo: {},
+      getKnownWorktreeById: vi.fn(() => undefined),
       agentStatusByPaneKey: {
         [fallbackPaneKey]: {
           ...makeAgentEntry(fallbackPaneKey, 1_000),
@@ -757,7 +761,7 @@ describe('createUISlice acknowledgeAgents notification dismissal', () => {
         [livePaneKey]: makeAgentEntry(livePaneKey, 2_000)
       },
       retainedAgentsByPaneKey: {}
-    } as Partial<AppState>)
+    })
 
     store.getState().acknowledgeAgents([fallbackPaneKey, livePaneKey])
 

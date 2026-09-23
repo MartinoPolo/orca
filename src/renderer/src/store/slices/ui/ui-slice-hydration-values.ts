@@ -4,6 +4,7 @@ import type { FeatureInteractionState } from '../../../../../shared/feature-inte
 import type { ContextualTourId } from '../../../../../shared/contextual-tours'
 import { normalizeFeatureInteractions } from '../../../../../shared/feature-interactions'
 import { normalizeContextualTourIds } from '../../../../../shared/contextual-tours'
+import { normalizeSessionAttentionMetadataByIdentity } from '../../../../../shared/session-attention'
 import type { UISlice } from './ui-slice-contract'
 import {
   sanitizeAcknowledgedAgentsByPaneKey,
@@ -144,13 +145,19 @@ export function hydrateAgentReadState(
   ui: PersistedUIState
 ): Pick<
   UISlice,
-  'acknowledgedAgentsByPaneKey' | 'activityClearedAtByPaneKey' | 'manuallyUnreadTurnsByPaneKey'
+  | 'acknowledgedAgentsByPaneKey'
+  | 'activityClearedAtByPaneKey'
+  | 'manuallyUnreadTurnsByPaneKey'
+  | 'sessionAttentionMetadataByIdentity'
 > {
   return {
     acknowledgedAgentsByPaneKey: sanitizeAcknowledgedAgentsByPaneKey(
       ui.acknowledgedAgentsByPaneKey
     ),
     activityClearedAtByPaneKey: sanitizeActivityClearedAtByPaneKey(ui.activityClearedAtByPaneKey),
-    manuallyUnreadTurnsByPaneKey: sanitizePaneKeyTimestampRecord(ui.manuallyUnreadTurnsByPaneKey)
+    manuallyUnreadTurnsByPaneKey: sanitizePaneKeyTimestampRecord(ui.manuallyUnreadTurnsByPaneKey),
+    sessionAttentionMetadataByIdentity: normalizeSessionAttentionMetadataByIdentity(
+      ui.sessionAttentionMetadataByIdentity
+    )
   }
 }

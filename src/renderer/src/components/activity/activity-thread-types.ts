@@ -5,9 +5,15 @@ import type {
   AgentType
 } from '../../../../shared/agent-status-types'
 import type { Repo } from '../../../../shared/repo-types'
+import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { Worktree } from '../../../../shared/worktree/types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { ActivityPortalReadinessStatus } from './activity-portal-readiness-oscillation'
+import type {
+  SessionAttentionMetadata,
+  SessionPriority
+} from '../../../../shared/session-attention'
 
 export type { ActivityGroupBy, ThreadReadFilter } from '../../../../shared/ui-chrome-types'
 
@@ -28,6 +34,8 @@ export type ActivityEvent = {
   repo: Repo | null
   entry: AgentStatusEntry
   tab: TerminalTab
+  projectedTab?: Tab
+  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   agentAlive: boolean
   migrationUnsupportedPtyId?: string
@@ -41,6 +49,8 @@ export type ActivityLiveAgentSnapshot = {
   repo: Repo | null
   entry: AgentStatusEntry
   tab: TerminalTab
+  projectedTab?: Tab
+  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
 }
 
@@ -51,6 +61,8 @@ export type AgentPaneThread = {
   worktree: Worktree
   repo: Repo | null
   tab: TerminalTab
+  projectedTab?: Tab
+  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   currentAgentState: ActivityLiveAgentState | null
   currentAgentEntry: AgentStatusEntry | null
@@ -62,6 +74,12 @@ export type AgentPaneThread = {
   events: ActivityEvent[]
   migrationUnsupportedPtyId?: string
   unread: boolean
+  /** Durable metadata is available only with a provider or structured session identity. */
+  sessionIdentity?: string | null
+  priority?: SessionPriority
+  savedMarker?: Pick<SessionAttentionMetadata, 'savedColor' | 'savedAt'> | null
+  attentionStartedAt?: number | null
+  attentionEligible?: boolean
 }
 
 export type ActivityThreadGroup = {

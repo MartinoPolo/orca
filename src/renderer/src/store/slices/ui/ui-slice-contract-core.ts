@@ -14,6 +14,11 @@ import type { LaunchSource } from '../../../../../shared/telemetry-events'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { TaskResumeState, TopLevelView } from '../../../../../shared/ui-chrome-types'
+import type {
+  SessionAttentionMetadata,
+  SessionPriority,
+  SessionSavedColor
+} from '../../../../../shared/session-attention'
 
 export type PendingSidebarWorktreeReveal = {
   worktreeId: string
@@ -153,6 +158,9 @@ export type UISliceCore = {
   /** Session-local protection for turns explicitly marked unread. */
   manuallyUnreadTurnsByPaneKey: Record<string, number>
   clearManuallyUnreadTurns: (paneKeys: string[]) => void
+  sessionAttentionMetadataByIdentity: Record<string, SessionAttentionMetadata>
+  setSessionPriority: (identity: string, priority: SessionPriority) => void
+  setSessionSavedMarker: (identity: string, color: SessionSavedColor | null) => void
   activeView: TopLevelView
   previousViewBeforeTasks: Exclude<UiViewHistory, 'tasks'>
   previousViewBeforeSettings: Exclude<UiViewHistory, 'settings'>

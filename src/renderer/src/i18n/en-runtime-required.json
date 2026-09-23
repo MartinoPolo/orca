@@ -119,8 +119,11 @@
       },
       "activity": {
         "ActivityPrototypePage": {
+          "59b131fbd9": "Mark thread unread",
           "activityOptionsFilterCount_one": "Activity options ({{count}} filter)",
           "activityOptionsFilterCount_other": "Activity options ({{count}} filters)",
+          "d1a88df9a8": "Show unread threads only",
+          "markThreadRead": "Mark thread as read",
           "threadListOptionsActiveFilters_one": "Thread list options ({{count}} filter active)",
           "threadListOptionsActiveFilters_other": "Thread list options ({{count}} filters active)"
         },
@@ -622,6 +625,9 @@
         }
       },
       "settings": {
+        "AgentsPane": {
+          "f9f127d664": "Override the binary path or name, and edit launch defaults for this agent."
+        },
         "ComputerUsePane": {
           "07bbe4c4cb": "Screenshots",
           "0c9a33f468": "Capture app windows so agents can inspect visual state.",
@@ -718,6 +724,7 @@
         },
         "agents": {
           "search": {
+            "01926b9d8c": "Configure AI coding agents, default agent, and command overrides.",
             "042c551bc5": "config",
             "0d1c334987": "lid",
             "0d752916f8": "hooks",

@@ -48,12 +48,12 @@ describe('AgentStateDot', () => {
     expect(markup).not.toContain('data-agent-spinner')
   })
 
-  it('renders done as an emerald check icon', () => {
+  it('renders done as a green check icon', () => {
     const markup = renderMarkup('done')
 
     // Check completion via the icon class/color rather than Lucide’s SVG path. Sidebar StatusIndicator intentionally uses a dot.
     expect(markup).toContain('lucide-circle-check')
-    expect(markup).toContain('text-emerald-500')
+    expect(markup).toContain('text-session-attention-done')
   })
 
   it.each(['permission', 'waiting'] satisfies AgentDotState[])(
@@ -62,7 +62,7 @@ describe('AgentStateDot', () => {
       const markup = renderMarkup(state)
 
       expect(markup).toContain('lucide-message-circle-question-mark')
-      expect(markup).toContain('text-agent-question')
+      expect(markup).toContain('text-session-attention-input')
       expect(markup).not.toContain('text-amber-500')
       expect(markup).not.toContain('data-agent-spinner')
     }
@@ -78,20 +78,20 @@ describe('AgentStateDot', () => {
   })
 
   it.each(['blocked', 'failed'] satisfies AgentDotState[])(
-    'renders %s as a red attention dot',
+    'renders %s as a violet outcome dot',
     (state) => {
       const classNames = renderDotClassNames(state)
 
-      expect(classNames).toContain('bg-red-500')
+      expect(classNames).toContain('bg-session-attention-outcome')
       expect(classNames).not.toContain('bg-amber-500')
     }
   )
 
-  it("renders a user's Stop as a muted dot, neither the fault red nor the idle grey", () => {
+  it("renders a user's Stop as a muted dot, neither the outcome violet nor the idle grey", () => {
     const classNames = renderDotClassNames('interrupted')
 
     expect(classNames).toContain('bg-muted-foreground')
-    expect(classNames).not.toContain('bg-red-500')
+    expect(classNames).not.toContain('bg-session-attention-outcome')
     expect(classNames).not.toContain('bg-neutral-500/40')
   })
 

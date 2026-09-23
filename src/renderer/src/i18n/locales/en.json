@@ -18144,7 +18144,8 @@
           "threadListOptionsActiveFilters_one": "Thread list options ({{count}} filter active)",
           "threadListOptionsActiveFilters_other": "Thread list options ({{count}} filters active)",
           "activityOptionsFilterCount_one": "Activity options ({{count}} filter)",
-          "activityOptionsFilterCount_other": "Activity options ({{count}} filters)"
+          "activityOptionsFilterCount_other": "Activity options ({{count}} filters)",
+          "noAttention": "No sessions need attention."
         },
         "clearCompleted": {
           "undo": "Undo",
@@ -23231,5 +23232,43 @@
   "wslDistroHold": {
     "terminalStopped": "The WSL distro {{distro}} is stopped, so Orca didn't start this terminal. Start the distro, then try again.",
     "terminalUnverifiable": "Orca couldn't check whether the WSL distro {{distro}} is running, so it didn't start this terminal. Start the distro, then try again."
+  },
+  "sessionAttention": {
+    "savedColor": {
+      "blue": "Blue",
+      "violet": "Violet",
+      "teal": "Teal",
+      "rose": "Rose"
+    },
+    "priority": {
+      "aria": "Priority P{{priority}}",
+      "default": "Default"
+    },
+    "savedMarker": {
+      "aria": "Saved for later, {{color}}",
+      "tooltip": "Saved for later · {{color}}"
+    },
+    "unread": {
+      "markRead": {
+        "aria": "Unread — mark read: {{sessionName}}",
+        "tooltip": "Mark read"
+      }
+    },
+    "contextMenu": {
+      "priority": "Priority",
+      "savedMarker": "Saved marker",
+      "removeSavedMarker": "Remove saved marker",
+      "preferencesUnavailable": "Session preferences unavailable until the provider reports a stable session identity",
+      "aria": "Session actions for {{sessionName}}",
+      "markRead": "Mark read",
+      "markUnread": "Mark unread"
+    },
+    "migrationNotice": "Migration notice",
+    "scope": {
+      "aria": "Activity scope",
+      "attention": "Attention",
+      "all": "All"
+    },
+    "migrationNoticeDetail": "Restart this terminal so Orca can attach a stable pane identity."
   }
 }

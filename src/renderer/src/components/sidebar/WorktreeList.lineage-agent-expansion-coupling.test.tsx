@@ -309,6 +309,10 @@ function setAgentLineageState(options: {
     setVisibleReviewCardWorktreeIds: mockStore.setVisibleReviewCardWorktreeIds,
     repos: [repo],
     retainedAgentsByPaneKey: {},
+    sessionAttentionMetadataByIdentity: {},
+    getKnownWorktreeById: vi.fn((worktreeId: string) =>
+      worktreeId === parent.id ? parent : worktreeId === child.id ? child : undefined
+    ),
     revealWorktreeInSidebar: vi.fn(),
     runtimePaneTitlesByTabId: {},
     runtimeAgentOrchestrationByPaneKey: {},

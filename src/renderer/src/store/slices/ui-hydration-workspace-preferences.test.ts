@@ -621,7 +621,7 @@ describe('createUISlice hydratePersistedUI', () => {
     expect(store.getState().agentsShowChildAgents).toBe(false)
     expect(store.getState().agentsCompactMode).toBe(true)
     expect(store.getState().agentsShowSearch).toBe(true)
-    expect(store.getState().agentsReadFilter).toBe('all')
+    expect(store.getState().agentsReadFilter).toBe('attention')
     expect(store.getState().agentsGroupBy).toBe('status')
   })
 
@@ -657,7 +657,7 @@ describe('createUISlice hydratePersistedUI', () => {
     store
       .getState()
       .hydratePersistedUI(makePersistedUI({ agentsReadFilter: 'unread', agentsGroupBy: 'project' }))
-    expect(store.getState().agentsReadFilter).toBe('unread')
+    expect(store.getState().agentsReadFilter).toBe('attention')
     expect(store.getState().agentsGroupBy).toBe('project')
 
     store.getState().hydratePersistedUI(
@@ -666,7 +666,7 @@ describe('createUISlice hydratePersistedUI', () => {
         agentsGroupBy: 'bogus' as unknown as PersistedUIState['agentsGroupBy']
       })
     )
-    expect(store.getState().agentsReadFilter).toBe('all')
+    expect(store.getState().agentsReadFilter).toBe('attention')
     expect(store.getState().agentsGroupBy).toBe('status')
   })
 

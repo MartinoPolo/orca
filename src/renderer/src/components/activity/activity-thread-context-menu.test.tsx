@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useAppStore } from '@/store'
 import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/close-all-context-menus'
 import {
   ActivityThreadContextMenu,
@@ -249,6 +250,24 @@ describe('ActivityThreadContextMenu', () => {
 
     expect(menuItem('Open')).toBeTruthy()
     expect(menuItem('Mark Read')).toBeTruthy()
+  })
+
+  it('sets the session priority from the single-agent menu', async () => {
+    useAppStore.setState({ sessionAttentionMetadataByIdentity: {} })
+    openMenu(makeThread({ sessionIdentity: 'session-1', priority: 3 }))
+
+    fireEvent.keyDown(menuItem('Priority'), { key: 'ArrowRight' })
+    fireEvent.click(await screen.findByText('P5'))
+
+    expect(useAppStore.getState().sessionAttentionMetadataByIdentity['session-1']?.priority).toBe(5)
+  })
+
+  it('explains why session preferences are unavailable without a stable identity', () => {
+    openMenu(makeThread())
+
+    expect(
+      screen.getByText(/unavailable until the provider reports a stable session identity/i)
+    ).toBeTruthy()
   })
 
   it('announces itself to other menus on open and closes when another menu opens', () => {

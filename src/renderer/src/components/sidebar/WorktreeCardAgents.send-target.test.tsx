@@ -98,12 +98,16 @@ vi.mock('@/store', () => ({
       acknowledgeAgents: vi.fn(),
       agentSendPopoverTargetMode: null,
       agentStatusByPaneKey: {},
+      sessionAttentionMetadataByIdentity: {},
       agentStatusEpoch: 0,
       tabsByWorktree: {},
       unifiedTabsByWorktree: {},
       terminalLayoutsByTabId: {},
       ptyIdsByTabId: {},
       runtimePaneTitlesByTabId: {},
+      repos: [],
+      getKnownWorktreeById: vi.fn(() => undefined),
+      settings: null,
       sendPromptToSidebarAgentTarget: mockSendPromptToSidebarAgentTarget,
       ...mockStoreState
     })

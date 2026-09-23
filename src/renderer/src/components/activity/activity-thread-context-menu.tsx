@@ -13,6 +13,7 @@ import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/close-all-context-menus'
 import { formatClipboardFilePath } from '@/lib/clipboard-file-path'
 import { getWorktreeRowLocalPathOpenOwner } from '@/lib/worktree-row-open-in-owner'
 import { useAppStore } from '@/store'
+import { SessionAttentionMenuItems } from '@/attention/session-attention-components'
 import {
   clearActivityThread,
   clearCompletedActivity,
@@ -154,6 +155,8 @@ function ActivityThreadSingleMenuItems({
   onMarkRead: (thread: AgentPaneThread) => void
   onMarkUnread: (thread: AgentPaneThread) => void
 }): React.JSX.Element {
+  const setSessionPriority = useAppStore((state) => state.setSessionPriority)
+  const setSessionSavedMarker = useAppStore((state) => state.setSessionSavedMarker)
   return (
     <>
       <ContextMenuItem onSelect={() => onOpen(thread)}>
@@ -179,6 +182,14 @@ function ActivityThreadSingleMenuItems({
           {target.label}
         </ContextMenuItem>
       ))}
+      <ContextMenuSeparator />
+      <SessionAttentionMenuItems
+        sessionIdentity={thread.sessionIdentity ?? null}
+        priority={thread.priority ?? 3}
+        savedColor={thread.savedMarker?.savedColor}
+        onPriorityChange={setSessionPriority}
+        onSavedColorChange={setSessionSavedMarker}
+      />
       <ContextMenuSeparator />
       <ContextMenuItem
         disabled={!thread.unread && !canMarkUnread}
