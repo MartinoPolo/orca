@@ -28,7 +28,8 @@ import {
   WORKTREE_CONTEXT_MENU_SCOPE_ATTR,
   shouldIgnoreNestedWorktreeContextMenuScope,
   shouldRevealWorktreeDeveloperMenu,
-  shouldUseNativeContextMenu
+  shouldUseNativeContextMenu,
+  shouldYieldToNestedContextMenu
 } from './worktree-context-menu-policy'
 import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/overlay-interaction/close-all-context-menus'
 
@@ -93,7 +94,10 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
         if (!isEventTargetInsideCurrentTarget(event.currentTarget, event.target)) {
           return
         }
-        if (shouldUseNativeContextMenu(event.target)) {
+        if (
+          shouldUseNativeContextMenu(event.target) ||
+          shouldYieldToNestedContextMenu(event.target)
+        ) {
           return
         }
         if (shouldIgnoreNestedWorktreeContextMenuScope(event.currentTarget, event.target)) {
