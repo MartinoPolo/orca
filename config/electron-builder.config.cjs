@@ -281,6 +281,7 @@ module.exports = {
     '!pr-evidence{,/**/*}',
     // Local build logs and rollback copies are never application resources.
     '!notes{,/**/*}',
+    '!dist{,/**/*}',
     // Local tooling directories are not runtime inputs and may contain symlink loops.
     '!{.claude,.grok,.agents,.codex}{,/**/*}',
     '!Casks{,/**/*}',
