@@ -230,7 +230,7 @@ The prototype has no attention-animation control.
 - `src/renderer/src/components/sidebar/SidebarHeader.tsx`
 - `src/renderer/src/components/ui/context-menu.tsx`
 - `src/renderer/src/assets/main.css`
-- `designs/session-attention/variants/variant-a.html`
+- `docs/designs/session-attention/variants/variant-a.html`
 
 ---
 
