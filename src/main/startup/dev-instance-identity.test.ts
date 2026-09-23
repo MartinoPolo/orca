@@ -13,6 +13,20 @@ describe('dev-instance-identity', () => {
     })
   })
 
+  it('gives an isolated packaged lab a distinct non-development identity', () => {
+    expect(getDevInstanceIdentity(false, { ORCA_LAB_ROOT: 'C:\\OrcaLab' })).toEqual({
+      name: 'Orca Lab',
+      appName: 'Orca Lab',
+      isDev: false,
+      devLabel: null,
+      devBranch: null,
+      devWorktreeName: null,
+      devRepoRoot: null,
+      dockBadgeLabel: null,
+      appUserModelId: 'com.stablyai.orca.lab'
+    })
+  })
+
   it('pins a stable dev appName across branches so the safeStorage key does not churn', () => {
     const a = getDevInstanceIdentity(true, { ORCA_DEV_BRANCH: 'feature/a' })
     const b = getDevInstanceIdentity(true, { ORCA_DEV_BRANCH: 'feature/b' })
@@ -23,7 +37,13 @@ describe('dev-instance-identity', () => {
     expect(a.appName).not.toBe('Orca')
   })
 
-  it('never renames a packaged build before ready', () => {
+  it('applies the Lab name before ready without changing ordinary packaged identity', () => {
+    expect(
+      shouldApplyPreReadyAppName(getDevInstanceIdentity(false, { ORCA_LAB_ROOT: '/lab' }))
+    ).toBe(true)
+  })
+
+  it('never renames an ordinary packaged build before ready', () => {
     // Packaged forks must retain their CFBundleName-derived safeStorage key or encrypted secrets become orphaned.
     expect(shouldApplyPreReadyAppName(getDevInstanceIdentity(false, {}))).toBe(false)
     expect(shouldApplyPreReadyAppName({ isDev: false })).toBe(false)
