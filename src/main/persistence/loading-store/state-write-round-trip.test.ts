@@ -71,6 +71,40 @@ function session(activeTabId: string): WorkspaceSessionState {
 }
 
 describe('persisted state survives a save/load round trip', () => {
+  it('preserves independent notification sound categories after save and reopen', () => {
+    const dataFile = join(
+      realpathSync(mkdtempSync(join(tmpdir(), 'orca-notification-round-trip-'))),
+      'orca-data.json'
+    )
+    const written = openStore(dataFile)
+    written.updateSettings({
+      notifications: {
+        ...written.getSettings().notifications,
+        customSoundId: 'custom',
+        customSoundPath: '/sounds/done.wav',
+        customSoundVolume: 23,
+        needsInputSoundId: 'blip',
+        needsInputSoundPath: null,
+        needsInputSoundVolume: 45,
+        failedSoundId: 'custom',
+        failedSoundPath: '/sounds/failure.wav',
+        failedSoundVolume: 67
+      }
+    })
+    written.flush()
+    const reloaded = openStore(dataFile)
+    expect(reloaded.getSettings().notifications).toMatchObject({
+      customSoundId: 'custom',
+      customSoundPath: '/sounds/done.wav',
+      customSoundVolume: 23,
+      needsInputSoundId: 'blip',
+      needsInputSoundPath: null,
+      needsInputSoundVolume: 45,
+      failedSoundId: 'custom',
+      failedSoundPath: '/sounds/failure.wav',
+      failedSoundVolume: 67
+    })
+  })
   it('reloads settings, secrets and both session partitions unchanged', () => {
     const dataFile = join(
       realpathSync(mkdtempSync(join(tmpdir(), 'orca-store-round-trip-'))),

@@ -54,7 +54,12 @@ describe('registerNotificationHandlers', () => {
     expect(
       await handler(
         {},
-        { source: 'agent-task-complete', repoLabel: 'orca', worktreeLabel: 'feat/notis' }
+        {
+          source: 'agent-task-complete',
+          priority: 4,
+          repoLabel: 'orca',
+          worktreeLabel: 'feat/notis'
+        }
       )
     ).toEqual({ delivered: true })
     expect(notificationCtorMock).toHaveBeenCalledWith(
@@ -84,6 +89,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           repoLabel: 'orca',
@@ -124,6 +130,7 @@ describe('registerNotificationHandlers', () => {
           {},
           {
             source: 'agent-task-complete',
+            priority: 4,
             worktreeId: 'repo::wt1',
             worktreeLabel: 'feat/notis',
             repoLabel: 'orca',
@@ -162,6 +169,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'main',
           repoLabel: 'jinjing-work',
@@ -199,6 +207,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'claude',
@@ -213,6 +222,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'claude',
@@ -258,6 +268,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'builder\nagent',
@@ -304,6 +315,7 @@ describe('registerNotificationHandlers', () => {
       {},
       {
         source: 'agent-task-complete',
+        priority: 4,
         worktreeLabel: 'feat/notis',
         agentType: 'claude',
         ...(scenario.agentState ? { agentState: scenario.agentState } : {}),
@@ -333,6 +345,7 @@ describe('registerNotificationHandlers', () => {
       {},
       {
         source: 'agent-task-complete',
+        priority: 4,
         worktreeLabel: 'feat/notis',
         agentType: 'claude',
         agentState: 'done',
@@ -366,6 +379,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'unknown',

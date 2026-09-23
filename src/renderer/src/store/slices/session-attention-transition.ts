@@ -40,7 +40,7 @@ function terminalIdentityInput(state: AppState, entry: AgentStatusEntry) {
   }
 }
 
-function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
+export function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
   const workspaceId = entry.worktreeId
   const tabId = entry.tabId ?? getTabIdFromPaneKey(entry.paneKey) ?? ''
   if (!workspaceId || !tabId) {

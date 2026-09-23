@@ -209,6 +209,7 @@ describe('Copilot hook normalization', () => {
     )
     expect(result?.payload.state).toBe('blocked')
     expect(result?.payload.lastAssistantMessage).toBe('Allow Bash to run?')
+    expect(result?.payload.requiresInput).toBe(true)
   })
 
   it('Notification(elicitation_dialog) preserves the cached prompt', () => {
@@ -229,6 +230,7 @@ describe('Copilot hook normalization', () => {
     expect(result?.payload.state).toBe('blocked')
     expect(result?.payload.prompt).toBe('deploy the app')
     expect(result?.payload.lastAssistantMessage).toBe('Which environment?')
+    expect(result?.payload.requiresInput).toBe(true)
     expect(result?.hasExplicitPrompt).toBe(false)
   })
 
@@ -333,7 +335,11 @@ describe('Copilot hook normalization', () => {
       expect(listener).toHaveBeenCalledWith(
         expect.objectContaining({
           paneKey: PANE,
-          payload: expect.objectContaining({ state: 'blocked', agentType: 'copilot' })
+          payload: expect.objectContaining({
+            state: 'blocked',
+            agentType: 'copilot',
+            requiresInput: true
+          })
         })
       )
     } finally {
