@@ -139,6 +139,10 @@ export function createMainWindow(
       additionalArguments: [formatBrowserClientHostIdArgument(getBrowserClientHostId())]
     }
   })
+  if (opts?.title !== undefined) {
+    // Why: document titles must not replace an identity-specific native title after navigation or reload.
+    mainWindow.on('page-title-updated', (event) => event.preventDefault())
+  }
   const rendererWebContentsId = mainWindow.webContents.id
   installWindowsPathRegistryChangeListener(mainWindow)
   // Why: native paste fallback is privileged IPC; only the top-level renderer may request it.

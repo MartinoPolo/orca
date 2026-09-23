@@ -16,6 +16,7 @@
 - **Implemented:** Agent launch watchdog timeouts report a delayed terminal start rather than claiming the launch failed.
 - **Implemented:** Community-PR tracking runs only in `stablyai/orca`; fork CI does not access upstream organization projects or require upstream bot credentials.
 - **Implemented:** Source control starts “Committed on Branch” collapsed on panel mount and workspace switches; committed files and their header use muted styling on a secondary surface, separated from visible active changes by a gap and divider.
+- **Implemented:** `ORCA_LAB_ROOT` gives packaged builds a fail-closed separate Orca profile and storage while sharing the normal shell, development tools, and agent configuration. It retains a distinct Orca Lab identity and native window title without enabling E2E mode; see [`docs/reference/orca-lab-isolation.md`](docs/reference/orca-lab-isolation.md).
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 

@@ -4,6 +4,8 @@ import type { AppIdentity } from '../../shared/app-identity'
 
 const BASE_APP_NAME = 'Orca'
 const BASE_APP_USER_MODEL_ID = 'com.stablyai.orca'
+const LAB_APP_NAME = 'Orca Lab'
+const LAB_APP_USER_MODEL_ID = 'com.stablyai.orca.lab'
 const MAX_LABEL_LENGTH = 80
 
 export type DevInstanceIdentity = AppIdentity & {
@@ -20,12 +22,13 @@ export type DevInstanceIdentity = AppIdentity & {
  *
  * Why: Electron resolves the macOS safeStorage Keychain service name
  * ("<app name> Safe Storage") before `ready`, so a post-ready setName cannot move it.
- * Dev-only on purpose — a packaged build must keep deriving its key from its own
- * CFBundleName, which downstream forks ship differently ("Orca ALab Edition").
- * Renaming it pre-ready would orphan their encrypted secrets.
+ * Ordinary packaged builds retain their CFBundleName key; only dev and isolated Lab
+ * profiles need a separate service name before safeStorage initializes.
  */
-export function shouldApplyPreReadyAppName(identity: Pick<AppIdentity, 'isDev'>): boolean {
-  return identity.isDev
+export function shouldApplyPreReadyAppName(
+  identity: Pick<AppIdentity, 'isDev'> & { appName?: string }
+): boolean {
+  return identity.isDev || identity.appName === LAB_APP_NAME
 }
 
 function cleanEnvValue(value: string | undefined): string | null {
@@ -66,16 +69,18 @@ export function getDevInstanceIdentity(
   env: NodeJS.ProcessEnv = process.env
 ): DevInstanceIdentity {
   if (!isDev) {
+    const isLab = Boolean(env.ORCA_LAB_ROOT)
+    const appName = isLab ? LAB_APP_NAME : BASE_APP_NAME
     return {
-      name: BASE_APP_NAME,
-      appName: BASE_APP_NAME,
+      name: appName,
+      appName,
       isDev: false,
       devLabel: null,
       devBranch: null,
       devWorktreeName: null,
       devRepoRoot: null,
       dockBadgeLabel: null,
-      appUserModelId: BASE_APP_USER_MODEL_ID
+      appUserModelId: isLab ? LAB_APP_USER_MODEL_ID : BASE_APP_USER_MODEL_ID
     }
   }
 

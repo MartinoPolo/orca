@@ -1,14 +1,16 @@
 import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { getVersionManagerBinPaths } from '../codex-cli/command'
 import { getMainE2EConfig } from '../e2e-config'
 import { DISABLED_CHROMIUM_FEATURES } from './disabled-chromium-features'
 import { readHttp1CompatibilityMarker } from './http1-compatibility-marker'
+import { areEquivalentPaths, prepareOrcaLabPaths } from './orca-lab-isolation'
 
 const DEV_PARENT_SHUTDOWN_GRACE_MS = 3000
 const HTTP1_COMPATIBILITY_ENV_VAR = 'ORCA_DISABLE_HTTP2'
+const NORMAL_APP_NAME = 'Orca'
 const TRUE_ENV_VALUES = new Set(['1', 'true', 'yes', 'on'])
 const FALSE_ENV_VALUES = new Set(['0', 'false', 'no', 'off'])
 let devParentShutdownRequested = false
@@ -189,6 +191,25 @@ export function patchPackagedProcessPath(): void {
 
 export function configureDevUserDataPath(isDev: boolean): void {
   const e2eConfig = getMainE2EConfig()
+  const labRoot = process.env.ORCA_LAB_ROOT
+  if (labRoot !== undefined) {
+    if (!app.isPackaged || isDev) {
+      throw new Error('Orca Lab requires a normal packaged launch')
+    }
+    if (e2eConfig.enabled || process.env.ORCA_DEV_USER_DATA_PATH) {
+      throw new Error('Orca Lab cannot be combined with E2E or development path overrides')
+    }
+
+    const labPaths = prepareOrcaLabPaths({
+      root: labRoot,
+      ordinaryUserData: join(app.getPath('appData'), NORMAL_APP_NAME),
+      platform: process.platform
+    })
+    app.setPath('userData', labPaths.userData)
+    app.setPath('sessionData', labPaths.sessionData)
+    return
+  }
+
   if (e2eConfig.userDataDir) {
     // Why: the E2E suite launches a fresh Electron app for each spec. A
     // dedicated userData path per launch prevents persisted repos, worktrees,
@@ -197,7 +218,7 @@ export function configureDevUserDataPath(isDev: boolean): void {
     const e2eHomeDir = process.env.ORCA_E2E_HOME_DIR ?? join(e2eConfig.userDataDir, 'home')
     // Why: E2E imports can resolve os.homedir() before Electron is ready. Abort
     // startup if a direct launch skipped the disposable Node-home contract.
-    if (!areSameE2EHomePath(homedir(), e2eHomeDir)) {
+    if (!areEquivalentPaths(homedir(), e2eHomeDir)) {
       throw new Error('Refusing to start E2E outside its disposable home boundary')
     }
     // Why: on macOS Electron resolves app.getPath('home') from the native user
@@ -219,14 +240,6 @@ export function configureDevUserDataPath(isDev: boolean): void {
   }
   // Why: without a dev-only path, pnpm dev overwrites the packaged app's runtime pointer under userData and breaks the orca CLI.
   app.setPath('userData', join(app.getPath('appData'), 'orca-dev'))
-}
-
-function areSameE2EHomePath(left: string, right: string): boolean {
-  const normalizedLeft = resolve(left)
-  const normalizedRight = resolve(right)
-  return process.platform === 'win32'
-    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
-    : normalizedLeft === normalizedRight
 }
 
 export function configureOrcaUserDataPathEnv(): void {
