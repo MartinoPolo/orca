@@ -179,6 +179,10 @@ export function createMainWindow(
   rememberWindowMaterial(mainWindow, windowMaterial)
   mainWindow.setMaxListeners(MAIN_WINDOW_MAX_LISTENERS_PER_EVENT)
   mainWindow.webContents.setMaxListeners(MAIN_WINDOW_MAX_LISTENERS_PER_EVENT)
+  if (opts?.title !== undefined) {
+    // Why: document titles must not replace an identity-specific native title after navigation or reload.
+    mainWindow.on('page-title-updated', (event) => event.preventDefault())
+  }
   const rendererWebContentsId = mainWindow.webContents.id
   installWindowsPathRegistryChangeListener(mainWindow)
   // Native paste fallback is privileged; trust only the top-level renderer.
