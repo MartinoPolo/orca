@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scanAiVaultSessions } from './session-scanner'
-import { isolatedScanRoots, jsonLines } from './session-scanner-test-fixtures'
+import {
+  expectedPosixCodexResumeCommand,
+  isolatedScanRoots,
+  jsonLines
+} from './session-scanner-test-fixtures'
 
 let tempRoots: string[] = []
 
@@ -103,7 +107,11 @@ describe('scanAiVaultSessions codex dual-root dedup', () => {
     )
     expect(managedOnly).toMatchObject({
       codexHome: managedHome,
-      resumeCommand: `cd '/repo/app' && CODEX_HOME='${managedHome}' codex resume '029f0000-1111-7222-8333-555555555555'`
+      resumeCommand: expectedPosixCodexResumeCommand(
+        '/repo/app',
+        managedHome,
+        '029f0000-1111-7222-8333-555555555555'
+      )
     })
   })
 

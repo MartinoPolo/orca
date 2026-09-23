@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import Database from '../sqlite/sync-database'
+import { quoteStartupArg } from '../../shared/tui-agent-startup-shell'
 
 export async function writeOpenCode2SqliteFixture(root: string): Promise<string> {
   const opencode2DbPath = join(root, 'opencode-next.db')
@@ -80,6 +81,14 @@ export function isolatedScanRoots(root: string) {
     jcodeSessionsDir: join(root, 'jcode-sessions'),
     kiroSessionsDir: join(root, 'kiro-sessions')
   }
+}
+
+export function expectedPosixCodexResumeCommand(
+  cwd: string,
+  codexHome: string,
+  sessionId: string
+): string {
+  return `cd ${quoteStartupArg(cwd, 'posix')} && CODEX_HOME=${quoteStartupArg(codexHome, 'posix')} codex resume ${quoteStartupArg(sessionId, 'posix')}`
 }
 
 export function jsonLines(records: unknown[]): string {
