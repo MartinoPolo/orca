@@ -1,4 +1,8 @@
-import type { KeybindingActionId, PluginKeybindingActionId } from '../keybindings'
+import {
+  TAB_MOVE_ACTION_IDS,
+  type KeybindingActionId,
+  type PluginKeybindingActionId
+} from '../keybindings'
 
 /** Built-in actions with a renderer-owned command handler. Keep this closed so
  * declarative aliases cannot target component-private shortcut implementations. */
@@ -9,6 +13,7 @@ export const PLUGIN_COMMAND_ALIAS_ACTION_IDS = [
   'sidebar.sleepingWorkspaces.toggle',
   'floatingWorkspace.maximize',
   'tab.rename',
+  ...TAB_MOVE_ACTION_IDS,
   'workspace.rename',
   'workspace.openBoard',
   'view.tasks',

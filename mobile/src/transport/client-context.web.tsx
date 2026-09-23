@@ -2,6 +2,7 @@
 // client is the shell bridge. Nothing here dials, retries or pairs — the native client on the other
 // side of the bridge already did, and this provider only carries what it holds across the boundary.
 import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react'
+import { HostClientContext } from './host-client-react-context'
 import type { BridgeRpcClient } from '../mobile-web-shell/bridge/bridge-rpc-client'
 import type { ConnectionState, HostProfile } from './types'
 import type { RpcClientContextValue } from './rpc-client-context-contract'
@@ -15,7 +16,7 @@ export {
   useRefreshHostClient
 } from './host-client-hooks'
 
-const Ctx = createContext<RpcClientContextValue | null>(null)
+const Ctx = HostClientContext
 /** The page's own client, which is more than an `RpcClient`: the route seam reads the session off
  *  it to decide which screens are this document's. Separate from `Ctx` so the shared contract above
  *  stays the one every screen sees, page or native. */

@@ -7,7 +7,7 @@ import type {
   WorktreeStartupLaunch
 } from '../../shared/worktree/launch-types'
 import type { FeatureInteractionId } from '../../shared/feature-interactions'
-import type { KeybindingActionId } from '../../shared/keybindings'
+import type { KeybindingActionId, TabMoveDirection } from '../../shared/keybindings'
 import type { BrowserFindSource } from '../../shared/browser-find-source'
 import type {
   AgentProviderSessionMetadata,
@@ -34,6 +34,7 @@ import type {
 } from '../../shared/session-tab-close'
 
 export type CloseActiveTabPayload = { sourceId: string }
+export type TabMovePayload = { direction: TabMoveDirection; sourceId: string }
 
 export type UiCommandEventApi = {
   get: () => Promise<PersistedUIState>
@@ -117,6 +118,7 @@ export type UiCommandEventApi = {
   onHardReloadBrowserPage: (callback: () => void) => () => void
   onCloseActiveTab: (callback: (payload?: CloseActiveTabPayload) => void) => () => void
   onCloseFloatingItem: (callback: (payload: { sourceId: string }) => void) => () => void
+  onMoveTabFromBrowserGuest: (callback: (payload: TabMovePayload) => void) => () => void
   onSelectFloatingIndex: (callback: (payload: { index: number }) => void) => () => void
   onSwitchTab: (callback: (direction: 1 | -1) => void) => () => void
   onSwitchTabAcrossAllTypes: (callback: (direction: 1 | -1) => void) => () => void

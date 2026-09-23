@@ -1,5 +1,12 @@
 [
   {
+    "filePath": "src/renderer/src/components/settings/AgentLaunchDefaultsEditor.tsx",
+    "kind": "jsx-attribute:placeholder",
+    "text": "/skill:mpx-execute",
+    "dynamic": true,
+    "count": 1
+  },
+  {
     "filePath": "src/renderer/src/components/automations/automations-page-fixtures.ts",
     "kind": "object-property:title",
     "text": "Nightly #1",

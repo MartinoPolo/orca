@@ -5,6 +5,7 @@ import { BRIDGE_PROTOCOL_VERSION } from '../mobile-web-shell/bridge/bridge-envel
 import { createShellPageClient } from '../mobile-web-shell/bridge/page-bootstrap'
 import type { BridgeRpcClient } from '../mobile-web-shell/bridge/bridge-rpc-client'
 import type { RpcClientContextValue } from './rpc-client-context-contract'
+import { useRpcClientContext as useHostClientHookContext } from './host-client-react-context'
 
 // The web file re-exports the screen hooks, and reaching the real ones imports the Expo runtime
 // this test does not have. Nothing below calls one.
@@ -35,13 +36,19 @@ const INIT = {
 }
 
 /** What the page mounted, and what it holds — the two things the provider decides. */
-const screen: { mounts: number; context: RpcClientContextValue | null } = {
+const screen: {
+  mounts: number
+  context: RpcClientContextValue | null
+  hostClientHookContext: RpcClientContextValue | null
+} = {
   mounts: 0,
-  context: null
+  context: null,
+  hostClientHookContext: null
 }
 
 function Screen(): null {
   screen.context = useRpcClientContext()
+  screen.hostClientHookContext = useHostClientHookContext()
   screen.mounts += 1
   return null
 }
@@ -93,6 +100,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   screen.mounts = 0
   screen.context = null
+  screen.hostClientHookContext = null
 })
 
 afterEach(() => {
@@ -110,6 +118,7 @@ describe('the page provider', () => {
 
     expect(screen.mounts).toBe(1)
     const context = readContext()
+    expect(screen.hostClientHookContext).toBe(context)
     expect(context.acquire('host-a', {})).toBe(client)
     // No host is named anywhere in the protocol, so a second route's host gets the same client.
     expect(context.acquire('host-b', {})).toBe(client)

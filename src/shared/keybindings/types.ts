@@ -24,6 +24,19 @@ export type KeybindingMatchOptions = {
 export type AgentTabActionId = `tab.newAgent.${TuiAgent}`
 export type PluginKeybindingActionId = `plugin:${string}`
 
+export const TAB_MOVE_ACTIONS = [
+  { actionId: 'tab.moveLeft', direction: 'left' },
+  { actionId: 'tab.moveRight', direction: 'right' },
+  { actionId: 'tab.moveUp', direction: 'up' },
+  { actionId: 'tab.moveDown', direction: 'down' }
+] as const
+
+export type TabMoveActionId = (typeof TAB_MOVE_ACTIONS)[number]['actionId']
+export type TabMoveDirection = (typeof TAB_MOVE_ACTIONS)[number]['direction']
+export const TAB_MOVE_ACTION_IDS: readonly TabMoveActionId[] = TAB_MOVE_ACTIONS.map(
+  ({ actionId }) => actionId
+)
+
 export type KeybindingActionId =
   | 'worktree.quickOpen'
   | 'worktree.palette'
@@ -72,6 +85,7 @@ export type KeybindingActionId =
   | 'tab.nextAllTypes'
   | 'tab.previousAllTypes'
   | 'tab.previousRecent'
+  | TabMoveActionId
   | 'tab.nextTerminal'
   | 'tab.previousTerminal'
   | 'tab.selectByIndex'

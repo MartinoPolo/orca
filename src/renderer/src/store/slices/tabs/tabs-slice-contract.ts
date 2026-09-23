@@ -8,8 +8,9 @@ import type {
 } from '../../../../../shared/tab-types'
 import type { WorkspaceSessionState } from '../../../../../shared/workspace-session-state-types'
 import type { WorkspaceSessionHydrationOptions } from '@/lib/workspace-session-hydration-keys'
+import type { TabMoveDirection } from '../../../../../shared/keybindings'
 
-export type TabSplitDirection = 'left' | 'right' | 'up' | 'down'
+export type TabSplitDirection = TabMoveDirection
 
 export type TabsSlice = {
   unifiedTabsByWorktree: Record<string, Tab[]>

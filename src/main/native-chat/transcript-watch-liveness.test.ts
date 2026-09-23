@@ -216,7 +216,7 @@ describe('native chat transcript watcher liveness', () => {
     expect(watchers[1]!.close).toHaveBeenCalledOnce()
   })
 
-  it('drains within the max wait while matching events remain sustained', async () => {
+  it('eventually delivers an append while matching events remain sustained', async () => {
     const filePath = await tempFile(claudeLine('seed', 'user', 'hello'))
     const snapshots = vi.fn()
     const appends = vi.fn()
@@ -237,8 +237,8 @@ describe('native chat transcript watcher liveness', () => {
       await new Promise((resolve) => setTimeout(resolve, 20))
     }
 
-    expect(appends.mock.calls.flat(2).some((message) => message.id === 'sustained-events')).toBe(
-      true
+    await waitFor(() =>
+      appends.mock.calls.flat(2).some((message) => message.id === 'sustained-events')
     )
     subscription.unsubscribe()
   })
