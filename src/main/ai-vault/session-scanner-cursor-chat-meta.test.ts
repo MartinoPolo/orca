@@ -10,6 +10,7 @@ let failNextChatsRootReaddir = false
 let failMetaJsonReads = false
 let failMetaJsonStats: false | true | 'eacces' = false
 let chatsRootReads = 0
+let workspaceReads = 0
 vi.mock('../native-chat/wsl-transcript-fs-access', async (importOriginal) => {
   const actual = await importOriginal<typeof WslTranscriptFsAccess>()
   return {
@@ -23,6 +24,9 @@ vi.mock('../native-chat/wsl-transcript-fs-access', async (importOriginal) => {
           failNextChatsRootReaddir = false
           return Promise.reject(new WslTranscriptFsError('timeout', 'wsl fs timed out'))
         }
+      }
+      if (args[0].includes('workspace-hash') || args[0].includes('other-workspace')) {
+        workspaceReads += 1
       }
       if (failNextChatsReaddir && args[0].includes('workspace-hash')) {
         failNextChatsReaddir = false
@@ -55,6 +59,7 @@ vi.mock('../native-chat/wsl-transcript-fs-access', async (importOriginal) => {
 import type * as WslTranscriptFsAccess from '../native-chat/wsl-transcript-fs-access'
 import {
   cursorChatMetaPath,
+  cursorChatMetaRefusals,
   readCursorChatMeta,
   resetCursorChatMetaIndexCacheForTests,
   withCursorChatMetaScan
@@ -99,6 +104,7 @@ afterEach(async () => {
   resetCursorChatMetaIndexCacheForTests()
   resetSessionParseCacheForTests()
   failNextChatsRootReaddir = false
+  failNextChatsReaddir = false
   failMetaJsonReads = false
   failMetaJsonStats = false
   await Promise.all(tempRoots.map((root) => rm(root, { recursive: true, force: true })))
@@ -175,12 +181,111 @@ describe('cursor chat meta', () => {
     const cursorHome = await createCursorHome()
     await writeChatMeta(cursorHome, 'workspace-hash', 'chat-first')
     const firstTranscript = await writeTranscript(cursorHome, 'slug', 'chat-first', [])
+    const workspaceDir = join(cursorHome, 'chats', 'workspace-hash')
+    const fixedTime = new Date('2024-01-01T00:00:00.000Z')
+    await utimes(workspaceDir, fixedTime, fixedTime)
     expect(await cursorChatMetaPath(firstTranscript)).toBeDefined()
 
     const laterMetaPath = await writeChatMeta(cursorHome, 'workspace-hash', 'chat-later')
     const laterTranscript = await writeTranscript(cursorHome, 'slug', 'chat-later', [])
+    await utimes(workspaceDir, fixedTime, fixedTime)
+    expect((await stat(workspaceDir)).mtimeMs).toBe(fixedTime.getTime())
 
     expect(await cursorChatMetaPath(laterTranscript)).toBe(laterMetaPath)
+  })
+
+  it('coalesces concurrent stale misses and reuses the refreshed index across a scan', async () => {
+    const cursorHome = await createCursorHome()
+    const firstTranscript = await writeTranscript(cursorHome, 'slug', 'first', [])
+    const firstMetaPath = await writeChatMeta(cursorHome, 'workspace-hash', 'first')
+    await writeChatMeta(cursorHome, 'other-workspace', 'existing')
+    const workspaceDirs = [
+      join(cursorHome, 'chats', 'workspace-hash'),
+      join(cursorHome, 'chats', 'other-workspace')
+    ]
+    const fixedTime = new Date('2024-01-01T00:00:00.000Z')
+    await Promise.all(workspaceDirs.map((dir) => utimes(dir, fixedTime, fixedTime)))
+    await cursorChatMetaPath(firstTranscript)
+    const newChats = await Promise.all(
+      [
+        ['second', 'workspace-hash'],
+        ['third', 'other-workspace']
+      ].map(async ([chatId, workspaceHash]) => ({
+        transcript: await writeTranscript(cursorHome, 'slug', chatId, []),
+        meta: await writeChatMeta(cursorHome, workspaceHash, chatId)
+      }))
+    )
+    const absentTranscript = await writeTranscript(cursorHome, 'slug', 'absent', [])
+    await Promise.all(workspaceDirs.map((dir) => utimes(dir, fixedTime, fixedTime)))
+    workspaceReads = 0
+    chatsRootReads = 0
+
+    const paths = await withCursorChatMetaScan(async () => {
+      const concurrent = await Promise.all(
+        newChats.map(({ transcript }) => cursorChatMetaPath(transcript))
+      )
+      expect(await cursorChatMetaPath(absentTranscript)).toBeUndefined()
+      expect(await cursorChatMetaPath(absentTranscript)).toBeUndefined()
+      const repeated = await cursorChatMetaPath(firstTranscript)
+      return [...concurrent, repeated]
+    })
+    expect(paths).toEqual([...newChats.map(({ meta }) => meta), firstMetaPath])
+    expect(workspaceReads).toBe(2)
+    expect(chatsRootReads).toBe(2)
+  })
+
+  it('does not rebuild for positive cached hits or retry a missing chat from a fresh index', async () => {
+    const cursorHome = await createCursorHome()
+    const metaPath = await writeChatMeta(cursorHome, 'workspace-hash', 'first')
+    const firstTranscript = await writeTranscript(cursorHome, 'slug', 'first', [])
+    const absentTranscript = await writeTranscript(cursorHome, 'slug', 'absent', [])
+    await cursorChatMetaPath(firstTranscript)
+    workspaceReads = 0
+    chatsRootReads = 0
+
+    await withCursorChatMetaScan(async () => {
+      expect(await cursorChatMetaPath(firstTranscript)).toBe(metaPath)
+      expect(await cursorChatMetaPath(firstTranscript)).toBe(metaPath)
+    })
+    expect(chatsRootReads).toBe(1)
+    expect(workspaceReads).toBe(0)
+
+    resetCursorChatMetaIndexCacheForTests()
+    workspaceReads = 0
+    chatsRootReads = 0
+    await withCursorChatMetaScan(async () => {
+      expect(await cursorChatMetaPath(absentTranscript)).toBeUndefined()
+      expect(await cursorChatMetaPath(absentTranscript)).toBeUndefined()
+    })
+    expect(workspaceReads).toBe(1)
+    expect(chatsRootReads).toBe(1)
+  })
+
+  it('keeps a refused stale-cache refresh unavailable for this scan and heals on the next', async () => {
+    const cursorHome = await createCursorHome()
+    await writeChatMeta(cursorHome, 'workspace-hash', 'first')
+    const firstTranscript = await writeTranscript(cursorHome, 'slug', 'first', [])
+    const workspaceDir = join(cursorHome, 'chats', 'workspace-hash')
+    const fixedTime = new Date('2024-01-01T00:00:00.000Z')
+    await utimes(workspaceDir, fixedTime, fixedTime)
+    await cursorChatMetaPath(firstTranscript)
+    const laterMeta = await writeChatMeta(cursorHome, 'workspace-hash', 'later')
+    const laterTranscript = await writeTranscript(cursorHome, 'slug', 'later', [])
+    await utimes(workspaceDir, fixedTime, fixedTime)
+    failNextChatsReaddir = true
+    workspaceReads = 0
+
+    await withCursorChatMetaScan(async () => {
+      expect(await cursorChatMetaPath(laterTranscript)).toBeUndefined()
+      expect(await cursorChatMetaPath(laterTranscript)).toBeUndefined()
+      expect(cursorChatMetaRefusals()).toEqual([
+        { chatsRoot: join(cursorHome, 'chats'), message: 'wsl fs timed out' }
+      ])
+    })
+    expect(workspaceReads).toBe(1)
+    await expect(withCursorChatMetaScan(() => cursorChatMetaPath(laterTranscript))).resolves.toBe(
+      laterMeta
+    )
   })
 
   it('does not cache a metadata index whose build was refused by the WSL gate', async () => {
