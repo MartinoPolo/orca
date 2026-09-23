@@ -15,6 +15,12 @@ import {
 } from '../../../shared/tui-agent-launch-defaults'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { translate } from '@/i18n/i18n'
+import {
+  getLocalDefaultPiAgentDirectory,
+  PiResumeProfileError,
+  resolvePiResumeLaunchConfig
+} from '@/lib/pi-profile-resume-provenance'
+import { resolvePiProfileLaunchTarget } from '@/lib/pi-profile-launch-target'
 
 export type ResumeSleepingAgentSessionsOptions = {
   suppressNavigation?: boolean
@@ -67,7 +73,46 @@ export function launchSleepingAgentSession(
   options?: ResumeSleepingAgentSessionsOptions
 ): boolean {
   const state = useAppStore.getState()
-  const launchConfig = record.launchConfig
+  const piProfileTarget =
+    record.agent === 'pi' ? resolvePiProfileLaunchTarget(state, record.worktreeId) : null
+  if (piProfileTarget === 'unresolved') {
+    toast.error(
+      translate(
+        'lib.sleepingAgentSessionLaunch.workspaceOwnerUnavailable',
+        'Cannot resume Pi until its workspace owner is available.'
+      )
+    )
+    return false
+  }
+  const capturedLaunchConfig = record.launchConfig
+  let launchConfig = capturedLaunchConfig
+  if (record.agent === 'pi' && !record.connectionId?.trim() && piProfileTarget === 'local-native') {
+    const fallbackLaunchConfig =
+      capturedLaunchConfig ??
+      ({
+        agentArgs: resolveTuiAgentLaunchArgs(record.agent, state.settings?.agentDefaultArgs),
+        agentEnv: resolveTuiAgentLaunchEnv(record.agent, state.settings?.agentDefaultEnv)
+      } satisfies NonNullable<SleepingAgentSessionRecord['launchConfig']>)
+    try {
+      launchConfig = resolvePiResumeLaunchConfig({
+        transcriptPath: record.providerSession.transcriptPath,
+        launchConfig: fallbackLaunchConfig,
+        profiles: state.settings?.piLaunchProfiles,
+        allowProfileSelection: record.connectionId === null,
+        defaultAgentDirectory: getLocalDefaultPiAgentDirectory()
+      })
+    } catch (error) {
+      toast.error(
+        error instanceof PiResumeProfileError
+          ? error.message
+          : translate(
+              'lib.sleepingAgentSessionLaunch.piAccountUnresolved',
+              'This Pi session cannot be associated with an account safely.'
+            )
+      )
+      return false
+    }
+  }
   const resumeTarget = getResumeLaunchTarget(record.worktreeId)
   const startupPlan = buildAgentResumeStartupPlan({
     agent: record.agent,

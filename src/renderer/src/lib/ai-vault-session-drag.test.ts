@@ -71,6 +71,34 @@ describe('Session History session drag data', () => {
     expect(readAiVaultSessionDragData(transfer)).toEqual(payload)
   })
 
+  it('preserves local Pi provenance and a complete launch snapshot', () => {
+    const transfer = createTransfer()
+    const payload: AiVaultSessionDragPayload = {
+      agent: 'pi',
+      sessionId: 'pi-session-1',
+      title: 'Work account session',
+      command: '/tools/pi-work --model work --session /accounts/work/sessions/session.jsonl',
+      sessionFilePath: '/accounts/work/sessions/session.jsonl',
+      sessionExecutionHostId: 'local',
+      env: {
+        PI_CODING_AGENT_DIR: '/accounts/work',
+        ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work'
+      },
+      launchConfig: {
+        agentCommand: '/tools/pi-work --model work',
+        agentArgs: '--model work',
+        agentEnv: {
+          PI_CODING_AGENT_DIR: '/accounts/work',
+          ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work'
+        }
+      }
+    }
+
+    writeAiVaultSessionDragData(transfer, payload)
+
+    expect(readAiVaultSessionDragData(transfer)).toEqual(payload)
+  })
+
   it('preserves an explicit null sessionCwd across the serialized round-trip', () => {
     const transfer = createTransfer()
     const payload: AiVaultSessionDragPayload = {

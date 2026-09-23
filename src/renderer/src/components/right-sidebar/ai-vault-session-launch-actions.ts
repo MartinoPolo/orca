@@ -111,10 +111,15 @@ export function useAiVaultSessionLaunchActions({
       }
       void prepareAiVaultSessionForResume(session)
         .then((preparedSession) => {
+          const resumeStartup = buildResumeStartup(preparedSession, targetId.worktreeId)
+          if (resumeStartup.blockedReason) {
+            toast.error(resumeStartup.blockedReason)
+            return
+          }
           const launchResult = launchAiVaultSessionInNewTab({
             agent: session.agent,
             worktreeId: targetId.worktreeId,
-            ...buildResumeStartup(preparedSession, targetId.worktreeId)
+            ...resumeStartup
           })
           if (launchResult.tabId === null) {
             void launchResult.runtimeLaunch.then((outcome) => {

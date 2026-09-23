@@ -47,6 +47,28 @@ This is a forward-only fix. Keep saved subagent sessions enabled. Do not rewrite
 historical pane mappings, delete transcripts, or infer that an unreachable remote
 process has exited.
 
+## Named launch profiles
+
+Agent settings can register local-native Pi profiles with a display name, concrete
+command, and absolute account directory. Credentials stay in that directory and are
+not persisted in settings. Profiles are not offered to WSL, SSH, or paired runtimes;
+on Windows, POSIX wrapper commands require a compatible configured shell such as Git
+Bash. The recommended two-account setup keeps the built-in default as `pi` and
+adds one profile named `piw` with command `piw` and the work account directory.
+Launch menus show `pi` for the default and each profile's exact configured name;
+do not add a duplicate Personal profile for the default account.
+
+Launches snapshot the concrete command plus `PI_CODING_AGENT_DIR` and
+`ORCA_PI_SOURCE_AGENT_DIR`. Local-native restore and history flows compare lexical
+transcript boundaries against that account root; remote, WSL, and paired snapshots
+are never interpreted with local profile roots. A matching captured command and root
+remain authoritative after settings change; conflicting account roots are rejected.
+Stamped local records can select one unambiguous registered root, but never-stamped
+records cannot because they may be remote orphans. History and drag/drop use the
+same account checks. Unmatched custom history remains parked instead of falling
+back to default Pi. Conventional history is accepted only under the local home
+reported by preload, never by matching a `.pi/agent/sessions` suffix alone.
+
 ## Validation and deployment
 
 Use generated-extension tests with synthetic sessions and mocked transport before

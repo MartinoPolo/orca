@@ -639,6 +639,33 @@ describe('PortsPanel runtime routing', () => {
     expect(browserUrlForPort(workspacePort)).toBe('http://127.0.0.1:63468')
   })
 
+  it('brackets IPv6 hosts for system-browser opens and copied addresses', async () => {
+    const ipv6Port: WorkspacePort = {
+      ...workspacePort,
+      id: '::1:63468:1234',
+      bindHost: '::1',
+      connectHost: '::1'
+    }
+    const createBrowserTab = vi.fn()
+    const setRemoteBrowserPageHandle = vi.fn()
+    openUrl.mockResolvedValueOnce(undefined)
+
+    await expect(
+      openWorkspacePortInBrowser({
+        port: ipv6Port,
+        runtimeTarget: { kind: 'local' },
+        createBrowserTab,
+        setRemoteBrowserPageHandle,
+        openInOrcaBrowser: false
+      })
+    ).resolves.toEqual({ ok: true })
+
+    expect(openUrl).toHaveBeenCalledWith('http://[::1]:63468')
+    expect(createBrowserTab).not.toHaveBeenCalled()
+    expect(browserUrlForPort(ipv6Port)).toBe('http://[::1]:63468')
+    expect(addressForPort(ipv6Port)).toBe('[::1]:63468')
+  })
+
   it('prefers advertisedUrl over the OS-derived host:port', () => {
     const advertised: WorkspacePort = {
       ...workspacePort,

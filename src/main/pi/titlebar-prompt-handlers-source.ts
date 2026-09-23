@@ -1,9 +1,13 @@
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 
-export function getPiTitlebarPromptSourceLines(kind: PiAgentKind): string[] {
+export function getPiTitlebarPromptHandlersSourceLines(kind: PiAgentKind): string[] {
+  // Why: OMP reports input waits through its own approval events, which the status
+  // extension already maps, and it writes this same marker natively. The runtime check
+  // matters as well as the kind: a bare-shell OMP launch runs inside a pi-kind pane.
   if (kind !== 'pi') {
     return []
   }
+
   return [
     "  on('ui_prompt_start', async (_event, ctx) => {",
     '    if (isOmpRuntime() || !ownsMarker) return',

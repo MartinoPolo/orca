@@ -241,7 +241,7 @@ function TabBarCreateEntrySession({
       if (isStructuredLaunchPending(selectedOption.option.agent)) {
         return
       }
-      onLaunchAgent?.(selectedOption.option.agent)
+      onLaunchAgent?.(selectedOption.option)
       onDidOpenEntry?.()
       return
     }

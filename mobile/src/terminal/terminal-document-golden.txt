@@ -1788,15 +1788,10 @@ window.onerror = function(msg) {
     if (count === 0) {
       return "";
     }
-    const mouseTrackingMode = getMouseTrackingMode();
-    let sequence = "";
-    if (isWheelMouseTrackingMode(mouseTrackingMode)) {
-      sequence = buildMouseWheelSequence(lines, clientX, clientY);
+    if (isWheelMouseTrackingMode(getMouseTrackingMode())) {
+      return buildMouseWheelScrollInput(lines, clientX, clientY);
     }
-    if (!sequence) {
-      sequence = buildArrowScrollSequence(lines);
-    }
-    return repeatSequence(sequence, count);
+    return repeatSequence(buildArrowScrollSequence(lines), count);
   }
   function routeScrollLines(lines, clientX, clientY) {
     if (!scope.term || lines === 0) {
@@ -1809,10 +1804,6 @@ window.onerror = function(msg) {
       if (mouseInput) {
         notify({ type: "terminal-input", bytes: mouseInput });
         return;
-      }
-      const fallbackInput = buildTuiScrollInput(lines, clientX, clientY);
-      if (fallbackInput) {
-        notify({ type: "terminal-input", bytes: fallbackInput });
       }
       return;
     }

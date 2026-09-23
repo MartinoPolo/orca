@@ -85,7 +85,7 @@ export function shouldSkipMetadataCommands(
   return skip
 }
 
-// dedupeRawPorts already collapses rows by connectHost:port:pid, so this key is unique per row.
+// dedupeRawPorts already collapses rows by bind host, port, and pid, so this key is unique per row.
 function listenerMetadataKey(port: RawListeningPort): string {
   return `${port.pid ?? 'unknown'}:${port.host}:${port.port}`
 }

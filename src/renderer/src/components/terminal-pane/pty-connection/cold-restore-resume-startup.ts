@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import { toast } from 'sonner'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { resolveAgentResumeLaunchTarget } from '@/lib/agent-resume-launch-target'
@@ -13,12 +14,19 @@ import {
 import {
   agentProviderSessionsEqual,
   isResumableTuiAgent,
-  normalizeAgentProviderSession
+  normalizeAgentProviderSession,
+  type SleepingAgentLaunchConfig
 } from '../../../../../shared/agent-session-resume'
 
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
+import {
+  getLocalDefaultPiAgentDirectory,
+  PiResumeProfileError,
+  resolvePiResumeLaunchConfig
+} from '@/lib/pi-profile-resume-provenance'
+import { resolvePiProfileLaunchTarget } from '@/lib/pi-profile-launch-target'
 
 export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySession): void {
   session.buildColdRestoreAgentResumeStartup = (): ColdRestoreAgentResumeStartup | null => {
@@ -41,6 +49,9 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
     if (!providerSession) {
       return null
     }
+    const resumeOriginConnectionId = useLiveEntry
+      ? entry.connectionId
+      : sleepingRecord?.connectionId
     // Why: this is the second issuer of `--resume`, and the one that handles a quit/live record
     // whose pane still exists — the sweep hands those here rather than launching them. A session id
     // names a transcript on the machine that captured it, so replaying one over a pane now attached
@@ -60,6 +71,20 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
     ) {
       return null
     }
+    const resumeWorktreeId = sleepingRecord?.worktreeId ?? session.worktree?.id
+    const piProfileTarget =
+      agent !== 'pi'
+        ? null
+        : typeof resumeWorktreeId === 'string'
+          ? resolvePiProfileLaunchTarget(state, resumeWorktreeId, {
+              executionHostId: session.executionHostId,
+              projectRuntime: session.projectRuntime
+            })
+          : 'unresolved'
+    if (agent === 'pi' && piProfileTarget === 'unresolved') {
+      toast.error('Cannot resume Pi until its workspace owner is available.')
+      return null
+    }
     const matchingSleepingLaunchConfig =
       sleepingRecord?.launchConfig &&
       (!useLiveEntry ||
@@ -67,9 +92,34 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
           agentProviderSessionsEqual(agent, sleepingRecord.providerSession, providerSession)))
         ? sleepingRecord.launchConfig
         : undefined
-    const launchConfig =
+    const capturedLaunchConfig =
       (useLiveEntry && entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined) ??
       matchingSleepingLaunchConfig
+    let launchConfig = capturedLaunchConfig
+    if (agent === 'pi' && piProfileTarget === 'local-native') {
+      const fallbackLaunchConfig =
+        capturedLaunchConfig ??
+        ({
+          agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
+          agentEnv: resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv)
+        } satisfies SleepingAgentLaunchConfig)
+      try {
+        launchConfig = resolvePiResumeLaunchConfig({
+          transcriptPath: providerSession.transcriptPath,
+          launchConfig: fallbackLaunchConfig,
+          profiles: state.settings?.piLaunchProfiles,
+          allowProfileSelection: resumeOriginConnectionId === null,
+          defaultAgentDirectory: getLocalDefaultPiAgentDirectory()
+        })
+      } catch (error) {
+        toast.error(
+          error instanceof PiResumeProfileError
+            ? error.message
+            : 'This Pi session cannot be associated with an account safely.'
+        )
+        return null
+      }
+    }
     // Why: the resume line is typed into this pane's live shell, so its quoting must
     // follow the tab's effective Windows shell, not the win32 PowerShell default.
     const resumeTarget = resolveAgentResumeLaunchTarget({

@@ -20,6 +20,7 @@ import {
   AgentsPane,
   getAgentsPaneSearchEntries,
   buildAgentAvailabilitySettingsUpdate,
+  buildAgentLinkedWorkItemPromptTemplateSettingsUpdate,
   createAgentAvailabilityUpdateQueue
 } from './AgentsPane'
 import { matchesSettingsSearch } from './settings-search'
@@ -196,6 +197,15 @@ describe('AgentsPane', () => {
     }
   })
 
+  it('hides local-native Pi profiles in a runtime settings context', () => {
+    const markup = renderPane({
+      ...getDefaultSettings('/tmp'),
+      activeRuntimeEnvironmentId: 'env-1'
+    })
+
+    expect(markup).not.toContain('Pi profiles')
+  })
+
   it('shows a retryable error when initial remote detection fails', () => {
     detectedAgentsMock.detectedIds = null
     detectedAgentsMock.isLoading = false
@@ -255,6 +265,7 @@ describe('AgentsPane', () => {
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
     try {
       expect(renderPane(getDefaultSettings('/tmp'))).not.toContain('Keep computer awake')
+      expect(renderPane(getDefaultSettings('/tmp'))).not.toContain('Pi profiles')
       expect(
         matchesSettingsSearch('awake', getAgentsPaneSearchEntries({ includeAgentAwake: false }))
       ).toBe(false)
@@ -412,6 +423,35 @@ describe('AgentsPane', () => {
     expect(matchesSettingsSearch('permission', getAgentsPaneSearchEntries())).toBe(true)
     expect(matchesSettingsSearch('yolo', getAgentsPaneSearchEntries())).toBe(true)
     expect(matchesSettingsSearch('manual', getAgentsPaneSearchEntries())).toBe(true)
+  })
+
+  it('includes linked work-item prompt template search metadata', () => {
+    expect(matchesSettingsSearch('linked work item', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('prompt template', getAgentsPaneSearchEntries())).toBe(true)
+    expect(matchesSettingsSearch('artifact url', getAgentsPaneSearchEntries())).toBe(true)
+  })
+
+  it('saves and resets one agent prompt template without changing other agents', () => {
+    const templates = {
+      codex: 'Review {{artifact_url}}',
+      claude: 'Fix {{artifact_url}}'
+    }
+
+    expect(
+      buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(
+        templates,
+        'pi',
+        '/skill:mpx-execute {{artifact_url}}'
+      )
+    ).toEqual({
+      agentLinkedWorkItemPromptTemplates: {
+        ...templates,
+        pi: '/skill:mpx-execute {{artifact_url}}'
+      }
+    })
+    expect(buildAgentLinkedWorkItemPromptTemplateSettingsUpdate(templates, 'codex', '')).toEqual({
+      agentLinkedWorkItemPromptTemplates: { claude: 'Fix {{artifact_url}}' }
+    })
   })
 
   it('applies the selected agent permission mode from settings without a mixed segment', () => {

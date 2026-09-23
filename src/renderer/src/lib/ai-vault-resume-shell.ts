@@ -21,6 +21,16 @@ type AiVaultResumeShellState = Pick<
   | 'worktreesByRepo'
 >
 
+export function getAiVaultResumeCodexHome(
+  codexHome: string | null,
+  platform: NodeJS.Platform
+): string | null {
+  if (!codexHome || platform !== 'linux') {
+    return codexHome
+  }
+  return parseWslUncPath(codexHome)?.linuxPath ?? codexHome
+}
+
 export function resolveAiVaultResumeStartupShell(args: {
   state: AiVaultResumeShellState
   worktreeId?: string | null

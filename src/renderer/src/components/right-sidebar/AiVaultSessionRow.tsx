@@ -97,13 +97,14 @@ export function VaultSessionRow({
         'The transcript source is unavailable.'
       )
   const requestDelete = (): void => onRequestDelete?.(session)
+  const resumeUnavailable = resumeDisabled || Boolean(resumeStartup.blockedReason)
   const detailsTooltip = detailsExpanded
     ? translate('auto.components.right.sidebar.AiVaultSessionRow.hideDetails', 'Hide Details')
     : translate('auto.components.right.sidebar.AiVaultSessionRow.showDetails', 'Show Details')
   const startResumeDrag = useCallback(
     (event: React.DragEvent<HTMLElement>): void => {
       event.stopPropagation()
-      if (resumeDisabled) {
+      if (resumeUnavailable) {
         event.preventDefault()
         return
       }
@@ -126,7 +127,7 @@ export function VaultSessionRow({
       })
       window.dispatchEvent(new Event(AI_VAULT_SESSION_DRAG_START_EVENT))
     },
-    [realHomeResumeStartup, resumeDisabled, session, resumeStartup]
+    [realHomeResumeStartup, resumeUnavailable, session, resumeStartup]
   )
 
   return (
@@ -154,12 +155,12 @@ export function VaultSessionRow({
                 'min-w-0 text-[13px] font-medium leading-5 text-foreground',
                 // Why: only the title is the resume drag handle — expanded
                 // details/preview need text selection and a normal pointer.
-                !resumeDisabled && 'cursor-grab active:cursor-grabbing',
+                !resumeUnavailable && 'cursor-grab active:cursor-grabbing',
                 detailsExpanded ? 'line-clamp-2 [overflow-wrap:anywhere]' : 'line-clamp-1'
               )}
-              draggable={!resumeDisabled}
+              draggable={!resumeUnavailable}
               title={
-                resumeDisabled
+                resumeUnavailable
                   ? undefined
                   : translate(
                       'auto.components.right.sidebar.AiVaultSessionRow.dragToResume',

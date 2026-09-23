@@ -201,7 +201,8 @@ function normalizeComparablePath(input: string): string {
     // on a Windows host; path.resolve would reinterpret "/repo" as "G:/repo".
     return normalizeComparableText(path.posix.resolve(input))
   }
-  return normalizeComparableText(path.resolve(input))
+  const platformPath = process.platform === 'win32' ? path.win32 : path.posix
+  return normalizeComparableText(platformPath.resolve(input))
 }
 
 function normalizeComparableText(input: string): string {

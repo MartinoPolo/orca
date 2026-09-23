@@ -688,6 +688,168 @@ describe('ai vault resume command runtime', () => {
     ).toBe("copilot --resume='940237d9-c712-48e8-bca1-fd75fc4a8d4b'")
   })
 
+  it('routes Pi history resume through the transcript account and carries it in copied commands', () => {
+    const state = makeState({ worktreePath: 'C:\\Users\\alice\\repo' })
+    const settings = state.settings
+    if (!settings) {
+      throw new Error('Expected test settings')
+    }
+    settings.agentDefaultArgs = { pi: '--model test' }
+    settings.agentDefaultEnv = { pi: { PI_THEME: 'dark' } }
+    settings.piLaunchProfiles = [
+      {
+        id: 'work',
+        name: 'Work',
+        command: 'C:/tools/piw',
+        agentDirectory: 'C:/Users/alice/.pi-work/agent'
+      }
+    ]
+    const session = {
+      agent: 'pi' as const,
+      sessionId: 'session-one',
+      cwd: 'C:\\Users\\alice\\repo',
+      codexHome: null,
+      executionHostId: 'local' as const,
+      filePath: 'c:/users/ALICE/.PI-WORK/agent/sessions/session-one.jsonl'
+    }
+
+    expect(
+      buildAiVaultResumeStartupForWorktree({
+        state,
+        worktreeId: 'repo-1::worktree-1',
+        session
+      })
+    ).toMatchObject({
+      env: {
+        PI_THEME: 'dark',
+        PI_CODING_AGENT_DIR: 'C:/Users/alice/.pi-work/agent',
+        ORCA_PI_SOURCE_AGENT_DIR: 'C:/Users/alice/.pi-work/agent'
+      },
+      launchConfig: {
+        agentCommand: expect.stringContaining('C:/tools/piw'),
+        agentArgs: '--model test',
+        agentEnv: {
+          PI_THEME: 'dark',
+          PI_CODING_AGENT_DIR: 'C:/Users/alice/.pi-work/agent',
+          ORCA_PI_SOURCE_AGENT_DIR: 'C:/Users/alice/.pi-work/agent'
+        }
+      }
+    })
+    const copied = buildAiVaultResumeCopyCommandForWorktree({
+      state,
+      worktreeId: 'repo-1::worktree-1',
+      session
+    })
+    expect(copied).toContain("$env:PI_CODING_AGENT_DIR='C:/Users/alice/.pi-work/agent'")
+    expect(copied).toContain("$env:ORCA_PI_SOURCE_AGENT_DIR='C:/Users/alice/.pi-work/agent'")
+    expect(copied).toContain('C:/tools/piw')
+    expect(copied).not.toContain('PI_THEME')
+  })
+
+  it('does not interpret a WSL UNC Pi transcript as a native profile without a worktree', () => {
+    const state = makeState({ worktreePath: 'C:\\Users\\alice\\repo' })
+    const settings = state.settings
+    if (!settings) {
+      throw new Error('Expected test settings')
+    }
+    settings.piLaunchProfiles = [
+      {
+        id: 'collision',
+        name: 'Collision',
+        command: 'C:/tools/local-pi',
+        agentDirectory: '//wsl.localhost/Ubuntu/home/alice/.pi/agent'
+      }
+    ]
+
+    expect(
+      buildAiVaultResumeStartupForWorktree({
+        state,
+        session: {
+          agent: 'pi',
+          sessionId: 'session-one',
+          cwd: '/home/alice/repo',
+          codexHome: null,
+          filePath:
+            '\\\\wsl.localhost\\Ubuntu\\home\\alice\\.pi\\agent\\sessions\\session-one.jsonl'
+        }
+      })
+    ).not.toMatchObject({
+      launchConfig: { agentCommand: expect.stringContaining('local-pi') }
+    })
+  })
+
+  it('blocks unknown Pi history accounts instead of falling back to default Pi', () => {
+    const state = makeState({ worktreePath: 'C:\\Users\\alice\\repo' })
+    const settings = state.settings
+    if (!settings) {
+      throw new Error('Expected test settings')
+    }
+    settings.piLaunchProfiles = [
+      {
+        id: 'work',
+        name: 'Work',
+        command: 'C:/tools/piw',
+        agentDirectory: 'C:/Users/alice/.pi-work/agent'
+      }
+    ]
+    const session = {
+      agent: 'pi' as const,
+      sessionId: 'session-one',
+      cwd: 'C:\\Users\\alice\\repo',
+      codexHome: null,
+      executionHostId: 'local' as const,
+      filePath: 'C:/unknown/pi/sessions/session-one.jsonl'
+    }
+
+    expect(
+      buildAiVaultResumeStartupForWorktree({
+        state,
+        worktreeId: 'repo-1::worktree-1',
+        session
+      })
+    ).toEqual({
+      command: '',
+      blockedReason:
+        'No configured Pi profile owns this transcript. Orca refused to resume it with the default account.'
+    })
+    expect(() =>
+      buildAiVaultResumeCopyCommandForWorktree({
+        state,
+        worktreeId: 'repo-1::worktree-1',
+        session
+      })
+    ).toThrow('refused to resume')
+  })
+
+  it('blocks unstamped custom Pi history instead of repinning a current profile', () => {
+    const state = makeState({ worktreePath: 'C:\\Users\\alice\\repo' })
+    const settings = state.settings
+    if (!settings) {
+      throw new Error('Expected test settings')
+    }
+    settings.piLaunchProfiles = [
+      {
+        id: 'work',
+        name: 'Work',
+        command: 'C:/tools/piw',
+        agentDirectory: 'C:/Users/alice/.pi-work/agent'
+      }
+    ]
+
+    expect(
+      buildAiVaultResumeStartupForWorktree({
+        state,
+        session: {
+          agent: 'pi',
+          sessionId: 'session-one',
+          cwd: 'C:/Users/alice/repo',
+          codexHome: null,
+          filePath: 'C:/Users/alice/.pi-work/agent/sessions/session-one.jsonl'
+        }
+      })
+    ).toMatchObject({ command: '', blockedReason: expect.stringContaining('origin host') })
+  })
+
   it('ignores a stored resume command for local-host sessions', () => {
     const state = makeState({ worktreePath: '/home/alice/repo' })
     state.repos = [{ id: 'repo-1', path: '/home/alice/repo', connectionId: 'ssh-1' }] as never

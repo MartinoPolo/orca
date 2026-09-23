@@ -284,6 +284,7 @@ const WINDOWS_PACKAGE_TESTS = [
   'src/main/runtime/unreadable-secret-store-preservation.win32.test.ts',
   'src/main/ipc/pty-codex-account-attribution.test.ts',
   'src/main/ipc/pty-spawn-env-codex-resume-provenance.test.ts',
+  'src/main/ports/local-workspace-port-scanner.win32.test.ts',
   'src/relay/windows-port-scan.win32.test.ts'
 ]
 

@@ -25,6 +25,7 @@ export type RuntimeClientSettings = Pick<
   | 'disabledTuiAgents'
   | 'agentCmdOverrides'
   | 'agentDefaultArgs'
+  | 'agentLinkedWorkItemPromptTemplates'
   | 'agentDefaultEnv'
   | 'agentStatusHooksEnabled'
   | 'terminalCopyTrimsGutter'
@@ -61,6 +62,7 @@ export type RuntimeClientSettingsUpdate = Pick<
   | 'defaultTuiAgent'
   | 'disabledTuiAgents'
   | 'agentDefaultArgs'
+  | 'agentLinkedWorkItemPromptTemplates'
   | 'agentDefaultEnv'
   | 'defaultTaskSource'
   | 'defaultTaskViewPreset'
@@ -96,6 +98,7 @@ export class RuntimeClientSettingsController {
       disabledTuiAgents: settings.disabledTuiAgents ?? [],
       agentCmdOverrides: settings.agentCmdOverrides ?? {},
       agentDefaultArgs: settings.agentDefaultArgs ?? {},
+      agentLinkedWorkItemPromptTemplates: settings.agentLinkedWorkItemPromptTemplates ?? {},
       agentDefaultEnv: settings.agentDefaultEnv ?? {},
       agentStatusHooksEnabled: settings.agentStatusHooksEnabled !== false,
       // Why projected: mobile's terminal Copy honours this, and a host predating

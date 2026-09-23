@@ -22,6 +22,7 @@ export function buildAiVaultResumeCommand(args: {
   resumeFilePath?: string | null
   shell?: AgentStartupShell
   clearEnvNames?: readonly string[]
+  environment?: Readonly<Record<string, string>>
 }): string {
   const { agent, sessionId, cwd, platform, commandOverride, codexHome, resumeFilePath, shell } =
     args
@@ -49,7 +50,8 @@ export function buildAiVaultResumeCommand(args: {
     platform,
     codexHome,
     shell,
-    clearEnvNames: args.clearEnvNames
+    clearEnvNames: args.clearEnvNames,
+    environment: args.environment
   })
 }
 
@@ -62,6 +64,8 @@ export function buildAiVaultResumeShellCommand(args: {
    *  itself, never on the whole `cd … && agent` chain — `cd` is a shell builtin
    *  that `env` cannot run, and a child `cd` would not move the agent anyway. */
   clearEnvNames?: readonly string[]
+  /** Copy-path only: explicit account routing that must travel with the pasted command. */
+  environment?: Readonly<Record<string, string>>
   // Why: the QUEUED resume command is typed into the live tab shell, so its
   // cd/env prefix must match that shell. Shell-less persisted commands keep the
   // legacy self-contained `cmd /d /s /c` wrapper.
@@ -79,7 +83,8 @@ export function buildAiVaultResumeShellCommand(args: {
       cwd,
       codexHome: codexHome?.trim() || null,
       shell,
-      clearEnvNames
+      clearEnvNames,
+      environment: args.environment
     })
   }
 
@@ -99,9 +104,11 @@ export function buildAiVaultResumeShellCommand(args: {
   // Keyed on the shell, not the platform: the shell is what picks the grammar.
   const dialect = shell ?? (platform === 'win32' ? 'cmd' : 'posix')
   const clearsOnAgent = clearNames?.length && isPosixStartupShell(dialect)
-  const resumeCommand = `${codexHomeEnvPrefix(resolvedCodexHome, platform, shell)}${
-    clearsOnAgent ? withoutEnvCommand(clearNames, args.resumeCommand, dialect) : args.resumeCommand
-  }`
+  const resumeCommand = `${copiedEnvironmentPrefix(args.environment ?? {}, dialect)}${codexHomeEnvPrefix(
+    resolvedCodexHome,
+    platform,
+    shell
+  )}${clearsOnAgent ? withoutEnvCommand(clearNames, args.resumeCommand, dialect) : args.resumeCommand}`
   const clearPrefix =
     clearNames?.length && !clearsOnAgent
       ? `${clearEnvCommand(clearNames, dialect)}${commandSeparator(dialect)}`
@@ -129,12 +136,15 @@ function buildResumeShellCommandForShell(args: {
   codexHome: string | null
   shell: Exclude<AgentStartupShell, 'cmd'>
   clearEnvNames?: readonly string[]
+  environment?: Readonly<Record<string, string>>
 }): string {
   const { cwd, codexHome, shell, clearEnvNames } = args
   if (isPosixStartupShell(shell)) {
     // Why: git-bash on a Windows host runs a POSIX shell, so reuse the same
     // inline-env + `cd '<cwd>'` prefix as the non-Windows path.
-    const envPrefix = codexHome ? `CODEX_HOME=${quoteStartupArg(codexHome, shell)} ` : ''
+    const envPrefix = `${copiedEnvironmentPrefix(args.environment ?? {}, shell)}${
+      codexHome ? `CODEX_HOME=${quoteStartupArg(codexHome, shell)} ` : ''
+    }`
     // Why filter: see the twin in buildAiVaultResumeShellCommand — `env -u`
     // would strip the home the prefix just set.
     const clearNames = codexHome
@@ -157,6 +167,9 @@ function buildResumeShellCommandForShell(args: {
   }
   if (cwd) {
     segments.push(`Set-Location -LiteralPath ${quoteStartupArg(cwd, shell)}`)
+  }
+  for (const [name, value] of Object.entries(args.environment ?? {})) {
+    segments.push(`$env:${name}=${quoteStartupArg(value, shell)}`)
   }
   if (codexHome) {
     segments.push(`$env:CODEX_HOME=${quoteStartupArg(codexHome, shell)}`)
@@ -232,6 +245,22 @@ function buildAgentResumeInvocation(
     case 'antigravity':
       return `${baseCommand} --conversation ${sessionArg}`
   }
+}
+
+function copiedEnvironmentPrefix(
+  environment: Readonly<Record<string, string>>,
+  shell: AgentStartupShell
+): string {
+  const entries = Object.entries(environment)
+  if (entries.length === 0 || shell === 'powershell') {
+    return ''
+  }
+  if (shell === 'cmd') {
+    return entries
+      .map(([name, value]) => `set ${quoteStartupArg(`${name}=${value}`, shell)} && `)
+      .join('')
+  }
+  return entries.map(([name, value]) => `${name}=${quoteStartupArg(value, shell)} `).join('')
 }
 
 function codexHomeEnvPrefix(

@@ -19,11 +19,13 @@ const readySummary: GitBranchCompareSummary = {
 function render(
   summary: GitBranchCompareSummary,
   fileCount = 4,
-  totalBranchEntryCount = fileCount
+  totalBranchEntryCount = fileCount,
+  hasVisibleUncommittedChanges = false
 ): string {
   return renderToStaticMarkup(
     <SourceControlBranchSection
       branchSummary={summary}
+      hasVisibleUncommittedChanges={hasVisibleUncommittedChanges}
       filteredBranchEntries={Array.from({ length: fileCount }, (_, index) => ({
         path: `src/file-${index}.ts`,
         status: 'modified'
@@ -59,6 +61,18 @@ describe('SourceControlBranchSection heading', () => {
     // No aria-label: inside the section toggle button it would rewrite the
     // button's accessible name ("Committed on Branch 4 files changed vs …").
     expect(markup).not.toContain('aria-label="4 files changed vs origin/main"')
+  })
+
+  it('separates committed context only when active changes are visible', () => {
+    const alongsideActiveChanges = render(readySummary, 4, 4, true)
+    expect(alongsideActiveChanges).toContain('mt-6 border-t border-border pt-2')
+    expect(alongsideActiveChanges).toContain('bg-muted/30')
+    expect(alongsideActiveChanges).toContain('font-medium text-muted-foreground')
+
+    const withoutActiveChanges = render(readySummary)
+    expect(withoutActiveChanges).not.toContain('mt-6')
+    expect(withoutActiveChanges).not.toContain('border-t')
+    expect(withoutActiveChanges).toContain('bg-muted/30')
   })
 
   it('uses the singular count label for one file', () => {

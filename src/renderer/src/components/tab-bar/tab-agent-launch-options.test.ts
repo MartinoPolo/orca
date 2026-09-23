@@ -38,6 +38,25 @@ describe('tab agent launch options', () => {
     expect(findMatchingTabAgentLaunchOptions('open', options).map((o) => o.agent)).toEqual([])
   })
 
+  it('labels the default Pi and one named profile as exact launch commands', () => {
+    const options = buildTabAgentLaunchOptions(['pi'], {}, [
+      {
+        id: 'work',
+        name: 'piw',
+        command: 'C:/tools/piw',
+        agentDirectory: 'C:/Users/ada/.pi-work/agent'
+      }
+    ])
+
+    expect(options.map(({ id, label }) => ({ id, label }))).toEqual([
+      { id: 'agent:pi', label: 'pi' },
+      { id: 'pi-profile:work', label: 'piw' }
+    ])
+    expect(findMatchingTabAgentLaunchOptions('piw', options).map((option) => option.id)).toEqual([
+      'pi-profile:work'
+    ])
+  })
+
   it('matches detected agents by id, label, command, and command override', () => {
     const options = buildTabAgentLaunchOptions(['claude', 'codex', 'antigravity'], {
       codex: 'codex-beta'

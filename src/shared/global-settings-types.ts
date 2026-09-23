@@ -26,6 +26,7 @@ import type { CtrlTabOrderMode } from './tab-types'
 import type { TerminalColorOverrides } from './terminal-color-overrides'
 import type { TerminalQuickCommand } from './terminal-quick-command-types'
 import type { TuiAgent } from './tui-agent'
+import type { PiLaunchProfile } from './pi-launch-profiles'
 import type {
   AgentDashboardMode,
   BranchPrefixStrategy,
@@ -392,6 +393,8 @@ export type GlobalSettings = {
   geminiCliOAuthEnabled: boolean
   /** Per-agent CLI command overrides. A missing key means use the catalog default binary name. */
   agentCmdOverrides: Partial<Record<TuiAgent, string>>
+  /** Local-native Pi account launchers. Account directories are explicit so resumes never reinterpret an id. */
+  piLaunchProfiles?: PiLaunchProfile[]
   /** Custom CODEX_HOME for Codex session-history discovery (defaults to ~/.codex).
    *  History-only: does not change which account/config/hooks Orca uses. */
   codexSessionSourceHome?: {
@@ -402,6 +405,8 @@ export type GlobalSettings = {
   }
   /** Per-agent default CLI arguments appended after the binary/path and before prompts. */
   agentDefaultArgs?: Partial<Record<TuiAgent, string>>
+  /** Per-agent draft template used when launching with a linked work-item URL. */
+  agentLinkedWorkItemPromptTemplates?: Partial<Record<TuiAgent, string>>
   /** Per-agent launch environment defaults used when yolo mode is exposed as env. */
   agentDefaultEnv?: Partial<Record<TuiAgent, Record<string, string>>>
   /** One-shot guard for adding yolo-mode default args to untouched agent launch profiles. */

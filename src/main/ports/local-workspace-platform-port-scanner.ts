@@ -145,7 +145,7 @@ async function scanDarwinLsofPorts(
 async function scanWindowsNetstatPorts(
   options: WorkspacePortScanOptions
 ): Promise<PlatformListeningPortScan> {
-  const { stdout, spawnMs } = await runPortScanCommand('netstat', ['-ano', '-p', 'tcp'])
+  const { stdout, spawnMs } = await runPortScanCommand('netstat', ['-ano'])
   const ports = parseNetstatListeningOutput(stdout)
   if (shouldSkipMetadataCommands(spawnMs, options)) {
     return { ports, metadataAvailable: false }
