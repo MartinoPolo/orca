@@ -334,6 +334,11 @@ function setAgentLineageState(options: {
     reportVisibleGitHubPRRefreshCandidates: vi.fn(),
     repos: [repo],
     retainedAgentsByPaneKey: {},
+    sessionAttentionMetadataByIdentity: {},
+    unifiedTabsByWorktree: {},
+    getKnownWorktreeById: vi.fn((worktreeId: string) =>
+      worktreeId === parent.id ? parent : worktreeId === child.id ? child : undefined
+    ),
     revealWorktreeInSidebar: vi.fn(),
     runtimePaneTitlesByTabId: {},
     runtimeAgentOrchestrationByPaneKey: {},

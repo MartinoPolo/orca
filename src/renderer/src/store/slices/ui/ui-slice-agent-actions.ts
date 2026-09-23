@@ -38,6 +38,9 @@ export function createUiAgentActions(
   | 'applyActivityClearedAt'
   | 'manuallyUnreadTurnsByPaneKey'
   | 'clearManuallyUnreadTurns'
+  | 'sessionAttentionMetadataByIdentity'
+  | 'setSessionPriority'
+  | 'setSessionSavedMarker'
 > {
   return {
     ...createUiActivityActions(set, get),

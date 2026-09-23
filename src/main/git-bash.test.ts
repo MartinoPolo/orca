@@ -33,6 +33,18 @@ describe('Git Bash path discovery', () => {
     ).toBe('C:\\Program Files\\Git\\bin\\bash.exe')
   })
 
+  it('resolves a portable Git root registered through PATH', () => {
+    const portableBash = 'D:\\tools\\PortableGit\\usr\\bin\\bash.exe'
+
+    expect(
+      resolveGitBashPath({
+        platform: 'win32',
+        env: { Path: 'C:\\Windows\\System32;D:\\tools\\PortableGit\\cmd' },
+        exists: (path) => path === portableBash
+      })
+    ).toBe(portableBash)
+  })
+
   it('does not expose Git Bash discovery on non-Windows hosts', () => {
     expect(
       resolveGitBashPath({

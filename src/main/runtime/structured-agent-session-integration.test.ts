@@ -43,6 +43,11 @@ import {
   stopStructuredAgentSessionRuntime
 } from './structured-agent-session-runtime'
 
+vi.mock('./agent-session-process-identity-probe', async (importOriginal) => ({
+  ...(await importOriginal()),
+  probeAgentSessionProcessIdentity: async () => ({ outcome: 'pid-absent' as const })
+}))
+
 const journals = createTrackedJournalOpener()
 
 const SESSION = 'session-integration-1'
@@ -81,6 +86,12 @@ type FakeConnection = Omit<CodexAppServerConnection, 'closed'> & {
   resumedThreadId: string | null
   launch: Parameters<typeof openCodexAppServerConnection>[0]
 }
+
+const turnProcessBaseline =
+  process.platform === 'win32'
+    ? { platform: 'win32' as const, identities: new Map<number, string>() }
+    : { platform: 'posix' as const, snapshot: { rootPgid: null, descendants: [], capturedAtMs: 0 } }
+const terminateCodexTurnProcesses = vi.fn(async () => true)
 
 function fakeCodex(): CodexScript {
   const connections: FakeConnection[] = []
@@ -341,7 +352,9 @@ beforeEach(async () => {
           return { CODEX_PROFILE: configuredCodexProfile }
         },
         openCodexConnection: codex.openConnection,
-        readProcessStartTime: async () => 1_700_000_000_000
+        readProcessStartTime: async () => 1_700_000_000_000,
+        captureCodexTurnProcesses: async () => turnProcessBaseline,
+        terminateCodexTurnProcesses
       }).then(() => undefined),
     registerOwnedSubscriptionCleanup: vi.fn((_id: string, dispose: () => void) => {
       return {
@@ -644,6 +657,7 @@ describe('a structured codex session over agentSession.*', () => {
       turnId: TURN
     })
     expect(cancelled).toEqual({ turnId: TURN, cancelled: true })
+    expect(terminateCodexTurnProcesses).toHaveBeenCalledWith(4321, turnProcessBaseline)
     expect(codex.live().calls.at(-1)).toMatchObject({
       method: 'turn/interrupt',
       params: { threadId: THREAD, turnId: TURN }

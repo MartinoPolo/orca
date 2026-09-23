@@ -146,10 +146,19 @@ export function retainedAgentEntryFromLive(
 ): RetainedAgentEntry {
   const tab =
     findTabForAgentEntry(state, worktreeId, entry) ?? getRetainedFallbackTab(entry, worktreeId)
+  const projectedTabs = state.unifiedTabsByWorktree[worktreeId] ?? []
+  const projectedMatches = projectedTabs.filter(
+    (candidate) =>
+      (candidate.contentType === 'terminal' && candidate.entityId === tab.id) ||
+      (candidate.contentType === 'agent-session' && candidate.id === tab.id)
+  )
   return {
     entry,
     worktreeId,
     tab,
+    ...(projectedMatches.length === 1 && projectedMatches[0].executionHostId
+      ? { executionHostId: projectedMatches[0].executionHostId }
+      : {}),
     agentType,
     startedAt: entry.stateHistory[0]?.startedAt ?? entry.stateStartedAt
   }

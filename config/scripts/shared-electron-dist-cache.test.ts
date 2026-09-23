@@ -55,50 +55,58 @@ function makeEntry(root: string, entryName = `${VERSION}-darwin-arm64`) {
   }
 }
 
-const baseOptions = {
-  repoRoot: '/repo',
-  electronPackageDir: '/repo/node_modules/electron',
-  version: VERSION,
-  targetPlatform: 'darwin',
-  targetArch: 'arm64',
-  hostPlatform: 'darwin' as const,
-  env: {} as NodeJS.ProcessEnv,
-  execFile: (() => '/repo/.git\n') as unknown as typeof execFileSync
+function makeBaseOptions() {
+  const repoRoot = makeRoot()
+  return {
+    repoRoot,
+    electronPackageDir: path.join(repoRoot, 'node_modules', 'electron'),
+    version: VERSION,
+    targetPlatform: 'darwin',
+    targetArch: 'arm64',
+    hostPlatform: 'darwin' as const,
+    env: {},
+    execFile: vi.fn<typeof execFileSync>().mockReturnValue('.git\n')
+  }
 }
 
 describe('resolveSharedElectronDistEntry', () => {
   it('keys the entry by version, platform, and arch under the git common dir', () => {
-    const entry = resolveSharedElectronDistEntry(baseOptions)
-    expect(entry?.cacheRoot).toBe(path.join('/repo/.git', 'orca-cache', 'electron'))
+    const options = makeBaseOptions()
+    const gitCommonDir = path.resolve(options.repoRoot, '.git')
+    const entry = resolveSharedElectronDistEntry(options)
+    expect(entry?.cacheRoot).toBe(path.join(gitCommonDir, 'orca-cache', 'electron'))
     expect(entry?.entryPath).toBe(
-      path.join('/repo/.git', 'orca-cache', 'electron', '43.4.1-darwin-arm64')
+      path.join(gitCommonDir, 'orca-cache', 'electron', '43.4.1-darwin-arm64')
     )
-    expect(entry?.markerPath).toBe(path.join('/repo/node_modules/electron', '.orca-shared-dist'))
+    expect(entry?.markerPath).toBe(path.join(options.electronPackageDir, '.orca-shared-dist'))
   })
 
   it('offers an entry on every platform a worktree is developed on', () => {
+    const options = makeBaseOptions()
     for (const hostPlatform of ['darwin', 'linux', 'win32']) {
-      expect(resolveSharedElectronDistEntry({ ...baseOptions, hostPlatform })).not.toBeNull()
+      expect(resolveSharedElectronDistEntry({ ...options, hostPlatform })).not.toBeNull()
     }
   })
 
   it('declines on CI, where every job gets a fresh checkout', () => {
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, env: { CI: '1' } })).toBeNull()
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, env: { CI: 'true' } })).toBeNull()
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, env: { CI: 'false' } })).not.toBeNull()
+    const options = makeBaseOptions()
+    expect(resolveSharedElectronDistEntry({ ...options, env: { CI: '1' } })).toBeNull()
+    expect(resolveSharedElectronDistEntry({ ...options, env: { CI: 'true' } })).toBeNull()
+    expect(resolveSharedElectronDistEntry({ ...options, env: { CI: 'false' } })).not.toBeNull()
   })
 
   it('declines outside a Git worktree so folder workspaces install normally', () => {
     const execFile = (() => {
       throw new Error('not a git repository')
     }) as unknown as typeof execFileSync
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, execFile })).toBeNull()
+    expect(resolveSharedElectronDistEntry({ ...makeBaseOptions(), execFile })).toBeNull()
   })
 
   it('declines an identity that would not be a single safe path segment', () => {
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, targetArch: '../escape' })).toBeNull()
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, targetPlatform: 'dar/win' })).toBeNull()
-    expect(resolveSharedElectronDistEntry({ ...baseOptions, version: '' })).toBeNull()
+    const options = makeBaseOptions()
+    expect(resolveSharedElectronDistEntry({ ...options, targetArch: '../escape' })).toBeNull()
+    expect(resolveSharedElectronDistEntry({ ...options, targetPlatform: 'dar/win' })).toBeNull()
+    expect(resolveSharedElectronDistEntry({ ...options, version: '' })).toBeNull()
   })
 })
 

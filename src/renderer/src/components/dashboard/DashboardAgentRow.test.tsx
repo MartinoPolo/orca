@@ -253,9 +253,9 @@ describe('DashboardAgentRow', () => {
 
     expect(markup).toContain('aria-label="Waiting for input"')
     expect(markup).toContain('lucide-message-circle-question-mark')
-    expect(tokens).toContain('text-agent-question')
+    expect(tokens).toContain('text-session-attention-input')
     expect(tokens).not.toContain('text-amber-500')
-    expect(tokens).not.toContain('bg-red-500')
+    expect(tokens).not.toContain('bg-session-attention-outcome')
   })
 
   it('keeps blocked rows red', () => {
@@ -263,7 +263,7 @@ describe('DashboardAgentRow', () => {
     const tokens = classTokens(markup)
 
     expect(markup).toContain('aria-label="Blocked"')
-    expect(tokens).toContain('bg-red-500')
+    expect(tokens).toContain('bg-session-attention-outcome')
     expect(tokens).not.toContain('bg-amber-500')
   })
 
@@ -321,7 +321,7 @@ describe('DashboardAgentRow', () => {
     expect(markup).toContain('data-slot="tooltip-trigger"')
     expect(markup).toContain('aria-label="Interrupted by user"')
     expect(markup).not.toContain('title="Interrupted"')
-    expect(markup).toContain('bg-red-500')
+    expect(markup).toContain('bg-session-attention-outcome')
     expect(markup).not.toContain('data-slot="badge"')
     expect(interruptedIndex).toBeGreaterThan(promptIndex)
     expect(markup).not.toContain('lucide-circle-check')
@@ -364,7 +364,7 @@ describe('DashboardAgentRow', () => {
 
     expect(markup).toContain('Monitoring background tasks')
     expect(markup).toContain('lucide-activity')
-    expect(classTokens(markup)).toContain('text-yellow-500')
+    expect(classTokens(markup)).toContain('text-session-status-working')
     expect(markup).not.toContain('data-agent-spinner')
     expect(markup).not.toContain('data-agent-row-tool-slot')
   })

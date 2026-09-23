@@ -355,10 +355,12 @@ function overlayBuildOutput(pristineDir, upstreamRoot, packageEntry, destination
   }
 }
 
-function diffFolders(folderA, folderB) {
+export function diffFolders(folderA, folderB) {
+  const gitFolderA = toPosix(folderA)
+  const gitFolderB = toPosix(folderB)
   let stdout
   try {
-    stdout = execFileSync('git', [...PNPM_DIFF_FLAGS, folderA, folderB], {
+    stdout = execFileSync('git', [...PNPM_DIFF_FLAGS, gitFolderA, gitFolderB], {
       encoding: 'utf8',
       maxBuffer: 512 * 1024 * 1024,
       env: pnpmDiffEnvironment(),
@@ -371,7 +373,7 @@ function diffFolders(folderA, folderB) {
     }
     stdout = error.stdout
   }
-  return normalizePnpmDiff(stdout, folderA, folderB)
+  return normalizePnpmDiff(stdout, gitFolderA, gitFolderB)
 }
 
 /** The source of truth for the hand-written half: what the checkout itself holds. */

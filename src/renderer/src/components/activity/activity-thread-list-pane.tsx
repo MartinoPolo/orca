@@ -375,10 +375,15 @@ export function ActivityThreadListPane({
           </div>
           {visibleThreadCount === 0 ? (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">
-              {translate(
-                'auto.components.activity.ActivityPrototypePage.7cd632006b',
-                'No agent activity matches these filters.'
-              )}
+              {readFilter === 'attention'
+                ? translate(
+                    'auto.components.activity.ActivityPrototypePage.noAttention',
+                    'No sessions need attention.'
+                  )
+                : translate(
+                    'auto.components.activity.ActivityPrototypePage.7cd632006b',
+                    'No agent activity matches these filters.'
+                  )}
             </div>
           ) : null}
         </div>

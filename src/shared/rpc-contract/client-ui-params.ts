@@ -7,9 +7,13 @@ import {
 import { isPluginPanelTabKey } from '../plugins/plugin-manifest'
 import { isFeatureInteractionId } from '../feature-interactions'
 import type { FeatureInteractionId } from '../feature-interactions'
-import { ACTIVITY_GROUP_BY_VALUES, THREAD_READ_FILTER_VALUES } from '../agents-view-thread-filters'
+import {
+  ACTIVITY_GROUP_BY_VALUES,
+  THREAD_READ_FILTER_WIRE_VALUES
+} from '../agents-view-thread-filters'
 import { isReleaseChannel } from '../release-channel'
 import type { ReleaseChannel } from '../release-channel'
+import { SESSION_ATTENTION_EPISODE_KINDS } from '../session-attention'
 import { ClientUiWorkspaceFilterFields } from './client-ui-workspace-filter-fields-params'
 import { TaskResumeState } from './task-resume-state-params'
 import { WorkspaceCleanup } from './workspace-cleanup-ui-params'
@@ -146,7 +150,7 @@ export const UiUpdateFields = z
     agentsShowChildAgents: z.boolean().optional(),
     agentsCompactMode: z.boolean().optional(),
     agentsShowSearch: z.boolean().optional(),
-    agentsReadFilter: z.enum(THREAD_READ_FILTER_VALUES).optional(),
+    agentsReadFilter: z.enum(THREAD_READ_FILTER_WIRE_VALUES).optional(),
     agentsGroupBy: z.enum(ACTIVITY_GROUP_BY_VALUES).optional(),
     workspaceHostOrder: z.array(z.string()).optional(),
     automationHostFilter: z
@@ -200,6 +204,26 @@ export const UiUpdateFields = z
     acknowledgedAgentsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     activityClearedAtByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     manuallyUnreadTurnsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
+    sessionAttentionMetadataByIdentity: z
+      .record(
+        z.string(),
+        z
+          .object({
+            priority: z.union([
+              z.literal(1),
+              z.literal(2),
+              z.literal(3),
+              z.literal(4),
+              z.literal(5)
+            ]),
+            savedColor: z.enum(['blue', 'violet', 'teal', 'rose']).optional(),
+            savedAt: z.number().finite().optional(),
+            attentionEpisodeStartedAt: z.number().finite().optional(),
+            attentionEpisodeKind: z.enum(SESSION_ATTENTION_EPISODE_KINDS).optional()
+          })
+          .strict()
+      )
+      .optional(),
     browserDefaultUrl: NullableString.optional(),
     browserDefaultSearchEngine: z
       .enum(['google', 'duckduckgo', 'bing', 'kagi'])

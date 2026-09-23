@@ -14,6 +14,16 @@ import { useAgentRowConversationName } from '@/components/dashboard/use-agent-ro
 import { lastEnteredDoneAt } from '@/components/dashboard/agent-finished-timestamp'
 import CacheTimer, { usePromptCacheCountdownForPane } from './CacheTimer'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
+import { useAgentRowSessionAttention } from '@/attention/use-agent-row-session-attention'
+import {
+  SessionAttentionContextMenu,
+  SessionPriorityBadge,
+  SessionSavedMarker,
+  SessionUnreadDot,
+  sessionAttentionMetadataClass,
+  sessionAttentionSurfaceClass
+} from '@/attention/session-attention-components'
+import { useAppStore } from '@/store'
 
 function getCompactAgentPrimary(
   agent: DashboardAgentRowData,
@@ -87,6 +97,7 @@ type CompactAgentRowProps = {
   onToggleChildAgents?: () => void
   reserveDisclosureGutter?: boolean
   isFocusedPane?: boolean
+  isUnread?: boolean
   hideIdentityIcon?: boolean
   cacheTimerActive?: boolean
 }
@@ -103,6 +114,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   onToggleChildAgents,
   reserveDisclosureGutter = false,
   isFocusedPane = false,
+  isUnread = false,
   hideIdentityIcon = false,
   cacheTimerActive = true
 }: CompactAgentRowProps) {
@@ -115,6 +127,13 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   // "?" glyph. Nesting under the parent already conveys identity.
   const hideIcon = hideIdentityIcon || agent.rowSource === 'subagent'
   const dotState = getAgentDotState(agent)
+  const attention = useAgentRowSessionAttention(agent, dotState, isUnread)
+  const attentionMetadataClass = sessionAttentionMetadataClass(attention.tone)
+  const setSessionPriority = useAppStore((state) => state.setSessionPriority)
+  const setSessionSavedMarker = useAppStore((state) => state.setSessionSavedMarker)
+  const acknowledgeAgents = useAppStore((state) => state.acknowledgeAgents)
+  const unacknowledgeAgents = useAppStore((state) => state.unacknowledgeAgents)
+  const rowRef = useRef<HTMLDivElement | null>(null)
   const conversationName = useAgentRowConversationName(agent)
   const primary = getCompactAgentPrimary(agent, conversationName)
   const isLineageChild = agent.lineage?.depth === 1
@@ -233,11 +252,21 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
       >
         {/* Why: the selected-row fill is strong enough to wash out the dimmed
             prompt/secondary text, so lift both toward full foreground when focused. */}
-        <span className={isFocusedPane ? 'text-foreground' : 'text-muted-foreground/90'}>
+        <span
+          className={cn(
+            isFocusedPane ? 'text-foreground' : 'text-muted-foreground/90',
+            !isFocusedPane && attentionMetadataClass
+          )}
+        >
           {leadingText}
         </span>
         {trailingText && (
-          <span className={isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/65'}>
+          <span
+            className={cn(
+              isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/65',
+              !isFocusedPane && attentionMetadataClass
+            )}
+          >
             {' '}
             - {trailingText}
           </span>
@@ -247,7 +276,8 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         <span
           className={cn(
             'min-w-0 max-w-24 truncate font-mono text-[10px]',
-            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/70'
+            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/70',
+            !isFocusedPane && attentionMetadataClass
           )}
           title={model}
         >
@@ -258,19 +288,31 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         <span
           className={cn(
             'shrink-0 text-[10px] tabular-nums',
-            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/70'
+            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/70',
+            !isFocusedPane && attentionMetadataClass
           )}
         >
           +{childAgentCount}
         </span>
       )}
+      <span className="flex w-16 shrink-0 items-center justify-end gap-1">
+        {isUnread ? (
+          <SessionUnreadDot
+            sessionName={primary}
+            onMarkRead={() => acknowledgeAgents([agent.paneKey])}
+          />
+        ) : null}
+        <SessionPriorityBadge priority={attention.priority} />
+        {attention.savedColor ? <SessionSavedMarker color={attention.savedColor} /> : null}
+      </span>
       {cacheTimer && <CacheTimer startedAt={cacheTimer.startedAt} ttlMs={cacheTimer.ttlMs} />}
       {shortTime && (
         <span
           className={cn(
             'shrink-0 text-[10px] tabular-nums',
             // Why: the muted timestamp drops out against the selected-row fill.
-            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/60'
+            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/60',
+            !isFocusedPane && attentionMetadataClass
           )}
         >
           {shortTime}
@@ -279,8 +321,16 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     </>
   )
 
-  return (
+  const row = (
     <div
+      ref={rowRef}
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          event.currentTarget.click()
+        }
+      }}
       draggable={false}
       className={cn(
         'compact-agent-row group/compact-agent-row min-w-0 overflow-hidden cursor-pointer rounded-sm px-1 text-[11px] leading-none',
@@ -288,6 +338,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         hasChildDisclosure && 'worktree-agent-lineage-parent-row',
         isLineageChild && 'worktree-agent-lineage-child-row',
         'flex h-6 items-center gap-1',
+        sessionAttentionSurfaceClass(attention.tone, isUnread),
         isFocusedPane && 'bg-worktree-sidebar-accent',
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
         sendTargetStatus === 'disabled' && 'cursor-default opacity-60'
@@ -306,5 +357,24 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     >
       {rowBody}
     </div>
+  )
+  if (agent.rowSource === 'subagent') {
+    return row
+  }
+  return (
+    <SessionAttentionContextMenu
+      triggerRef={rowRef}
+      sessionIdentity={attention.sessionIdentity}
+      sessionName={primary}
+      priority={attention.priority}
+      savedColor={attention.savedColor}
+      unread={isUnread}
+      onPriorityChange={setSessionPriority}
+      onSavedColorChange={setSessionSavedMarker}
+      onMarkRead={() => acknowledgeAgents([agent.paneKey])}
+      onMarkUnread={() => unacknowledgeAgents([agent.paneKey])}
+    >
+      {row}
+    </SessionAttentionContextMenu>
   )
 })

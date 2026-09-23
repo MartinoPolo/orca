@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import type { RetainedAgentEntry } from '@/store/slices/agent-status'
+import { buildSessionAttentionIdentity } from '../../../../shared/session-attention'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import type { Tab } from '../../../../shared/tab-types'
 import {
   buildActivityEvents,
   createActivityEventBuildCache,
@@ -78,6 +80,73 @@ function threadByPane<T extends { paneKey: string }>(threads: T[], paneKey: stri
 }
 
 describe('activity build identity reuse', () => {
+  it('uses the active execution host when the workspace has no explicit host', () => {
+    const args = makeArgs({
+      agentStatusByPaneKey: {
+        [PANE_A]: entry(PANE_A, {
+          providerSession: { key: 'session_id', id: 'provider-session' }
+        })
+      }
+    })
+    const result = buildActivityEvents(args)
+    const [thread] = buildAgentPaneThreads({
+      events: result.events,
+      liveAgentByPaneKey: result.liveAgentByPaneKey,
+      defaultHostId: 'runtime:remote'
+    })
+
+    expect(thread?.sessionIdentity).toBe(
+      buildSessionAttentionIdentity({
+        executionHostId: 'runtime:remote',
+        workspaceId: 'wt-1',
+        agentType: 'claude',
+        providerSession: { key: 'session_id', id: 'provider-session' }
+      })
+    )
+  })
+
+  it('uses the projected tab host for the same remote session on another workspace host', () => {
+    const terminalTab = makeTab()
+    const projectedTab: Tab = {
+      id: 'projected-tab-1',
+      entityId: terminalTab.id,
+      groupId: 'group-1',
+      worktreeId: terminalTab.worktreeId,
+      executionHostId: 'ssh:tab-host',
+      contentType: 'terminal',
+      label: 'Claude',
+      customLabel: null,
+      color: null,
+      sortOrder: 0,
+      createdAt: 1
+    }
+    const args = makeArgs({
+      agentStatusByPaneKey: {
+        [PANE_A]: entry(PANE_A, {
+          providerSession: { key: 'session_id', id: 'provider-session' }
+        })
+      },
+      tabsByWorktree: { 'wt-1': [terminalTab] },
+      unifiedTabsByWorktree: { 'wt-1': [projectedTab] }
+    })
+    const result = buildActivityEvents(args)
+    const [thread] = buildAgentPaneThreads({
+      events: result.events,
+      liveAgentByPaneKey: result.liveAgentByPaneKey,
+      defaultHostId: 'runtime:worktree-host'
+    })
+
+    expect(thread?.sessionIdentity).toBe(
+      buildSessionAttentionIdentity({
+        executionHostId: 'ssh:tab-host',
+        workspaceId: 'wt-1',
+        agentType: 'claude',
+        providerSession: { key: 'session_id', id: 'provider-session' }
+      })
+    )
+    expect(thread?.projectedTab).toBe(projectedTab)
+  })
+
   it('returns identical event, snapshot, thread, and list identities for identical inputs', () => {
     const eventCache = createActivityEventBuildCache()
     const threadCache = createAgentPaneThreadReuseCache()

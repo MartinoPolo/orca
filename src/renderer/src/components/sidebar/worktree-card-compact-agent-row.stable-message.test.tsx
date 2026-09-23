@@ -24,11 +24,20 @@ function makeAgent({
 }: {
   stateStartedAt: number
   lastAssistantMessage?: string
-  state?: string
+  state?: 'working' | 'done'
 }): DashboardAgentRowData {
   return {
     paneKey: 'tab-1:leaf-1',
-    tab: { id: 'tab-1' },
+    tab: {
+      id: 'tab-1',
+      ptyId: null,
+      worktreeId: 'worktree-1',
+      title: 'Claude',
+      customTitle: null,
+      color: null,
+      sortOrder: 0,
+      createdAt: 1
+    },
     agentType: 'claude',
     state,
     startedAt: 500,
@@ -38,9 +47,12 @@ function makeAgent({
       stateStartedAt,
       lastAssistantMessage,
       paneKey: 'tab-1:leaf-1',
-      updatedAt: stateStartedAt
+      tabId: 'tab-1',
+      worktreeId: 'worktree-1',
+      updatedAt: stateStartedAt,
+      stateHistory: []
     }
-  } as unknown as DashboardAgentRowData
+  }
 }
 
 let root: Root | undefined
@@ -50,14 +62,14 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-function renderRow(agent: DashboardAgentRowData): HTMLElement {
+function renderRow(agent: DashboardAgentRowData, isUnread = false): HTMLElement {
   const container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   act(() => {
     root!.render(
       <TooltipProvider>
-        <CompactAgentRow agent={agent} now={2000} onActivate={() => {}} />
+        <CompactAgentRow agent={agent} now={2000} onActivate={() => {}} isUnread={isUnread} />
       </TooltipProvider>
     )
   })
@@ -99,6 +111,20 @@ describe('CompactAgentRow stable assistant message', () => {
 
     rerenderRow(makeAgent({ stateStartedAt: 0 }))
     expect(container.textContent).not.toContain('Turn one')
+  })
+
+  it('shows an orange unread outline and accessible dot on the exact compact row', () => {
+    const container = renderRow(makeAgent({ stateStartedAt: 1000, state: 'done' }), true)
+    const row = container.querySelector('.compact-agent-row')
+    expect(row?.className).toContain('ring-session-attention-unread')
+    expect(container.querySelector('[aria-label^="Unread — mark read:"]')).not.toBeNull()
+  })
+
+  it('does not show unread treatment on a read compact sibling', () => {
+    const container = renderRow(makeAgent({ stateStartedAt: 1000, state: 'done' }), false)
+    const row = container.querySelector('.compact-agent-row')
+    expect(row?.className).not.toContain('ring-session-attention-unread')
+    expect(container.querySelector('[aria-label^="Unread — mark read:"]')).toBeNull()
   })
 
   it('drops the held line when the agent leaves working', () => {

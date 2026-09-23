@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { migrationUnsupportedToAgentStatusEntry } from '@/lib/migration-unsupported-agent-entry'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
@@ -63,14 +62,6 @@ export function countActivityUnread(source: ActivityUnreadCountSource, now = Dat
     seenPaneKeys.add(paneKey)
     countEntry(retained.entry, source.acknowledgedAgentsByPaneKey[paneKey] ?? 0)
   }
-  for (const unsupported of Object.values(source.migrationUnsupportedByPtyId)) {
-    const entry = migrationUnsupportedToAgentStatusEntry(unsupported)
-    if (entry && !seenPaneKeys.has(entry.paneKey)) {
-      seenPaneKeys.add(entry.paneKey)
-      countEntry(entry, source.acknowledgedAgentsByPaneKey[entry.paneKey] ?? 0)
-    }
-  }
-
   return count
 }
 

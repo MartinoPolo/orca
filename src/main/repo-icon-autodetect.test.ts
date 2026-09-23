@@ -9,6 +9,7 @@ import {
 } from './providers/ssh-filesystem-dispatch'
 import type { IFilesystemProvider } from './providers/types'
 import { detectRepoIcon, detectRepoIconAndUpstream } from './repo-icon-autodetect'
+import { joinWorktreeRelativePath } from './runtime/runtime-relative-paths'
 
 const PNG_1X1_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
@@ -24,9 +25,10 @@ async function makeTempRepoDir(): Promise<string> {
 const registeredHosts: string[] = []
 
 /** A remote host whose only readable file is a package.json naming a host-specific homepage. */
-function registerHomepageHost(connectionId: string, homepage: string) {
+function registerHomepageHost(connectionId: string, homepage: string, repoPath: string) {
+  const packageJsonPath = joinWorktreeRelativePath(repoPath, 'package.json')
   const stat = vi.fn(async (filePath: string) => {
-    if (!filePath.endsWith('/package.json')) {
+    if (filePath !== packageJsonPath) {
       throw new Error('ENOENT')
     }
     return { type: 'file', size: 64, mtime: 0 }
@@ -216,8 +218,8 @@ describe('detectRepoIcon', () => {
     const repoPath = await makeTempRepoDir()
     // On disk on this machine, so a host-blind probe would answer with this one for both hosts.
     await writeFile(join(repoPath, 'favicon.png'), Buffer.from(PNG_1X1_BASE64, 'base64'))
-    registerHomepageHost('m4air', 'https://m4air.example.com')
-    registerHomepageHost('openclaw', 'https://openclaw.example.com')
+    registerHomepageHost('m4air', 'https://m4air.example.com', repoPath)
+    registerHomepageHost('openclaw', 'https://openclaw.example.com', repoPath)
 
     await expect(
       detectRepoIcon({ repoPath, kind: 'folder', executionHostId: 'ssh:m4air' })
@@ -239,7 +241,7 @@ describe('detectRepoIcon', () => {
     // the path, and the nested id dials a same-named box of ours.
     const repoPath = await makeTempRepoDir()
     await writeFile(join(repoPath, 'favicon.png'), Buffer.from(PNG_1X1_BASE64, 'base64'))
-    const nested = registerHomepageHost('nested-1', 'https://nested.example.com')
+    const nested = registerHomepageHost('nested-1', 'https://nested.example.com', repoPath)
 
     await expect(
       detectRepoIcon({ repoPath, kind: 'folder', executionHostId: 'runtime:env-a' })

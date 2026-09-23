@@ -14,6 +14,7 @@ import {
   type ActivityThreadStatusId
 } from './activity-thread-presentation'
 import type { ActivityGroupBy, ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { compareAttentionThreads } from './session-attention-presentation'
 
 // Attention-first. Exhaustive Record so an unranked dot state is a type error; ranks are
 // unique so header order never falls back to thread recency.
@@ -31,7 +32,9 @@ const ACTIVITY_STATUS_GROUP_RANK: Record<ActivityThreadStatusId, number> = {
 }
 
 function activityStatusRank(thread: AgentPaneThread): number {
-  return ACTIVITY_STATUS_GROUP_RANK[activityThreadStatusId(thread)]
+  return thread.migrationUnsupportedPtyId !== undefined
+    ? ACTIVITY_STATUS_GROUP_RANK.idle
+    : ACTIVITY_STATUS_GROUP_RANK[activityThreadStatusId(thread)]
 }
 
 export function getActivityThreadGroup(
@@ -42,6 +45,12 @@ export function getActivityThreadGroup(
     return { key: 'all', label: '' }
   }
   if (groupBy === 'status') {
+    if (thread.migrationUnsupportedPtyId !== undefined) {
+      return {
+        key: 'migration-notice',
+        label: translate('sessionAttention.migrationNotice', 'Migration notice')
+      }
+    }
     // Header dot mirrors the row dot, so the two can never disagree.
     return {
       key: activityThreadStatusId(thread),
@@ -87,6 +96,9 @@ export function buildActivityThreadGroups(
   }
   if (groupBy !== 'status') {
     return groups
+  }
+  for (const group of groups) {
+    group.threads.sort(compareAttentionThreads)
   }
   return groups.sort((a, b) => activityStatusRank(a.threads[0]) - activityStatusRank(b.threads[0]))
 }

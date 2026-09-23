@@ -1,5 +1,5 @@
 import React from 'react'
-import { CheckCheck, ListChecks, Search, Trash2, X } from 'lucide-react'
+import { CheckCheck, Search, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,12 +9,41 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { Toggle } from '@/components/ui/toggle'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { translate } from '@/i18n/i18n'
 import { ActivityThreadOptionsMenu } from './activity-thread-controls'
 import type { ActivityGroupBy, ThreadReadFilter } from './activity-thread-types'
+
+export function ActivityAttentionScopeControl({
+  value,
+  onChange
+}: {
+  value: ThreadReadFilter
+  onChange: (value: ThreadReadFilter) => void
+}): React.JSX.Element {
+  return (
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      value={value}
+      onValueChange={(scope) => {
+        if (scope === 'attention' || scope === 'all') {
+          onChange(scope)
+        }
+      }}
+      aria-label={translate('sessionAttention.scope.aria', 'Activity scope')}
+    >
+      <ToggleGroupItem value="attention">
+        {translate('sessionAttention.scope.attention', 'Attention')}
+      </ToggleGroupItem>
+      <ToggleGroupItem value="all">
+        {translate('sessionAttention.scope.all', 'All')}
+      </ToggleGroupItem>
+    </ToggleGroup>
+  )
+}
 
 export function ActivityThreadListToolbar({
   activityFilterInputRef,
@@ -143,33 +172,7 @@ export function ActivityThreadListToolbar({
             </Select>
           ) : null}
           {showFilterControls ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  pressed={readFilter === 'unread'}
-                  onPressedChange={(pressed) => onReadFilterChange(pressed ? 'unread' : 'all')}
-                  size="sm"
-                  className={cn(
-                    'size-7 shrink-0 p-0 rounded-md transition-all',
-                    readFilter === 'unread'
-                      ? '!border border-primary/30 !bg-primary/10 !text-primary/90 shadow-xs hover:!bg-primary/15 hover:!text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  )}
-                  aria-label={translate(
-                    'auto.components.activity.ActivityPrototypePage.d1a88df9a8',
-                    'Show unread threads only'
-                  )}
-                >
-                  <ListChecks className="size-3.5" strokeWidth={2.25} />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6}>
-                {translate(
-                  'auto.components.activity.ActivityPrototypePage.d1a88df9a8',
-                  'Show unread threads only'
-                )}
-              </TooltipContent>
-            </Tooltip>
+            <ActivityAttentionScopeControl value={readFilter} onChange={onReadFilterChange} />
           ) : null}
           {showOptionsMenu ? (
             <ActivityThreadOptionsMenu

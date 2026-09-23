@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
+import { buildSessionAttentionIdentity } from '../../../../shared/session-attention'
 import {
   LEAF_ID,
   makeRepo,
@@ -9,6 +10,9 @@ import {
   makeWorktree
 } from './ActivityPrototypePage-test-fixtures'
 import { buildActivityEvents } from './activity-event-builder'
+import { buildAgentPaneThreads } from './activity-thread-builder'
+import { buildActivityThreadGroups } from './activity-thread-grouping'
+import { activityThreadRowCopy } from './activity-thread-presentation'
 
 const PANE_KEY = `tab-1:${LEAF_ID}`
 
@@ -146,6 +150,20 @@ describe('activity event host ownership', () => {
     const worktree = makeWorktree()
     const repo = makeRepo()
     const tab = makeTab()
+    const projectedTab = {
+      id: 'projected-migration-tab',
+      entityId: tab.id,
+      groupId: 'group-1',
+      worktreeId: worktree.id,
+      executionHostId: 'local' as const,
+      contentType: 'terminal' as const,
+      label: tab.title,
+      customLabel: null,
+      color: null,
+      sortOrder: 0,
+      createdAt: 1,
+      structuredSessionId: 'migration-session'
+    }
 
     const result = buildActivityEvents({
       agentStatusByPaneKey: {},
@@ -161,6 +179,7 @@ describe('activity event host ownership', () => {
         }
       },
       tabsByWorktree: { [worktree.id]: [tab] },
+      unifiedTabsByWorktree: { [worktree.id]: [projectedTab] },
       worktreeMap: new Map([[worktree.id, worktree]]),
       repoMap: new Map([[repo.id, repo]]),
       resolveWorktree: () => worktree,
@@ -171,7 +190,81 @@ describe('activity event host ownership', () => {
     expect(result.events.length).toBeGreaterThan(0)
     for (const event of result.events) {
       expect(event.migrationUnsupportedPtyId).toBe('pty-1')
+      expect(event.unread).toBe(false)
     }
+    const [thread] = buildAgentPaneThreads(result)
+    expect(thread).toMatchObject({ attentionEligible: false, attentionStartedAt: null })
+    const migrationGroup = buildActivityThreadGroups([thread], 'status')[0]
+    expect(migrationGroup).toMatchObject({
+      key: 'migration-notice',
+      label: 'Migration notice'
+    })
+    expect(migrationGroup.state).toBeUndefined()
+    expect(activityThreadRowCopy(thread)).toMatchObject({
+      needsAttention: false,
+      statusKind: 'message'
+    })
+
+    const identity = buildSessionAttentionIdentity({
+      executionHostId: 'local',
+      workspaceId: worktree.id,
+      agentType: 'unknown',
+      structuredSessionId: 'migration-session'
+    })
+    if (!identity) {
+      throw new Error('structured fixture must have an identity')
+    }
+    const [savedThread] = buildAgentPaneThreads({
+      ...result,
+      sessionAttentionMetadataByIdentity: {
+        [identity]: { priority: 3, savedColor: 'blue', savedAt: 500 }
+      }
+    })
+    expect(savedThread).toMatchObject({ attentionEligible: true, attentionStartedAt: 500 })
+  })
+
+  it('uses a retained projected host for identity and ownership after the live tab is gone', () => {
+    const localWorktree = makeWorktree()
+    const remoteWorktree = {
+      ...makeWorktree(),
+      hostId: 'ssh:retained-host' as const,
+      displayName: 'Remote retained worktree'
+    }
+    const retained = makeRetainedDoneEntry({ ...makeTab(), ptyId: null })
+    retained.executionHostId = 'ssh:retained-host'
+    retained.entry = {
+      ...doneEntry(null),
+      providerSession: { key: 'session_id', id: 'retained-provider-session' }
+    }
+    const identity = buildSessionAttentionIdentity({
+      executionHostId: 'ssh:retained-host',
+      workspaceId: localWorktree.id,
+      agentType: 'claude',
+      providerSession: retained.entry.providerSession
+    })
+    if (!identity) {
+      throw new Error('retained provider fixture must have an identity')
+    }
+
+    const result = buildActivityEvents({
+      agentStatusByPaneKey: {},
+      retainedAgentsByPaneKey: { [PANE_KEY]: retained },
+      tabsByWorktree: {},
+      worktreeMap: new Map([[localWorktree.id, localWorktree]]),
+      repoMap: new Map(),
+      resolveWorktree: (_worktreeId, executionHostId) =>
+        executionHostId === 'ssh:retained-host' ? remoteWorktree : localWorktree,
+      acknowledgedAgentsByPaneKey: {},
+      now: 3_000
+    })
+    const [thread] = buildAgentPaneThreads({
+      ...result,
+      sessionAttentionMetadataByIdentity: { [identity]: { priority: 5 } },
+      defaultHostId: 'local'
+    })
+
+    expect(result.events[0]?.worktree).toBe(remoteWorktree)
+    expect(thread).toMatchObject({ sessionIdentity: identity, priority: 5 })
   })
 
   it('uses the retained terminal handle to preserve runtime host ownership after teardown', () => {

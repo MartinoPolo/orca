@@ -3,8 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AI_VAULT_AGENTS } from '../../shared/ai-vault-types'
+import { quoteStartupArg } from '../../shared/tui-agent-startup-shell'
 import { scanAiVaultSessions } from './session-scanner'
-import { isolatedScanRoots, jsonLines } from './session-scanner-test-fixtures'
+import {
+  expectedPosixCodexResumeCommand,
+  isolatedScanRoots,
+  jsonLines
+} from './session-scanner-test-fixtures'
 import { writeEveryAgentVault } from './session-scanner-every-agent-fixture'
 
 // Why: the SQLite worker bundle does not exist in the test runtime; route the
@@ -207,7 +212,11 @@ describe('scanAiVaultSessions', () => {
       model: 'gpt-5.3-codex',
       messageCount: 2,
       totalTokens: 625,
-      resumeCommand: `cd '/repo/app/packages/web' && CODEX_HOME='${root}' codex resume '019f0000-1111-7222-8333-444444444444'`
+      resumeCommand: expectedPosixCodexResumeCommand(
+        '/repo/app/packages/web',
+        root,
+        '019f0000-1111-7222-8333-444444444444'
+      )
     })
     expect(codex?.firstUserPrompt).toBeUndefined()
   })
@@ -262,7 +271,11 @@ describe('scanAiVaultSessions', () => {
       sessionId: '019e9693-64fc-7370-9c18-7e625c595d0f',
       cwd: '/Users/nwparker/orca/workspaces/orca/mem4',
       codexHome: runtimeHome,
-      resumeCommand: `cd '/Users/nwparker/orca/workspaces/orca/mem4' && CODEX_HOME='${runtimeHome}' codex resume '019e9693-64fc-7370-9c18-7e625c595d0f'`
+      resumeCommand: expectedPosixCodexResumeCommand(
+        '/Users/nwparker/orca/workspaces/orca/mem4',
+        runtimeHome,
+        '019e9693-64fc-7370-9c18-7e625c595d0f'
+      )
     })
   })
 
@@ -409,7 +422,7 @@ describe('scanAiVaultSessions', () => {
       "cd '/tmp/claude' && claude --resume 'claude-session'"
     )
     expect(commandByAgent.get('codex')).toBe(
-      `cd '/tmp/codex' && CODEX_HOME='${root}' codex resume 'codex-session'`
+      expectedPosixCodexResumeCommand('/tmp/codex', root, 'codex-session')
     )
     expect(commandByAgent.get('gemini')).toBe("gemini --resume 'gemini-session'")
     expect(commandByAgent.get('antigravity')).toBe(`agy --conversation '${antigravitySessionId}'`)
@@ -435,10 +448,12 @@ describe('scanAiVaultSessions', () => {
     )
     expect(commandByAgent.get('pi')).toBe("cd '/tmp/pi' && pi --session 'pi-session'")
     // OMP resumes by absolute transcript path, not by internal session id.
-    expect(commandByAgent.get('omp')).toBe(`cd '/tmp/omp' && omp --resume '${ompSessionFile}'`)
+    expect(commandByAgent.get('omp')).toBe(
+      `cd '/tmp/omp' && omp --resume ${quoteStartupArg(ompSessionFile, 'posix')}`
+    )
     // Prime Agent's `--resume <path|id>` takes the same absolute-path form as OMP.
     expect(commandByAgent.get('prime-agent')).toBe(
-      `cd '/tmp/prime-agent' && prime-agent --resume '${primeAgentSessionFile}'`
+      `cd '/tmp/prime-agent' && prime-agent --resume ${quoteStartupArg(primeAgentSessionFile, 'posix')}`
     )
     expect(commandByAgent.get('cline')).toBe("cd '/tmp/cline' && cline --id 'cline-session'")
     expect(commandByAgent.get('devin')).toBe("cd '/tmp/devin' && devin --resume 'devin-session'")

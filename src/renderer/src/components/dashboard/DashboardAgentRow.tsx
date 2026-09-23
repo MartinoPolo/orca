@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { AgentStateDot, agentStateLabel, type AgentDotState } from '@/components/AgentStateDot'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -15,6 +15,16 @@ import type { DashboardAgentRow as DashboardAgentRowData } from './useDashboardD
 import { getAgentRowPrimaryText } from '@/lib/agent-row-primary-text'
 import { useAgentRowConversationName } from './use-agent-row-conversation-name'
 import { lastEnteredDoneAt } from './agent-finished-timestamp'
+import { useAgentRowSessionAttention } from '@/attention/use-agent-row-session-attention'
+import {
+  SessionAttentionContextMenu,
+  SessionPriorityBadge,
+  SessionSavedMarker,
+  SessionUnreadDot,
+  sessionAttentionMetadataClass,
+  sessionAttentionSurfaceClass
+} from '@/attention/session-attention-components'
+import { useAppStore } from '@/store'
 
 function formatTimeAgo(ts: number, now: number): string {
   const delta = now - ts
@@ -157,6 +167,13 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
     ? 'interrupted'
     : asDotState(agent.state, agent.entry.workingMode)
   const dotTooltipLabel = stateDotTooltipLabel(agent, dotState, now)
+  const attention = useAgentRowSessionAttention(agent, dotState, isUnvisited)
+  const attentionMetadataClass = sessionAttentionMetadataClass(attention.tone)
+  const setSessionPriority = useAppStore((state) => state.setSessionPriority)
+  const setSessionSavedMarker = useAppStore((state) => state.setSessionSavedMarker)
+  const acknowledgeAgents = useAppStore((state) => state.acknowledgeAgents)
+  const unacknowledgeAgents = useAppStore((state) => state.unacknowledgeAgents)
+  const rowRef = useRef<HTMLDivElement | null>(null)
   // Why: the elapsed gap is the whole content of an `unverifiable` row, so it rides the
   // row's own timestamp slot rather than hiding in a hover tooltip.
   const noUpdateLabel = dotState === 'unverifiable' ? agentNoUpdateLabel(agent.entry, now) : null
@@ -176,9 +193,17 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
 
   const titleParts = sendTargetDisabledReason ? [sendTargetDisabledReason, ...tsParts] : tsParts
 
-  return (
+  const row = (
     // Why: no role="button" — nested interactive children (buttons, tooltip triggers) would violate ARIA nesting rules.
     <div
+      ref={rowRef}
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          event.currentTarget.click()
+        }
+      }}
       onClickCapture={handleSendTargetClickCapture}
       onClick={handleActivate}
       className={cn(
@@ -187,6 +212,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         isLineageChild ? 'pl-5 pr-2' : 'px-2',
         // Why: hover wash stays softer than the enclosing card's highlight.
         'cursor-pointer rounded-sm worktree-agent-row-hover',
+        sessionAttentionSurfaceClass(attention.tone, isUnvisited),
         hasChildDisclosure && 'worktree-agent-lineage-parent-row',
         isLineageChild && 'worktree-agent-lineage-child-row',
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
@@ -259,6 +285,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             'transition-[height] duration-200 ease-out [interpolate-size:allow-keywords]',
             expanded ? 'h-auto whitespace-pre-wrap break-words' : 'h-[1lh] truncate',
             isUnvisited ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground',
+            !isUnvisited && !isFocusedPane && attentionMetadataClass,
             // Why: the selected-row fill washes out muted text — keep it readable.
             isFocusedPane && !isUnvisited && 'text-foreground/90'
           )}
@@ -268,7 +295,10 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         </span>
         {model && (
           <span
-            className="max-w-24 shrink-0 truncate font-mono text-[10px] text-muted-foreground/70"
+            className={cn(
+              'max-w-24 shrink-0 truncate font-mono text-[10px] text-muted-foreground/70',
+              !isFocusedPane && attentionMetadataClass
+            )}
             title={model}
           >
             {model}
@@ -283,6 +313,14 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
             +{childAgentCount}
           </span>
         )}
+        {isUnvisited ? (
+          <SessionUnreadDot
+            sessionName={displayLabel}
+            onMarkRead={() => acknowledgeAgents([agent.paneKey])}
+          />
+        ) : null}
+        <SessionPriorityBadge priority={attention.priority} />
+        {attention.savedColor ? <SessionSavedMarker color={attention.savedColor} /> : null}
         <DashboardAgentRowTrailingControls
           paneKey={agent.paneKey}
           relativeTimestamp={relativeTimestamp}
@@ -308,6 +346,25 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         lastAssistantMessage={lastAssistantMessage}
       />
     </div>
+  )
+  if (agent.rowSource === 'subagent') {
+    return row
+  }
+  return (
+    <SessionAttentionContextMenu
+      triggerRef={rowRef}
+      sessionIdentity={attention.sessionIdentity}
+      sessionName={displayLabel}
+      priority={attention.priority}
+      savedColor={attention.savedColor}
+      unread={isUnvisited}
+      onPriorityChange={setSessionPriority}
+      onSavedColorChange={setSessionSavedMarker}
+      onMarkRead={() => acknowledgeAgents([agent.paneKey])}
+      onMarkUnread={() => unacknowledgeAgents([agent.paneKey])}
+    >
+      {row}
+    </SessionAttentionContextMenu>
   )
 })
 

@@ -340,6 +340,7 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           }
           reserveDisclosureGutter={isRootAgent && anyRootHasChildren && !hasChildAgents}
           isFocusedPane={agent.paneKey === focusedAgentPaneKey}
+          isUnread={unvisitedByPaneKey[agent.paneKey] ?? false}
           cacheTimerActive={cacheTimerActive}
         />
         {hasChildAgents ? (

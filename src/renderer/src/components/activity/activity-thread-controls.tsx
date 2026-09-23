@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Info } from 'lucide-react'
 import { AgentStateDot } from '@/components/AgentStateDot'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
@@ -94,7 +94,11 @@ export function ThreadAgentStateIndicator({
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="inline-flex size-4 shrink-0 items-center justify-center">
-          <AgentStateDot state={state} size="md" title={null} />
+          {thread.migrationUnsupportedPtyId !== undefined ? (
+            <Info className="size-3 text-muted-foreground" aria-label={label} />
+          ) : (
+            <AgentStateDot state={state} size="md" title={null} />
+          )}
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={4}>

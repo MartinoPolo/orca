@@ -1,18 +1,13 @@
-import type { AppState } from '../types'
 import {
   AGENT_STATE_HISTORY_MAX,
   agentSubagentsEqual,
-  type MigrationUnsupportedPtyEntry,
   type AgentStateHistoryEntry,
   type AgentStatusEntry
 } from '../../../../shared/agent-status-types'
 import {
   agentProviderSessionsEqual,
   getAgentResumeArgv,
-  isResumableTuiAgent,
-  type AgentProviderSessionMetadata,
-  type SleepingAgentLaunchConfig,
-  type SleepingAgentSessionRecord
+  isResumableTuiAgent
 } from '../../../../shared/agent-session-resume'
 import {
   resolveAgentStatusIdentity,
@@ -20,53 +15,20 @@ import {
 } from '../../../../shared/agent-status-identity'
 import { isCommandCodeNewTurnWhileWorking } from '../../../../shared/command-code-turn-boundary'
 import type {
-  AgentStatusMetadata,
-  AgentStatusPayload,
-  AgentStatusRouting,
-  AgentStatusTiming
-} from './agent-status-contract'
+  AgentStatusLiveEntryArgs,
+  AgentStatusLiveEntryBuild,
+  AgentStatusLiveEntryRejection
+} from './agent-status-live-entry-types'
 import { registryEntryMatchesStatus } from './agent-status-launch-config'
 import { findAgentPaneWorktreeId, getTabIdFromPaneKey } from './agent-status-pane-key-tab-binding'
 import { mergeCurrentOrchestrationContext } from './agent-status-orchestration-context'
 import { deriveAgentStatusLiveFacts } from './agent-status-live-facts'
 
-export type AgentStatusLiveEntryBuild = {
-  entry: AgentStatusEntry
-  existing: AgentStatusEntry | undefined
-  existingSleepingRecord: SleepingAgentSessionRecord | undefined
-  liveRecoveryRecord: SleepingAgentSessionRecord | null
-  launchConfigSource: SleepingAgentLaunchConfig | undefined
-  registryEntry: AppState['agentLaunchConfigByPaneKey'][string] | undefined
-  registryMatched: boolean
-  providerSession: AgentProviderSessionMetadata | undefined
-  providerSessionChanged: boolean
-  retainsResumableRecoveryIdentity: boolean
-  migrationUnsupported: {
-    next: Record<string, MigrationUnsupportedPtyEntry>
-    changed: boolean
-  }
-  commandCodeNewTurn: boolean
-  sortRelevantChange: boolean
-  retentionRelevantChange: boolean
-  completionRefreshWorktreeId: string | null
-  boundaryResolved: boolean
-}
-
-export type AgentStatusLiveEntryRejection = {
-  entry: null
-  reason: 'stale' | 'suppressed-inherited-terminal'
-}
-
-export type AgentStatusLiveEntryArgs = {
-  state: AppState
-  paneKey: string
-  payload: AgentStatusPayload
-  terminalTitle?: string
-  timing?: AgentStatusTiming
-  routing?: AgentStatusRouting
-  metadata?: AgentStatusMetadata
-  updatedAt: number
-}
+export type {
+  AgentStatusLiveEntryArgs,
+  AgentStatusLiveEntryBuild,
+  AgentStatusLiveEntryRejection
+} from './agent-status-live-entry-types'
 
 /** Build one accepted live row and the derived map-update facts, or say why the frame was rejected. */
 export function buildAgentStatusLiveEntry(
@@ -132,11 +94,18 @@ export function buildAgentStatusLiveEntry(
   const promptInteractionKey =
     payload.promptInteractionKey ??
     (payload.prompt === existing?.prompt ? existing?.promptInteractionKey : undefined)
+  const incomingProviderSessionChanged =
+    Boolean(metadata?.providerSession && existing?.providerSession) &&
+    !agentProviderSessionsEqual(
+      identity.agentType,
+      metadata?.providerSession,
+      existing?.providerSession
+    )
   const stateStartedAt =
     timing?.stateStartedAt ??
     (commandCodeNewTurn
       ? updatedAt
-      : existing && existing.state === payload.state
+      : existing && existing.state === payload.state && !incomingProviderSessionChanged
         ? existing.stateStartedAt
         : updatedAt)
   if (

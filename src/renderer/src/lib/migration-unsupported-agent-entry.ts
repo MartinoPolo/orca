@@ -7,6 +7,11 @@ const cachedMigrationUnsupportedEntries = new WeakMap<
   MigrationUnsupportedPtyEntry,
   AgentStatusEntry | null
 >()
+const migrationUnsupportedAgentEntries = new WeakSet<AgentStatusEntry>()
+
+export function isMigrationUnsupportedAgentEntry(entry: AgentStatusEntry): boolean {
+  return migrationUnsupportedAgentEntries.has(entry)
+}
 
 export function migrationUnsupportedToAgentStatusEntry(
   entry: MigrationUnsupportedPtyEntry
@@ -34,6 +39,9 @@ export function migrationUnsupportedToAgentStatusEntry(
           'Restart this terminal so Orca can attach a stable UUID pane key to agent hooks.'
       }
 
+  if (converted) {
+    migrationUnsupportedAgentEntries.add(converted)
+  }
   cachedMigrationUnsupportedEntries.set(entry, converted)
   return converted
 }
