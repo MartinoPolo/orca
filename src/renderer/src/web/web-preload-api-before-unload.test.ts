@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import { installApi } from './web-preload-api-test-harness'
 
 describe('web before-unload persistence', () => {
@@ -13,12 +14,19 @@ describe('web before-unload persistence', () => {
 
   it('persists final UI and host-partitioned sessions synchronously', async () => {
     const { api, storage } = await installApi('Linux')
+    const createSessionState = (activeWorktreeId: string): WorkspaceSessionState => ({
+      activeRepoId: null,
+      activeWorktreeId,
+      activeTabId: null,
+      tabsByWorktree: {},
+      terminalLayoutsByTabId: {}
+    })
 
     api.app.stageBeforeUnloadSync({
       sessions: [
-        { state: { activeWorktreeId: 'local-worktree' } as never },
+        { state: createSessionState('local-worktree') },
         {
-          state: { activeWorktreeId: 'remote-worktree' } as never,
+          state: createSessionState('remote-worktree'),
           hostId: 'runtime:web-env-1'
         }
       ],
