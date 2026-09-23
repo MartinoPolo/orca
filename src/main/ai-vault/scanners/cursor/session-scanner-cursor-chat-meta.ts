@@ -1,10 +1,6 @@
 import { waitForAiVaultScan } from '../../scan-lifecycle/ai-vault-scan-cancellation'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { basename, dirname, join } from 'node:path'
-import {
-  wslGatedReaddir,
-  wslGatedStat
-} from '../../../native-chat/transcript-filesystem/wsl-transcript-fs-access'
 import { WslTranscriptFsError } from '../../../native-chat/transcript-filesystem/wsl-transcript-fs-error'
 import { timestampIso } from '../../parsing/session-scanner-accumulator'
 import { scanIssueTextFromError } from '../../parsing/session-scan-issues'
@@ -12,15 +8,17 @@ import type { AiVaultScanIssueText } from '../../../../shared/ai-vault/scanning/
 import { extractString } from '../../../../shared/text/trimmed-string'
 import { readJsonObjectIfExists } from '../../discovery/session-json-file'
 import { normalizeTitleText } from '../../parsing/session-scanner-text-normalization'
+import {
+  readCursorChatMetaIndex,
+  type CursorChatMetaIndexLookup
+} from './session-scanner-cursor-chat-meta-index'
+export { resetCursorChatMetaIndexCacheForTests } from './session-scanner-cursor-chat-meta-index'
 
 // Transcript paths cannot derive hashed metadata buckets; index the separate chats tree by chat ID.
 
 const CURSOR_CHATS_DIR = 'chats'
-const CURSOR_CHAT_META_FILE = 'meta.json'
 const CURSOR_TRANSCRIPTS_DIR = 'agent-transcripts'
 const CURSOR_PROJECTS_DIR = 'projects'
-// Bound retained indexes as custom and WSL homes change.
-const CURSOR_CHAT_META_INDEX_CACHE_MAX = 8
 
 export type CursorChatMeta = {
   title: string | null
@@ -29,31 +27,30 @@ export type CursorChatMeta = {
   updatedAt: string | null
 }
 
-type CursorChatMetaIndexEntry = {
-  signature: string
-  metaPathByChatId: Map<string, string>
-}
-
-const cursorChatMetaIndexCache = new Map<string, Promise<CursorChatMetaIndexEntry>>()
-
 type CursorChatMetaScan = {
-  index: Map<string, Promise<Map<string, string>>>
+  index: Map<string, Promise<CursorChatMetaIndexLookup>>
+  refreshedIndex: Map<string, Promise<CursorChatMetaIndexLookup>>
   // Chats roots this scan could not read, reported once by the scan owner.
   refusals: Map<string, AiVaultScanIssueText>
   // Refused metadata reads must remain unknown rather than validate cached enrichment.
   refusedTranscripts: Set<string>
 }
 
-// Share index validation across discovery and parsing to avoid repeated directory reads and workspace stats.
+// Why: validating the module cache costs a readdir of the chats root plus a stat
+// per workspace, and it cannot be skipped because the signature is built from
+// those stats. Discovery asks once per transcript and finalize asks again, so
+// the scope spans both phases; only a cached miss can trigger one extra build.
 const scanScopedIndex = new AsyncLocalStorage<CursorChatMetaScan>()
 
-export function resetCursorChatMetaIndexCacheForTests(): void {
-  cursorChatMetaIndexCache.clear()
-}
-
+/** Runs one whole scan, discovery and parse; Cursor transcripts share validation and any refresh. */
 export function withCursorChatMetaScan<T>(fn: () => Promise<T>): Promise<T> {
   return scanScopedIndex.run(
-    { index: new Map(), refusals: new Map(), refusedTranscripts: new Set() },
+    {
+      index: new Map(),
+      refreshedIndex: new Map(),
+      refusals: new Map(),
+      refusedTranscripts: new Set()
+    },
     fn
   )
 }
@@ -87,12 +84,29 @@ export async function cursorChatMetaPath(transcriptPath: string): Promise<string
   if (!chatsRoot || !chatId) {
     return undefined
   }
-  const index = await readCursorChatMetaIndexOncePerScan(chatsRoot)
-  return index.get(chatId)
+  const scan = scanScopedIndex.getStore()
+  let index = await readCursorChatMetaIndexOncePerScan(chatsRoot, scan)
+  const cachedPath = index.metaPathByChatId.get(chatId)
+  if (cachedPath || !index.fromCache) {
+    return cachedPath
+  }
+  if (scan) {
+    let refresh = scan.refreshedIndex.get(chatsRoot)
+    if (!refresh) {
+      refresh = readCursorChatMetaIndexOrNone(chatsRoot, true)
+      scan.refreshedIndex.set(chatsRoot, refresh)
+    }
+    index = await refresh
+  } else {
+    index = await readCursorChatMetaIndexOrNone(chatsRoot, true)
+  }
+  return index.metaPathByChatId.get(chatId)
 }
 
-function readCursorChatMetaIndexOncePerScan(chatsRoot: string): Promise<Map<string, string>> {
-  const scan = scanScopedIndex.getStore()
+function readCursorChatMetaIndexOncePerScan(
+  chatsRoot: string,
+  scan: CursorChatMetaScan | undefined
+): Promise<CursorChatMetaIndexLookup> {
   if (!scan) {
     return readCursorChatMetaIndexOrNone(chatsRoot)
   }
@@ -104,16 +118,26 @@ function readCursorChatMetaIndexOncePerScan(chatsRoot: string): Promise<Map<stri
   return pending
 }
 
-/** Keep transcripts listed on WSL refusal, report the root once, and leave metadata unknown for retry. */
-async function readCursorChatMetaIndexOrNone(chatsRoot: string): Promise<Map<string, string>> {
+/**
+ * A refused WSL read is not "no chats", but it must not take the transcript
+ * down with it: before this join a stalled distro could not hide a Cursor
+ * session at all. Degrade to no metadata for the scan and report the root once.
+ * The session still lists from its transcript alone, and the sidecar is
+ * recorded as unknown, so the next healthy scan merges the real metadata in
+ * without re-reading a byte of the transcript.
+ */
+async function readCursorChatMetaIndexOrNone(
+  chatsRoot: string,
+  forceFresh = false
+): Promise<CursorChatMetaIndexLookup> {
   try {
-    return await readCursorChatMetaIndex(chatsRoot)
+    return await readCursorChatMetaIndex(chatsRoot, forceFresh)
   } catch (error) {
     if (!(error instanceof WslTranscriptFsError)) {
       throw error
     }
     recordCursorChatMetaRefusal(chatsRoot, scanIssueTextFromError(error))
-    return new Map()
+    return { metaPathByChatId: new Map(), fromCache: false }
   }
 }
 
@@ -173,116 +197,4 @@ function cursorChatsRootFromTranscriptPath(transcriptPath: string): string | nul
     currentDir = dirname(currentDir)
   }
   return null
-}
-
-async function readCursorChatMetaIndex(chatsRoot: string): Promise<Map<string, string>> {
-  let workspaceDirs: string[]
-  try {
-    workspaceDirs = (await wslGatedReaddir(chatsRoot, 'scan'))
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .sort()
-  } catch (error) {
-    // Propagate WSL refusal so the scan records unknown metadata and can retry enrichment.
-    if (error instanceof WslTranscriptFsError) {
-      throw error
-    }
-    return new Map()
-  }
-  const signature = await readCursorChatsSignature(chatsRoot, workspaceDirs)
-  const cached = await readCachedCursorChatMetaIndex(chatsRoot, signature)
-  if (cached) {
-    return cached
-  }
-  const pending = buildCursorChatMetaIndex(chatsRoot, workspaceDirs).then((metaPathByChatId) => ({
-    signature,
-    metaPathByChatId
-  }))
-  storeCursorChatMetaIndexEntry(chatsRoot, pending)
-  // Evict rejected builds so the next scan retries instead of reusing a refused WSL read.
-  pending.catch(() => {
-    if (cursorChatMetaIndexCache.get(chatsRoot) === pending) {
-      cursorChatMetaIndexCache.delete(chatsRoot)
-    }
-  })
-  return (await pending).metaPathByChatId
-}
-
-// New chats update their workspace directory; the chats root mtime alone misses them.
-async function readCursorChatsSignature(
-  chatsRoot: string,
-  workspaceDirs: string[]
-): Promise<string> {
-  const parts = await Promise.all(
-    workspaceDirs.map(async (name) => {
-      try {
-        const dirStat = await wslGatedStat(join(chatsRoot, name), 'scan')
-        return `${name}:${dirStat.mtimeMs}`
-      } catch {
-        return `${name}:?`
-      }
-    })
-  )
-  return parts.join('|')
-}
-
-async function buildCursorChatMetaIndex(
-  chatsRoot: string,
-  workspaceDirs: string[]
-): Promise<Map<string, string>> {
-  const metaPathByChatId = new Map<string, string>()
-  for (const workspaceDir of workspaceDirs) {
-    let chatDirs
-    try {
-      chatDirs = await wslGatedReaddir(join(chatsRoot, workspaceDir), 'scan')
-    } catch (error) {
-      if (error instanceof WslTranscriptFsError) {
-        throw error
-      }
-      continue
-    }
-    for (const chatDir of chatDirs) {
-      if (chatDir.isDirectory() && !metaPathByChatId.has(chatDir.name)) {
-        metaPathByChatId.set(
-          chatDir.name,
-          join(chatsRoot, workspaceDir, chatDir.name, CURSOR_CHAT_META_FILE)
-        )
-      }
-    }
-  }
-  return metaPathByChatId
-}
-
-async function readCachedCursorChatMetaIndex(
-  chatsRoot: string,
-  signature: string
-): Promise<Map<string, string> | undefined> {
-  const cached = cursorChatMetaIndexCache.get(chatsRoot)
-  if (!cached) {
-    return undefined
-  }
-  const entry = await cached
-  if (entry.signature !== signature) {
-    return undefined
-  }
-  // Refresh only the current promise; resurrecting evicted entries would bypass the cap.
-  if (cursorChatMetaIndexCache.get(chatsRoot) === cached) {
-    cursorChatMetaIndexCache.delete(chatsRoot)
-    cursorChatMetaIndexCache.set(chatsRoot, cached)
-  }
-  return entry.metaPathByChatId
-}
-
-function storeCursorChatMetaIndexEntry(
-  chatsRoot: string,
-  pending: Promise<CursorChatMetaIndexEntry>
-): void {
-  cursorChatMetaIndexCache.delete(chatsRoot)
-  cursorChatMetaIndexCache.set(chatsRoot, pending)
-  if (cursorChatMetaIndexCache.size > CURSOR_CHAT_META_INDEX_CACHE_MAX) {
-    const oldest = cursorChatMetaIndexCache.keys().next()
-    if (!oldest.done) {
-      cursorChatMetaIndexCache.delete(oldest.value)
-    }
-  }
 }
