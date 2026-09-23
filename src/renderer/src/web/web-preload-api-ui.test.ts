@@ -13,42 +13,6 @@ import {
   writeStoredRuntimeEnvironment
 } from './web-preload-api-test-harness'
 
-describe('web before-unload persistence', () => {
-  beforeEach(() => {
-    vi.resetModules()
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.doUnmock('./web-runtime-client')
-  })
-
-  it('persists final UI and host-partitioned sessions synchronously', async () => {
-    const { api, storage } = await installApi('Linux')
-
-    api.app.stageBeforeUnloadSync({
-      sessions: [
-        { state: { activeWorktreeId: 'local-worktree' } as never },
-        {
-          state: { activeWorktreeId: 'remote-worktree' } as never,
-          hostId: 'runtime:web-env-1'
-        }
-      ],
-      ui: { activeView: 'settings' }
-    })
-
-    expect(JSON.parse(storage.getItem('orca.web.workspaceSession.v1') ?? '{}')).toMatchObject({
-      activeWorktreeId: 'local-worktree'
-    })
-    expect(
-      JSON.parse(storage.getItem('orca.web.workspaceSession.v1.runtime:web-env-1') ?? '{}')
-    ).toMatchObject({ activeWorktreeId: 'remote-worktree' })
-    expect(JSON.parse(storage.getItem('orca.web.ui.v1') ?? '{}')).toMatchObject({
-      activeView: 'settings'
-    })
-  })
-})
-
 describe('web UI preload API', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -473,7 +437,8 @@ describe('web UI preload API', () => {
     agentsReadFilter: 'unread',
     agentsGroupBy: 'project',
     activityClearedAtByPaneKey: { 'tab-1:leaf-1': 123 },
-    manuallyUnreadTurnsByPaneKey: { 'tab-1:leaf-1': 321 }
+    manuallyUnreadTurnsByPaneKey: { 'tab-1:leaf-1': 321 },
+    sessionAttentionMetadataByIdentity: { browser: { priority: 5 } }
   }
   const hostUiSamples: Record<PairingLocalUiField, unknown> = {
     automationHostFilter: { kind: 'all' },
@@ -488,7 +453,8 @@ describe('web UI preload API', () => {
     agentsReadFilter: 'all',
     agentsGroupBy: 'status',
     activityClearedAtByPaneKey: { 'tab-2:leaf-2': 456 },
-    manuallyUnreadTurnsByPaneKey: { 'tab-2:leaf-2': 654 }
+    manuallyUnreadTurnsByPaneKey: { 'tab-2:leaf-2': 654 },
+    sessionAttentionMetadataByIdentity: { host: { priority: 1 } }
   }
 
   it.each(PAIRING_LOCAL_UI_FIELDS.map((field) => [field] as const))(

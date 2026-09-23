@@ -9,11 +9,13 @@ import {
 } from './helpers/terminal'
 import { clickFileInExplorer } from './helpers/file-explorer'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
+import { clickHiddenRendererPointer } from './hidden-renderer-pointer'
 
 type SeededActivityThread = {
   paneKey: string
   leafId: string
   prompt: string
+  message: string
 }
 
 type ActivePaneSelection = {
@@ -40,11 +42,10 @@ async function seedActivityThread(
   thread: SeededActivityThread,
   title: string,
   state: 'blocked' | 'done',
-  message: string,
   startedAt: number
 ): Promise<void> {
   await page.evaluate(
-    ({ thread, title, state, message, startedAt }) => {
+    ({ thread, title, state, startedAt }) => {
       const store = window.__store
       if (!store) {
         throw new Error('window.__store is not available')
@@ -56,13 +57,13 @@ async function seedActivityThread(
           state,
           prompt: thread.prompt,
           agentType: 'codex',
-          lastAssistantMessage: message
+          lastAssistantMessage: thread.message
         },
         title,
         { updatedAt: startedAt, stateStartedAt: startedAt }
       )
     },
-    { thread, title, state, message, startedAt }
+    { thread, title, state, startedAt }
   )
 }
 
@@ -79,30 +80,18 @@ async function seedActivityThreadsForSplitPanes(
   const first: SeededActivityThread = {
     paneKey: `${snapshot.tabId}:${firstPane.leafId}`,
     leafId: firstPane.leafId,
-    prompt: `ACTIVITY_UUID_LEFT_${now}`
+    prompt: `ACTIVITY_UUID_LEFT_${now}`,
+    message: 'Left pane is waiting for user input.'
   }
   const second: SeededActivityThread = {
     paneKey: `${snapshot.tabId}:${secondPane.leafId}`,
     leafId: secondPane.leafId,
-    prompt: `ACTIVITY_UUID_RIGHT_${now}`
+    prompt: `ACTIVITY_UUID_RIGHT_${now}`,
+    message: 'Right pane finished its turn.'
   }
 
-  await seedActivityThread(
-    page,
-    first,
-    'Codex left pane',
-    'blocked',
-    'Left pane is waiting for user input.',
-    now - 2_000
-  )
-  await seedActivityThread(
-    page,
-    second,
-    'Codex right pane',
-    'done',
-    'Right pane finished its turn.',
-    now - 1_000
-  )
+  await seedActivityThread(page, first, 'Codex left pane', 'blocked', now - 2_000)
+  await seedActivityThread(page, second, 'Codex right pane', 'done', now - 1_000)
 
   return [first, second]
 }
@@ -116,8 +105,9 @@ async function enableInlineAgentCards(page: Page): Promise<void> {
 
     const state = store.getState()
     if (!state.worktreeCardProperties.includes('inline-agents')) {
-      state.toggleWorktreeCardProperty('inline-agents')
+      state.setWorktreeCardProperties([...state.worktreeCardProperties, 'inline-agents'])
     }
+    state.setAgentActivityDisplayMode('full')
     state.closeActivityPage()
   })
 }
@@ -129,18 +119,15 @@ async function enableActivityAgentsView(page: Page): Promise<void> {
       agentsSidebarIntroShown: true
     })
     window.__store?.setState({ settings })
+    window.__store?.getState().setAgentsReadFilter('all')
   })
 }
 
-async function clickWorkspaceCardAgentRow(page: Page, prompt: string): Promise<void> {
+async function clickWorkspaceCardAgentRow(page: Page, thread: SeededActivityThread): Promise<void> {
   const agentsGroup = page.getByRole('group', { name: 'Agents' }).first()
-  const collapsedSummary = agentsGroup.getByRole('button', { name: /^Expand \d+ agents?:/ })
-  if (await collapsedSummary.isVisible()) {
-    await collapsedSummary.click()
-  }
-  const agentRow = agentsGroup.getByRole('treeitem').filter({ hasText: prompt }).first()
-  await expect(agentRow).toBeVisible({ timeout: 10_000 })
-  await agentRow.click()
+  const agentMessage = agentsGroup.getByText(thread.message, { exact: true })
+  await expect(agentMessage).toBeVisible({ timeout: 10_000 })
+  await clickHiddenRendererPointer(page, agentMessage)
 }
 
 async function readActivePaneSelection(page: Page): Promise<ActivePaneSelection> {
@@ -236,11 +223,20 @@ test.describe('Activity Agent Pane Isolation', () => {
     const snapshot = await waitForPaneIdentitySnapshot(orcaPage, 2)
     const [first, second] = await seedActivityThreadsForSplitPanes(orcaPage, snapshot)
 
-    await agentsSidebarButton(orcaPage).click()
+    await clickHiddenRendererPointer(orcaPage, agentsSidebarButton(orcaPage))
     await expect(orcaPage.getByText(first.prompt)).toBeVisible()
     await expect(orcaPage.getByText(second.prompt)).toBeVisible()
 
-    await orcaPage.getByRole('button').filter({ hasText: first.prompt }).first().click()
+    const firstActivityRow = orcaPage.getByRole('listitem', { name: first.prompt, exact: true })
+    await firstActivityRow.evaluate((element) => {
+      element.addEventListener(
+        'click',
+        () => element.setAttribute('data-hidden-pointer-click-received', 'true'),
+        { once: true }
+      )
+    })
+    await clickHiddenRendererPointer(orcaPage, firstActivityRow)
+    await expect(firstActivityRow).toHaveAttribute('data-hidden-pointer-click-received', 'true')
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -254,7 +250,10 @@ test.describe('Activity Agent Pane Isolation', () => {
     await expect(
       orcaPage.getByRole('button', { name: 'Turn off activity view', exact: true })
     ).toHaveAttribute('aria-pressed', 'true')
-    await orcaPage.getByRole('button').filter({ hasText: second.prompt }).first().click()
+    await clickHiddenRendererPointer(
+      orcaPage,
+      orcaPage.getByRole('listitem', { name: second.prompt, exact: true })
+    )
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -274,7 +273,7 @@ test.describe('Activity Agent Pane Isolation', () => {
 
     await enableInlineAgentCards(orcaPage)
 
-    await clickWorkspaceCardAgentRow(orcaPage, first.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, first)
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -285,7 +284,7 @@ test.describe('Activity Agent Pane Isolation', () => {
         activeLeafId: first.leafId
       })
 
-    await clickWorkspaceCardAgentRow(orcaPage, second.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, second)
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -318,7 +317,7 @@ test.describe('Activity Agent Pane Isolation', () => {
       })
     await expect(terminalPaneForLeaf(orcaPage, first.leafId)).toBeHidden()
 
-    await clickWorkspaceCardAgentRow(orcaPage, first.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, first)
 
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
@@ -353,20 +352,14 @@ test.describe('Activity Agent Pane Isolation', () => {
     const splitGroupThread: SeededActivityThread = {
       paneKey: `${secondGroupSnapshot.tabId}:${secondGroupPane.leafId}`,
       leafId: secondGroupPane.leafId,
-      prompt: `ACTIVITY_UUID_SPLIT_GROUP_${now}`
+      prompt: `ACTIVITY_UUID_SPLIT_GROUP_${now}`,
+      message: 'Split group pane is waiting for user input.'
     }
-    await seedActivityThread(
-      orcaPage,
-      splitGroupThread,
-      'Codex split group pane',
-      'blocked',
-      'Split group pane is waiting for user input.',
-      now
-    )
+    await seedActivityThread(orcaPage, splitGroupThread, 'Codex split group pane', 'blocked', now)
 
     await enableInlineAgentCards(orcaPage)
 
-    await clickWorkspaceCardAgentRow(orcaPage, splitGroupThread.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, splitGroupThread)
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -378,7 +371,7 @@ test.describe('Activity Agent Pane Isolation', () => {
         activeLeafId: splitGroupThread.leafId
       })
 
-    await clickWorkspaceCardAgentRow(orcaPage, first.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, first)
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -390,7 +383,7 @@ test.describe('Activity Agent Pane Isolation', () => {
         activeLeafId: first.leafId
       })
 
-    await clickWorkspaceCardAgentRow(orcaPage, second.prompt)
+    await clickWorkspaceCardAgentRow(orcaPage, second)
     await expect
       .poll(async () => readActivePaneSelection(orcaPage), {
         timeout: 10_000,
@@ -401,5 +394,30 @@ test.describe('Activity Agent Pane Isolation', () => {
         activeTabId: firstGroupSnapshot.tabId,
         activeLeafId: second.leafId
       })
+  })
+
+  test('hidden renderer pointer rejects an obstructed activity toggle', async ({ orcaPage }) => {
+    const obstructionId = 'hidden-renderer-pointer-obstruction'
+    const activityToggle = agentsSidebarButton(orcaPage)
+    await activityToggle.evaluate((element, id) => {
+      const rect = element.getBoundingClientRect()
+      const obstruction = document.createElement('div')
+      obstruction.id = id
+      obstruction.style.position = 'fixed'
+      obstruction.style.left = `${rect.left}px`
+      obstruction.style.top = `${rect.top}px`
+      obstruction.style.width = `${rect.width}px`
+      obstruction.style.height = `${rect.height}px`
+      obstruction.style.zIndex = '2147483647'
+      document.body.append(obstruction)
+    }, obstructionId)
+
+    try {
+      await expect(clickHiddenRendererPointer(orcaPage, activityToggle)).rejects.toThrow(
+        'Hidden renderer pointer target is obstructed at its center'
+      )
+    } finally {
+      await orcaPage.evaluate((id) => document.getElementById(id)?.remove(), obstructionId)
+    }
   })
 })

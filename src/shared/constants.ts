@@ -51,18 +51,7 @@ export const ORCA_BROWSER_BLANK_URL = 'data:text/html,'
 // Why: Electron's invoke error path preserves only message text, so signal reconnect via this stable token.
 export const SSH_TERMINATE_RECONNECT_REQUIRED = 'SSH_TERMINATE_RECONNECT_REQUIRED'
 
-export const BROWSER_FAMILY_LABELS: Record<string, string> = {
-  chrome: 'Google Chrome',
-  chromium: 'Chromium',
-  comet: 'Comet',
-  helium: 'Helium',
-  arc: 'Arc',
-  edge: 'Microsoft Edge',
-  brave: 'Brave',
-  firefox: 'Firefox',
-  safari: 'Safari',
-  manual: 'File'
-}
+export { BROWSER_FAMILY_LABELS } from './browser-family-labels'
 
 // Why: only the initial value shown in Settings; buildFontFamily() adds the real cross-platform fallback chain.
 function defaultTerminalFontFamily(): string {
@@ -304,6 +293,7 @@ export function getDefaultUIState(): PersistedUIState {
     acknowledgedAgentsByPaneKey: {},
     activityClearedAtByPaneKey: {},
     manuallyUnreadTurnsByPaneKey: {},
+    sessionAttentionMetadataByIdentity: {},
     setupGuideSidebarDismissed: false,
     setupGuideBrowserMilestoneMigrated: true,
     setupGuideBrowserMilestoneLegacyComplete: false,

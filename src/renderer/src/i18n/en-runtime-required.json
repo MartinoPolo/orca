@@ -208,9 +208,12 @@
       },
       "activity": {
         "ActivityPrototypePage": {
+          "59b131fbd9": "Mark thread unread",
           "770d458144": "Group by",
           "a472a14700": "More options",
-          "beb2c19173": "Unread"
+          "beb2c19173": "Unread",
+          "d1a88df9a8": "Show unread threads only",
+          "markThreadRead": "Mark thread as read"
         },
         "ActivityScopeFilterControls": {
           "hiddenCount": "{{value0}} hidden"

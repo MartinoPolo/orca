@@ -31,6 +31,7 @@ function makeBaseline(overrides: Partial<PersistedUIWriteBaseline> = {}): Persis
     acknowledgedAgentsByPaneKey: {},
     activityClearedAtByPaneKey: {},
     manuallyUnreadTurnsByPaneKey: {},
+    sessionAttentionMetadataByIdentity: {},
     ...overrides
   }
 }
@@ -116,6 +117,22 @@ describe('manuallyUnreadTurnsByPaneKey write round-trip', () => {
     expect(persistedUIWriteFieldsToWireUpdate({ manuallyUnreadTurnsByPaneKey: { p1: 7 } })).toEqual(
       { manuallyUnreadTurnsByPaneKey: { p1: 7 } }
     )
+  })
+})
+
+describe('session attention metadata write round-trip', () => {
+  it('persists priority and saved markers by stable session identity', () => {
+    const metadata = { session: { priority: 5 as const, savedColor: 'teal' as const, savedAt: 42 } }
+    const baseline = makeBaseline()
+    expect(
+      diffPersistedUIWriteFields(
+        makeBaseline({ sessionAttentionMetadataByIdentity: metadata }),
+        baseline
+      )
+    ).toEqual({ sessionAttentionMetadataByIdentity: metadata })
+    expect(
+      persistedUIWriteFieldsToWireUpdate({ sessionAttentionMetadataByIdentity: metadata })
+    ).toEqual({ sessionAttentionMetadataByIdentity: metadata })
   })
 })
 

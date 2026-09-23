@@ -88,6 +88,7 @@ export function buildActivityEvents(
       context,
       entry,
       context.tab.ptyId,
+      undefined,
       tabHostIndex,
       ownerCache
     )
@@ -104,6 +105,7 @@ export function buildActivityEvents(
         worktree: owner.worktree,
         repo: owner.repo,
         tab: context.tab,
+        projectedTab: context.projectedTab,
         agentType: entry.agentType ?? 'unknown',
         agentAlive: true,
         acknowledgedAt: args.acknowledgedAgentsByPaneKey[paneKey] ?? 0,
@@ -125,8 +127,16 @@ export function buildActivityEvents(
     seenCacheKeys,
     liveAgentByPaneKey,
     tabContext,
-    resolveOwner: (context, entry, terminalPtyId) =>
-      resolveActivityEventOwner(args, context, entry, terminalPtyId, tabHostIndex, ownerCache),
+    resolveOwner: (context, entry, terminalPtyId, capturedExecutionHostId) =>
+      resolveActivityEventOwner(
+        args,
+        context,
+        entry,
+        terminalPtyId,
+        capturedExecutionHostId,
+        tabHostIndex,
+        ownerCache
+      ),
     pushPaneEvents
   })
 

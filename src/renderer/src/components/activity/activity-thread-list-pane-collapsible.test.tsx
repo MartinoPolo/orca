@@ -244,9 +244,11 @@ describe('ActivityThreadListPane collapsible sections', () => {
     expect(onToggleGroup).toHaveBeenCalledWith('done')
   })
 
-  it('keeps mark-unread enabled for the thread whose terminal pane is selected', () => {
+  it('keeps the selected unread thread read action available from its unread dot', () => {
     const inputRef = { current: null }
-    const onMarkThreadUnread = vi.fn()
+    const unreadThread = { ...mockThread, unread: true }
+    const unreadGroup = { ...mockGroup, threads: [unreadThread] }
+    const onMarkThreadRead = vi.fn()
     act(() => {
       root.render(
         <TooltipProvider>
@@ -259,16 +261,16 @@ describe('ActivityThreadListPane collapsible sections', () => {
             readFilter="all"
             onReadFilterChange={vi.fn()}
             compactMode={false}
-            hasUnreadThreads={false}
+            hasUnreadThreads
             onCompactModeChange={vi.fn()}
             onMarkAllThreadsRead={vi.fn()}
-            visibleThreadGroups={[mockGroup]}
+            visibleThreadGroups={[unreadGroup]}
             visibleThreadCount={1}
-            selectedPaneKey={mockThread.paneKey}
+            selectedPaneKey={unreadThread.paneKey}
             onSelectThread={vi.fn()}
             onJumpToWorkspace={vi.fn()}
-            onMarkThreadRead={vi.fn()}
-            onMarkThreadUnread={onMarkThreadUnread}
+            onMarkThreadRead={onMarkThreadRead}
+            onMarkThreadUnread={vi.fn()}
             canJumpToWorkspace={() => true}
             allowMarkUnreadWhenSelected
             showFilterControls={false}
@@ -278,15 +280,15 @@ describe('ActivityThreadListPane collapsible sections', () => {
       )
     })
 
-    const markUnreadButton = container.querySelector(
-      'button[aria-label="Mark thread unread"]'
-    ) as HTMLButtonElement | null
-    expect(markUnreadButton).not.toBeNull()
-    expect(markUnreadButton?.disabled).toBe(false)
+    const markReadButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Unread — mark read: Test agent"]'
+    )
+    expect(markReadButton).not.toBeNull()
+    expect(markReadButton?.disabled).toBe(false)
 
     act(() => {
-      markUnreadButton?.click()
+      markReadButton?.click()
     })
-    expect(onMarkThreadUnread).toHaveBeenCalledWith(mockThread)
+    expect(onMarkThreadRead).toHaveBeenCalledWith(unreadThread)
   })
 })

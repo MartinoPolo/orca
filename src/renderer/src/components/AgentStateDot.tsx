@@ -107,7 +107,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <Activity className={cn('text-yellow-500', icon)} aria-hidden="true" />
+        <Activity className={cn('text-session-status-working', icon)} aria-hidden="true" />
       </span>
     )
   } else if (state === 'done') {
@@ -120,7 +120,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <CircleCheck className={cn('text-emerald-500', icon)} aria-hidden="true" />
+        <CircleCheck className={cn('text-session-attention-done', icon)} aria-hidden="true" />
       </span>
     )
   } else if (state === 'unverifiable') {
@@ -131,7 +131,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <CircleDashed className={cn('text-amber-500', icon)} aria-hidden="true" />
+        <CircleDashed className={cn('text-session-status-unverifiable', icon)} aria-hidden="true" />
       </span>
     )
   } else if (state === 'permission' || state === 'waiting') {
@@ -140,7 +140,7 @@ export const AgentStateDot = React.memo(function AgentStateDot({
         className={cn('inline-flex shrink-0 items-center justify-center', box, className)}
         aria-label={agentStateLabel(state)}
       >
-        <AgentQuestionIcon className={icon} />
+        <AgentQuestionIcon className={cn('text-session-attention-input', icon)} />
       </span>
     )
   } else {
@@ -153,9 +153,11 @@ export const AgentStateDot = React.memo(function AgentStateDot({
           className={cn(
             'block rounded-full',
             inner,
-            state === 'blocked' || state === 'interrupted' || state === 'failed'
-              ? 'bg-red-500'
-              : 'bg-neutral-500/40'
+            state === 'blocked'
+              ? 'bg-session-attention-outcome'
+              : state === 'interrupted' || state === 'failed'
+                ? 'bg-session-attention-outcome'
+                : 'bg-session-status-idle/40'
           )}
         />
       </span>

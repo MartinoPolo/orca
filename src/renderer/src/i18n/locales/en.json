@@ -16456,7 +16456,8 @@
             "permission": "Needs attention"
           },
           "filtersSection": "Filters",
-          "viewSection": "View"
+          "viewSection": "View",
+          "noAttention": "No sessions need attention."
         },
         "clearCompleted": {
           "clearedOne": "Cleared 1 completed agent",
@@ -18074,5 +18075,43 @@
   },
   "common": {
     "retry": "Retry"
+  },
+  "sessionAttention": {
+    "migrationNotice": "Migration notice",
+    "migrationNoticeDetail": "Restart this terminal so Orca can attach a stable pane identity.",
+    "savedColor": {
+      "blue": "Blue",
+      "violet": "Violet",
+      "teal": "Teal",
+      "rose": "Rose"
+    },
+    "priority": {
+      "aria": "Priority P{{priority}}",
+      "default": "Default"
+    },
+    "savedMarker": {
+      "aria": "Saved for later, {{color}}",
+      "tooltip": "Saved for later · {{color}}"
+    },
+    "unread": {
+      "markRead": {
+        "aria": "Unread — mark read: {{sessionName}}",
+        "tooltip": "Mark read"
+      }
+    },
+    "contextMenu": {
+      "aria": "Session actions for {{sessionName}}",
+      "priority": "Priority",
+      "savedMarker": "Saved marker",
+      "removeSavedMarker": "Remove saved marker",
+      "preferencesUnavailable": "Session preferences unavailable until the provider reports a stable session identity",
+      "markRead": "Mark read",
+      "markUnread": "Mark unread"
+    },
+    "scope": {
+      "aria": "Activity scope",
+      "attention": "Attention",
+      "all": "All"
+    }
   }
 }

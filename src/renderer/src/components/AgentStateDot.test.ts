@@ -47,7 +47,7 @@ describe('AgentStateDot', () => {
   it('renders working as a yellow spinner', () => {
     const markup = renderMarkup('working')
 
-    expect(markup).toContain('border-yellow-500')
+    expect(markup).toContain('border-session-status-working')
     expect(markup).toContain('border-t-transparent')
     // Why: rotation must come from the compositor-driven CSS animation, not a
     // JS clock writing per-element styles on the input thread (STA-3328).
@@ -55,7 +55,7 @@ describe('AgentStateDot', () => {
     expect(markup).toContain('data-agent-spinner')
     // Why: under reduced motion the top border is filled so the static ring
     // reads as a complete marker, not a broken partial spinner (#9515).
-    expect(markup).toContain('motion-reduce:border-t-yellow-500')
+    expect(markup).toContain('motion-reduce:border-t-session-status-working')
   })
 
   it('renders monitoring as a static yellow heartbeat glyph', () => {
@@ -63,7 +63,7 @@ describe('AgentStateDot', () => {
 
     expect(markup).toContain('aria-label="Monitoring background tasks"')
     expect(markup).toContain('lucide-activity')
-    expect(markup).toContain('text-yellow-500')
+    expect(markup).toContain('text-session-status-working')
     expect(markup).not.toContain('data-agent-spinner')
   })
 
@@ -77,7 +77,7 @@ describe('AgentStateDot', () => {
     // class hook + emerald text color, identifying the check icon without
     // coupling to the exact SVG path markup lucide emits.
     expect(markup).toContain('lucide-circle-check')
-    expect(markup).toContain('text-emerald-500')
+    expect(markup).toContain('text-session-attention-done')
   })
 
   it.each(['permission', 'waiting'] satisfies AgentDotState[])(
@@ -86,8 +86,7 @@ describe('AgentStateDot', () => {
       const markup = renderMarkup(state)
 
       expect(markup).toContain('lucide-message-circle-question-mark')
-      // One token across sidebar, tabs, dashboard and map — never a raw hue.
-      expect(markup).toContain('text-agent-question')
+      expect(markup).toContain('text-session-attention-input')
       expect(markup).not.toContain('text-amber-500')
       expect(markup).not.toContain('data-agent-spinner')
     }
@@ -97,17 +96,21 @@ describe('AgentStateDot', () => {
     const markup = renderMarkup('unverifiable')
 
     expect(markup).toContain('lucide-circle-dashed')
-    expect(markup).toContain('text-amber-500')
+    expect(markup).toContain('text-session-status-unverifiable')
     expect(markup).not.toContain('lucide-circle-check')
     expect(markup).not.toContain('data-agent-spinner')
   })
 
-  it.each(['blocked', 'interrupted'] satisfies AgentDotState[])(
-    'renders %s as a red attention dot',
+  it('renders blocked as a violet outcome dot', () => {
+    expect(renderDotClassNames('blocked')).toContain('bg-session-attention-outcome')
+  })
+
+  it.each(['interrupted', 'failed'] satisfies AgentDotState[])(
+    'renders %s as a violet outcome dot',
     (state) => {
       const classNames = renderDotClassNames(state)
 
-      expect(classNames).toContain('bg-red-500')
+      expect(classNames).toContain('bg-session-attention-outcome')
       expect(classNames).not.toContain('bg-amber-500')
     }
   )

@@ -15,12 +15,15 @@ import type {
   SleepingAgentSessionRecord
 } from '../../../../shared/agent-session-resume'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 
 export type RetainedAgentEntry = {
   entry: AgentStatusEntry
   worktreeId: string
   /** Snapshot of the tab at retention time; kept full (not just an id) because the tab may be gone from `tabsByWorktree` by render time. */
   tab: TerminalTab
+  /** Host captured from the projected tab before teardown, when available. */
+  executionHostId?: ExecutionHostId
   agentType: AgentType
   startedAt: number
 }

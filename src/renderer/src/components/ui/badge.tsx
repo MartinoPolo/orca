@@ -21,7 +21,17 @@ const badgeVariants = cva(
         /** The chip naming the machine a workspace runs on — quieter and squarer than `secondary`,
          *  so it reads as context beside a workspace name rather than as a status of its own. */
         hostContext:
-          'h-4 rounded border-border bg-accent px-1.5 text-[10px] leading-none text-muted-foreground dark:border-border/50 dark:bg-accent/80'
+          'h-4 rounded border-border bg-accent px-1.5 text-[10px] leading-none text-muted-foreground dark:border-border/50 dark:bg-accent/80',
+        priorityP1:
+          'h-4 min-w-6 rounded border-session-priority-p1-border bg-session-priority-p1 px-1 text-[9px] font-semibold leading-none text-session-priority-p1-foreground',
+        priorityP2:
+          'h-4 min-w-6 rounded border-session-priority-p2-border bg-session-priority-p2 px-1 text-[9px] font-semibold leading-none text-session-priority-p2-foreground',
+        priorityP3:
+          'h-4 min-w-6 rounded border-session-priority-p3 bg-session-priority-p3 px-1 text-[9px] font-semibold leading-none text-white',
+        priorityP4:
+          'h-4 min-w-6 rounded border-session-priority-p4-border bg-session-priority-p4 px-1 text-[9px] font-semibold leading-none text-session-priority-p4-foreground',
+        priorityP5:
+          'h-4 min-w-6 rounded border-session-priority-p5-border bg-session-priority-p5 px-1 text-[9px] font-semibold leading-none text-session-priority-p5-foreground'
       }
     },
     defaultVariants: {

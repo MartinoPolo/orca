@@ -30,12 +30,12 @@ describe('TerminalTabLeadingIcon', () => {
     expect(markup).toContain('data-agent-icon="codex"')
   })
 
-  it('shows completion as an emerald check', () => {
+  it('shows completion as the semantic done check', () => {
     const markup = renderStatus('done')
 
     expect(markup).toContain('data-agent-activity-status="done"')
     expect(markup).toContain('lucide-circle-check')
-    expect(markup).toContain('text-emerald-500')
+    expect(markup).toContain('text-session-attention-done')
     expect(markup).toContain('data-agent-icon="codex"')
   })
 
@@ -44,7 +44,7 @@ describe('TerminalTabLeadingIcon', () => {
 
     expect(markup).toContain('data-agent-activity-status="permission"')
     expect(markup).toContain('lucide-message-circle-question-mark')
-    expect(markup).toContain('text-agent-question')
+    expect(markup).toContain('text-session-attention-input')
     expect(markup).not.toContain('bg-red-500')
   })
 

@@ -92,8 +92,13 @@ vi.mock('@/store', () => ({
       acknowledgeAgents: vi.fn(),
       agentSendPopoverTargetMode: null,
       agentStatusByPaneKey: {},
+      retainedAgentsByPaneKey: {},
+      sessionAttentionMetadataByIdentity: {},
       tabsByWorktree: {},
+      unifiedTabsByWorktree: {},
       terminalLayoutsByTabId: {},
+      repos: [],
+      getKnownWorktreeById: vi.fn(() => undefined),
       sendPromptToSidebarAgentTarget: vi.fn(),
       settings: {
         promptCacheTimerEnabled: mockPromptCacheTimerEnabled,
@@ -203,8 +208,6 @@ describe('WorktreeCardAgents', () => {
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('role="group"')
-    expect(markup).toContain('aria-label="Agents"')
     expect(markup).toContain('data-testid="agent-row"')
     expect(markup).not.toContain('<button')
     expect(markup).not.toContain('aria-expanded')

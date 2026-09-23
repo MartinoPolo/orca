@@ -19,7 +19,7 @@ import {
 import type { BuildActivityEventsArgs } from './activity-event-builder'
 import { standaloneActivityWorktree } from './activity-standalone-worktree'
 
-export type ActivityTabContext = { worktreeId: string; tab: TerminalTab }
+export type ActivityTabContext = { worktreeId: string; tab: TerminalTab; projectedTab?: Tab }
 export type ActivityEventOwner = { worktree: Worktree; repo: Repo | null; knownWorktree: boolean }
 export type ActivityTabHostIndex = Map<string, Map<string, ExecutionHostId | null>>
 
@@ -55,8 +55,16 @@ export function buildActivityTabContext(
 ): Map<string, ActivityTabContext> {
   const contexts = new Map<string, ActivityTabContext>()
   for (const [worktreeId, tabs] of Object.entries(tabsByWorktree)) {
+    const projectedTabs = unifiedTabsByWorktree?.[worktreeId] ?? []
     for (const tab of tabs) {
-      contexts.set(tab.id, { worktreeId, tab })
+      const matches = projectedTabs.filter(
+        (candidate) => candidate.contentType === 'terminal' && candidate.entityId === tab.id
+      )
+      contexts.set(tab.id, {
+        worktreeId,
+        tab,
+        ...(matches.length === 1 ? { projectedTab: matches[0] } : {})
+      })
     }
   }
   for (const [worktreeId, tabs] of Object.entries(unifiedTabsByWorktree ?? {})) {
@@ -64,7 +72,11 @@ export function buildActivityTabContext(
       if (tab.contentType !== 'agent-session' || contexts.has(tab.id)) {
         continue
       }
-      contexts.set(tab.id, { worktreeId, tab: terminalTabFromAgentSessionTab(tab) })
+      contexts.set(tab.id, {
+        worktreeId,
+        tab: terminalTabFromAgentSessionTab(tab),
+        projectedTab: tab
+      })
     }
   }
   return contexts
@@ -113,11 +125,15 @@ function resolveActivityExecutionHostId(
   context: ActivityTabContext,
   entry: AgentStatusEntry,
   terminalPtyId: string | null | undefined,
+  capturedExecutionHostId: ExecutionHostId | undefined,
   tabHostIndex: ActivityTabHostIndex
 ): ExecutionHostId | undefined {
   const tabHostId = tabHostIndex.get(context.worktreeId)?.get(context.tab.id)
   if (tabHostId) {
     return tabHostId
+  }
+  if (capturedExecutionHostId) {
+    return capturedExecutionHostId
   }
   // Why before connectionId: a runtime pane's status entry publishes connectionId: null,
   // which would otherwise resolve to LOCAL (see dashboard-card-terminal-input's precedent).
@@ -137,6 +153,7 @@ export function resolveActivityEventOwner(
   context: ActivityTabContext,
   entry: AgentStatusEntry,
   terminalPtyId: string | null | undefined,
+  capturedExecutionHostId: ExecutionHostId | undefined,
   tabHostIndex: ActivityTabHostIndex,
   ownerCache: Map<string, ActivityEventOwner>
 ): ActivityEventOwner {
@@ -144,6 +161,7 @@ export function resolveActivityEventOwner(
     context,
     entry,
     terminalPtyId,
+    capturedExecutionHostId,
     tabHostIndex
   )
   // Why: resolution runs per pane per rebuild and the miss path scans detected worktrees;

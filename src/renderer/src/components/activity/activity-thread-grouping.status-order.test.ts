@@ -81,7 +81,7 @@ describe('status group order', () => {
     expect(newerWaiting.map((group) => group.key)).toEqual(['waiting', 'blocked'])
   })
 
-  it('keeps newest-first thread order inside each group', () => {
+  it('uses deterministic identity order when attention rank ties inside a group', () => {
     const groups = buildActivityThreadGroups(
       makeStatusThreads([
         { paneKey: PANE_KEY, state: 'done', at: 1_000 },
@@ -92,7 +92,7 @@ describe('status group order', () => {
     )
 
     expect(groups.map((group) => group.key)).toEqual(['working', 'done'])
-    expect(groups[1].threads.map((thread) => thread.paneKey)).toEqual([PANE_KEY_3, PANE_KEY])
+    expect(groups[1].threads.map((thread) => thread.paneKey)).toEqual([PANE_KEY, PANE_KEY_3])
   })
 
   it('gives every status group a header state equal to its rows', () => {
@@ -111,6 +111,20 @@ describe('status group order', () => {
         expect(threadAgentState(thread)).toBe(group.state)
       }
     }
+  })
+
+  it('keeps interrupted rows violet instead of converting them to done', () => {
+    const [thread] = makeStatusThreads([{ paneKey: PANE_KEY, state: 'done', at: 1_000 }])
+    if (!thread.latestEvent) {
+      throw new Error('done fixture must produce an event')
+    }
+    thread.latestEvent.entry.interrupted = true
+
+    expect(threadAgentState(thread)).toBe('interrupted')
+    expect(buildActivityThreadGroups([thread], 'status')[0]).toMatchObject({
+      key: 'interrupted',
+      state: 'interrupted'
+    })
   })
 
   it('does not rank or set a header state outside status mode', () => {

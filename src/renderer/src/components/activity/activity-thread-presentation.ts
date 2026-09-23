@@ -124,13 +124,14 @@ export function activityThreadStatusId(thread: AgentPaneThread): ActivityThreadS
   return state
 }
 
-// Interrupted rows deliberately keep the done glyph (#2569).
 export function threadAgentState(thread: AgentPaneThread): AgentDotState {
-  const id = activityThreadStatusId(thread)
-  return id === 'interrupted' ? 'done' : id
+  return activityThreadStatusId(thread)
 }
 
 export function threadAgentStateLabel(thread: AgentPaneThread): string {
+  if (thread.migrationUnsupportedPtyId !== undefined) {
+    return translate('sessionAttention.migrationNotice', 'Migration notice')
+  }
   // Literal keys with literal fallbacks: a dynamic key registers no catalog reference
   // and forces every state string into the boot bundle.
   switch (activityThreadStatusId(thread)) {
@@ -200,6 +201,20 @@ export function activityThreadRowCopy(thread: AgentPaneThread): ActivityThreadRo
   const liveState = thread.currentAgentState ?? thread.latestEvent?.state ?? null
   const toolPreviewState = liveState === 'monitoring' ? null : liveState
   const state = threadAgentState(thread)
+  if (thread.migrationUnsupportedPtyId !== undefined) {
+    return {
+      taskTitle,
+      statusLine:
+        renderedPreview ||
+        translate(
+          'sessionAttention.migrationNoticeDetail',
+          'Restart this terminal so Orca can attach a stable pane identity.'
+        ),
+      statusKind: 'message',
+      needsAttention: false,
+      workspaceLabel
+    }
+  }
   const needsAttention = state === 'waiting' || state === 'blocked' || state === 'permission'
   if (renderedPreview && !previewDuplicatesIdentity(renderedPreview, taskTitle, workspaceLabel)) {
     return {
