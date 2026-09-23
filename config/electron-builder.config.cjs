@@ -207,6 +207,7 @@ module.exports = {
     '!pr-evidence{,/**/*}',
     // Why: local validation evidence and disposable profile data are never runtime inputs.
     '!notes{,/**/*}',
+    '!dist{,/**/*}',
     // Why: local agent/tooling directories may contain worktree symlink loops;
     // they are never runtime inputs and must not be traversed by electron-builder.
     '!{.claude,.grok,.agents,.codex}{,/**/*}',
