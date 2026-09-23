@@ -1,5 +1,10 @@
-import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  createMockChildProcess,
+  mockProcessGroupSignals,
+  mockWedgedCliSpawn,
+  withPlatform
+} from './runner-command-exec-fixtures'
 
 const { execFileMock, execFileSyncMock, spawnMock } = vi.hoisted(() => ({
   execFileMock: vi.fn(),
@@ -28,185 +33,6 @@ import {
 } from './command-runner/git-subprocess-admission'
 
 afterEach(() => _resetGitAdmissionForTests())
-
-type MockChildProcess = EventEmitter & {
-  stdout: EventEmitter
-  stderr: EventEmitter
-  pid: number
-  kill: ReturnType<typeof vi.fn>
-  unref?: ReturnType<typeof vi.fn>
-}
-
-function createMockChildProcess(pid: number): MockChildProcess {
-  const child = new EventEmitter() as MockChildProcess
-  child.stdout = new EventEmitter()
-  child.stderr = new EventEmitter()
-  child.pid = pid
-  child.kill = vi.fn()
-  return child
-}
-
-/**
- * Spawn stand-in for the gh/glab deadline tests: the CLI hangs, while the `ps`
- * quiescence probe the tree termination runs answers immediately.
- */
-function mockWedgedCliSpawn(child: MockChildProcess): void {
-  spawnMock.mockImplementation((program: string) => {
-    if (program !== 'ps') {
-      return child
-    }
-    const probe = createMockChildProcess(9100)
-    queueMicrotask(() => probe.emit('close', 0, null))
-    return probe
-  })
-}
-
-/** Signals succeed; the existence probe reports the group already gone. */
-function mockProcessGroupSignals(): ReturnType<typeof vi.spyOn> {
-  return vi.spyOn(process, 'kill').mockImplementation(((_pid: number, signal?: unknown) => {
-    if (signal === 0) {
-      throw Object.assign(new Error('ESRCH'), { code: 'ESRCH' })
-    }
-    return true
-  }) as typeof process.kill)
-}
-
-function createMockTaskkillProcess(): MockChildProcess {
-  const child = createMockChildProcess(9000)
-  child.unref = vi.fn()
-  return child
-}
-
-async function withPlatform<T>(platform: NodeJS.Platform, fn: () => Promise<T>): Promise<T> {
-  const original = process.platform
-  Object.defineProperty(process, 'platform', { configurable: true, value: platform })
-  try {
-    return await fn()
-  } finally {
-    Object.defineProperty(process, 'platform', { configurable: true, value: original })
-  }
-}
-
-describe('commandExecFileAsync Windows command shims', () => {
-  const originalComSpec = process.env.ComSpec
-
-  beforeEach(() => {
-    process.env.ComSpec = 'C:\\Windows\\System32\\cmd.exe'
-    execFileMock.mockReset()
-    execFileSyncMock.mockReset()
-    spawnMock.mockReset()
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
-    if (originalComSpec === undefined) {
-      delete process.env.ComSpec
-    } else {
-      process.env.ComSpec = originalComSpec
-    }
-  })
-
-  it('kills aborted Windows .cmd shim executions as a process tree', async () => {
-    await withPlatform('win32', async () => {
-      const command = createMockChildProcess(1234)
-      const taskkill = createMockTaskkillProcess()
-      spawnMock.mockImplementation((cmd: string) => (cmd === 'taskkill' ? taskkill : command))
-
-      const controller = new AbortController()
-      const promise = commandExecFileAsync('C:\\tools\\pnpm.cmd', ['--version'], {
-        cwd: 'C:\\repo',
-        signal: controller.signal
-      })
-      const rejection = expect(promise).rejects.toMatchObject({ name: 'AbortError' })
-      controller.abort()
-
-      await rejection
-      expect(spawnMock).toHaveBeenCalledWith(
-        'taskkill',
-        ['/pid', '1234', '/t', '/f'],
-        expect.objectContaining({ stdio: 'ignore', windowsHide: true })
-      )
-      expect(command.kill).not.toHaveBeenCalled()
-    })
-  })
-
-  it('kills timed-out Windows .cmd shim executions as a process tree', async () => {
-    vi.useFakeTimers()
-    await withPlatform('win32', async () => {
-      const command = createMockChildProcess(1234)
-      const taskkill = createMockTaskkillProcess()
-      spawnMock.mockImplementation((cmd: string) => (cmd === 'taskkill' ? taskkill : command))
-
-      const promise = commandExecFileAsync('C:\\tools\\pnpm.cmd', ['store', 'prune'], {
-        cwd: 'C:\\repo',
-        timeout: 1000
-      })
-      const rejection = expect(promise).rejects.toThrow('C:\\tools\\pnpm.cmd timed out.')
-      await vi.advanceTimersByTimeAsync(1000)
-
-      await rejection
-      expect(spawnMock).toHaveBeenCalledWith(
-        'taskkill',
-        ['/pid', '1234', '/t', '/f'],
-        expect.objectContaining({ stdio: 'ignore', windowsHide: true })
-      )
-      expect(command.kill).not.toHaveBeenCalled()
-      expect(command.stdout.listenerCount('data')).toBe(0)
-      expect(command.stderr.listenerCount('data')).toBe(0)
-      expect(command.listenerCount('error')).toBe(0)
-      expect(command.listenerCount('close')).toBe(0)
-    })
-  })
-
-  it('kills over-buffer Windows .cmd shim executions as a process tree', async () => {
-    await withPlatform('win32', async () => {
-      const command = createMockChildProcess(1234)
-      const taskkill = createMockTaskkillProcess()
-      spawnMock.mockImplementation((cmd: string) => (cmd === 'taskkill' ? taskkill : command))
-
-      const promise = commandExecFileAsync('C:\\tools\\pnpm.cmd', ['store', 'prune'], {
-        cwd: 'C:\\repo',
-        maxBuffer: 2
-      })
-      const rejection = expect(promise).rejects.toThrow(
-        'C:\\tools\\pnpm.cmd stdout exceeded maxBuffer.'
-      )
-      command.stdout.emit('data', Buffer.from('too much output'))
-
-      await rejection
-      expect(spawnMock).toHaveBeenCalledWith(
-        'taskkill',
-        ['/pid', '1234', '/t', '/f'],
-        expect.objectContaining({ stdio: 'ignore', windowsHide: true })
-      )
-      expect(command.kill).not.toHaveBeenCalled()
-      expect(command.stdout.listenerCount('data')).toBe(0)
-      expect(command.stderr.listenerCount('data')).toBe(0)
-      expect(command.listenerCount('error')).toBe(0)
-      expect(command.listenerCount('close')).toBe(0)
-    })
-  })
-
-  it('removes listeners after successful Windows .cmd shim executions', async () => {
-    await withPlatform('win32', async () => {
-      const command = createMockChildProcess(1234)
-      spawnMock.mockReturnValue(command)
-
-      const promise = commandExecFileAsync('C:\\tools\\pnpm.cmd', ['--version'], {
-        cwd: 'C:\\repo'
-      })
-      command.stdout.emit('data', Buffer.from('9.1.0\n'))
-      command.stderr.emit('data', Buffer.from('notice\n'))
-      command.emit('close', 0)
-
-      await expect(promise).resolves.toEqual({ stdout: '9.1.0\n', stderr: 'notice\n' })
-      expect(command.stdout.listenerCount('data')).toBe(0)
-      expect(command.stderr.listenerCount('data')).toBe(0)
-      expect(command.listenerCount('error')).toBe(0)
-      expect(command.listenerCount('close')).toBe(0)
-    })
-  })
-})
 
 describe('runner execFile timeout handling', () => {
   beforeEach(() => {
@@ -299,44 +125,50 @@ describe('runner execFile timeout handling', () => {
   // Why the group and not the child (#18234): `gh` and `glab` on PATH are often
   // shims, so the deadline has a chain to reap. Signalling only the direct child
   // leaves the rest of it running under init long after the deadline passed.
-  it('signals the whole gh process group when gh never calls back', async () => {
-    const child = createMockChildProcess(1234)
-    mockWedgedCliSpawn(child)
-    const processKill = mockProcessGroupSignals()
-    try {
-      const promise = ghExecFileAsync(['api', 'repos/stablyai/orca/issues/5388'], {
-        cwd: '/repo'
-      })
-      const rejection = expect(promise).rejects.toThrow('gh timed out.')
-      await vi.advanceTimersByTimeAsync(30_000)
-      expect(spawnMock.mock.calls[0][2].detached).toBe(true)
-      await vi.advanceTimersByTimeAsync(2_000)
+  it.skipIf(process.platform === 'win32')(
+    'signals the whole gh process group when gh never calls back',
+    async () => {
+      const child = createMockChildProcess(1234)
+      mockWedgedCliSpawn(spawnMock, child)
+      const processKill = mockProcessGroupSignals()
+      try {
+        const promise = ghExecFileAsync(['api', 'repos/stablyai/orca/issues/5388'], {
+          cwd: '/repo'
+        })
+        const rejection = expect(promise).rejects.toThrow('gh timed out.')
+        await vi.advanceTimersByTimeAsync(30_000)
+        expect(spawnMock.mock.calls[0][2].detached).toBe(true)
+        await vi.advanceTimersByTimeAsync(2_000)
 
-      await rejection
-      expect(processKill).toHaveBeenCalledWith(-1234, undefined)
-    } finally {
-      processKill.mockRestore()
+        await rejection
+        expect(processKill).toHaveBeenCalledWith(-1234, undefined)
+      } finally {
+        processKill.mockRestore()
+      }
     }
-  })
+  )
 
-  it('signals the whole glab process group when glab never calls back', async () => {
-    const child = createMockChildProcess(1234)
-    mockWedgedCliSpawn(child)
-    const processKill = mockProcessGroupSignals()
-    try {
-      const promise = glabExecFileAsync(['api', 'projects/stablyai%2Forca/issues'], {
-        cwd: '/repo'
-      })
-      const rejection = expect(promise).rejects.toThrow('glab timed out.')
-      await vi.advanceTimersByTimeAsync(30_000)
-      await vi.advanceTimersByTimeAsync(2_000)
+  it.skipIf(process.platform === 'win32')(
+    'signals the whole glab process group when glab never calls back',
+    async () => {
+      const child = createMockChildProcess(1234)
+      mockWedgedCliSpawn(spawnMock, child)
+      const processKill = mockProcessGroupSignals()
+      try {
+        const promise = glabExecFileAsync(['api', 'projects/stablyai%2Forca/issues'], {
+          cwd: '/repo'
+        })
+        const rejection = expect(promise).rejects.toThrow('glab timed out.')
+        await vi.advanceTimersByTimeAsync(30_000)
+        await vi.advanceTimersByTimeAsync(2_000)
 
-      await rejection
-      expect(processKill).toHaveBeenCalledWith(-1234, undefined)
-    } finally {
-      processKill.mockRestore()
+        await rejection
+        expect(processKill).toHaveBeenCalledWith(-1234, undefined)
+      } finally {
+        processKill.mockRestore()
+      }
     }
-  })
+  )
 
   it('aborts glab retry backoff instead of starting another attempt', async () => {
     const controller = new AbortController()
@@ -365,32 +197,35 @@ describe('runner execFile timeout handling', () => {
     expect(spawnMock).toHaveBeenCalledTimes(1)
   })
 
-  it('kills an active gh execution when its caller aborts', async () => {
-    const child = createMockChildProcess(1234)
-    mockWedgedCliSpawn(child)
-    const processKill = mockProcessGroupSignals()
-    try {
-      const controller = new AbortController()
-      const promise = ghExecFileAsync(['api', 'repos/stablyai/orca/issues/5388'], {
-        cwd: '/repo',
-        signal: controller.signal
-      })
-      const rejection = expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+  it.skipIf(process.platform === 'win32')(
+    'kills an active gh execution when its caller aborts',
+    async () => {
+      const child = createMockChildProcess(1234)
+      mockWedgedCliSpawn(spawnMock, child)
+      const processKill = mockProcessGroupSignals()
+      try {
+        const controller = new AbortController()
+        const promise = ghExecFileAsync(['api', 'repos/stablyai/orca/issues/5388'], {
+          cwd: '/repo',
+          signal: controller.signal
+        })
+        const rejection = expect(promise).rejects.toMatchObject({ name: 'AbortError' })
 
-      await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled())
-      controller.abort()
-      await vi.advanceTimersByTimeAsync(2_000)
+        await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled())
+        controller.abort()
+        await vi.advanceTimersByTimeAsync(2_000)
 
-      await rejection
-      expect(processKill).toHaveBeenCalledWith(-1234, undefined)
-    } finally {
-      processKill.mockRestore()
+        await rejection
+        expect(processKill).toHaveBeenCalledWith(-1234, undefined)
+      } finally {
+        processKill.mockRestore()
+      }
     }
-  })
+  )
 
-  it('honors explicit gh timeouts', async () => {
+  it.skipIf(process.platform === 'win32')('honors explicit gh timeouts', async () => {
     const child = createMockChildProcess(1234)
-    mockWedgedCliSpawn(child)
+    mockWedgedCliSpawn(spawnMock, child)
     const processKill = mockProcessGroupSignals()
     try {
       const promise = ghExecFileAsync(['api', 'repos/stablyai/orca/issues/5388'], {

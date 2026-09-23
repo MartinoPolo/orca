@@ -8,6 +8,7 @@ import {
   assertBuildStepsAllowed,
   assertPublishedCommit,
   assertSourcemapPolicy,
+  diffFolders,
   lockfileHasPatchEntry,
   lockfilePatchHashIsStale,
   patchHash,
@@ -64,24 +65,6 @@ async function writeTree(root, files) {
   }
 }
 
-/** The three exported diff pieces, composed the way the generator composes them. */
-function diffFolders(folderA, folderB) {
-  let stdout
-  try {
-    stdout = execFileSync('git', [...PNPM_DIFF_FLAGS, folderA, folderB], {
-      encoding: 'utf8',
-      env: pnpmDiffEnvironment(),
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-  } catch (error) {
-    if (error.status !== 1) {
-      throw error
-    }
-    stdout = error.stdout
-  }
-  return normalizePnpmDiff(stdout, folderA, folderB)
-}
-
 const PRISTINE = {
   'src/Widget.ts': 'export function widget(): number {\n  return 1\n}\n',
   'src/Other.ts': 'export const other = 0\n',
@@ -128,16 +111,17 @@ describe('pnpm diff format', () => {
     })
   })
 
-  it('strips both scratch folder prefixes from headers and index lines', async () => {
-    const root = await createDirectory()
-    const folderA = path.join(root, 'pristine')
-    const folderB = path.join(root, 'patched')
+  it('strips native scratch paths with spaces from headers and index lines', async () => {
+    const root = path.join(await createDirectory(), 'scratch path')
+    const folderA = path.join(root, 'pristine folder')
+    const folderB = path.join(root, 'patched folder')
     await writeTree(folderA, PRISTINE)
     await writeTree(folderB, PATCHED)
 
     const patch = diffFolders(folderA, folderB)
 
     expect(patch).not.toContain(root)
+    expect(patch).not.toContain(root.replaceAll('\\', '/'))
     expect(patch).toContain('diff --git a/lib/widget.js b/lib/widget.js')
     expect(patch).toContain('--- a/src/Widget.ts')
     expect(patch).toContain('+++ b/src/Widget.ts')

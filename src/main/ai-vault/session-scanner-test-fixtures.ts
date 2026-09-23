@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import Database from '../sqlite/sync-database'
+import { quoteStartupArg } from '../../shared/tui-agent-startup-shell'
 
 export async function writeOpenCode2SqliteFixture(root: string): Promise<string> {
   // Why: opencode2 (beta) sessions come from the channel-scoped SQLite DB
@@ -77,6 +78,14 @@ export function isolatedScanRoots(root: string) {
     clineSessionsDir: join(root, 'cline-sessions'),
     kimiSessionsDir: join(root, 'kimi-sessions')
   }
+}
+
+export function expectedPosixCodexResumeCommand(
+  cwd: string,
+  codexHome: string,
+  sessionId: string
+): string {
+  return `cd ${quoteStartupArg(cwd, 'posix')} && CODEX_HOME=${quoteStartupArg(codexHome, 'posix')} codex resume ${quoteStartupArg(sessionId, 'posix')}`
 }
 
 export function jsonLines(records: unknown[]): string {

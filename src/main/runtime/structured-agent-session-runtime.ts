@@ -77,6 +77,8 @@ export type StructuredAgentSessionRuntimeDeps = {
   openClaudeConnection?: ClaudeStructuredSessionAdapterDeps['openConnection']
   /** Scripted app-servers carry fake pids the real start-time read cannot answer for. */
   readProcessStartTime?: CodexStructuredSessionAdapterDeps['readProcessStartTime']
+  captureCodexTurnProcesses?: CodexStructuredSessionAdapterDeps['captureTurnProcesses']
+  terminateCodexTurnProcesses?: CodexStructuredSessionAdapterDeps['terminateTurnProcesses']
   resolveLaunchArgs?: (provider: AgentSessionRecord['provider']) => Promise<string[]> | string[]
   resolveLaunchEnv?: () => Promise<NodeJS.ProcessEnv>
   resolveLaunchEnvOverlay?: () => Promise<Record<string, string>> | Record<string, string>
@@ -234,6 +236,12 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
       }),
       ...(deps.openCodexConnection ? { openConnection: deps.openCodexConnection } : {}),
       ...(deps.readProcessStartTime ? { readProcessStartTime: deps.readProcessStartTime } : {}),
+      ...(deps.captureCodexTurnProcesses
+        ? { captureTurnProcesses: deps.captureCodexTurnProcesses }
+        : {}),
+      ...(deps.terminateCodexTurnProcesses
+        ? { terminateTurnProcesses: deps.terminateCodexTurnProcesses }
+        : {}),
       onBackgroundTasksChanged: (sessionId, state) =>
         host?.publishBackgroundTaskState(sessionId, state),
       onDispatchSettledLate,

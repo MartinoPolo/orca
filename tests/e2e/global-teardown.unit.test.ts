@@ -1,15 +1,25 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import type * as NodeFs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanupTestRepository, linkedWorktreePaths } from './global-teardown'
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof NodeFs>()
+  return { ...actual, rmSync: vi.fn(actual.rmSync) }
+})
 
 const roots: string[] = []
 
 function git(cwd: string, args: string[]): void {
   execFileSync('git', ['-C', cwd, ...args], { stdio: 'pipe' })
 }
+
+beforeEach(() => {
+  vi.mocked(rmSync).mockClear()
+})
 
 afterEach(() => {
   for (const root of roots.splice(0)) {
@@ -38,8 +48,11 @@ describe('E2E global teardown ownership', () => {
     git(repoPath, ['worktree', 'add', '-b', 'first-owned', firstWorktreePath])
     git(repoPath, ['worktree', 'add', '-b', 'second-owned', secondWorktreePath])
 
+    const canonicalRepoPath = realpathSync.native(repoPath)
+    const canonicalFirstWorktreePath = realpathSync.native(firstWorktreePath)
+    const canonicalSecondWorktreePath = realpathSync.native(secondWorktreePath)
     expect(new Set(linkedWorktreePaths(repoPath))).toEqual(
-      new Set([realpathSync.native(firstWorktreePath), realpathSync.native(secondWorktreePath)])
+      new Set([canonicalFirstWorktreePath, canonicalSecondWorktreePath])
     )
     cleanupTestRepository(repoPath)
 
@@ -48,5 +61,14 @@ describe('E2E global teardown ownership', () => {
     expect(existsSync(secondWorktreePath)).toBe(false)
     expect(existsSync(concurrentWorktreePath)).toBe(true)
     expect(existsSync(unrelatedTestPath)).toBe(true)
+    const boundedRemovalOptions = {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100
+    }
+    expect(rmSync).toHaveBeenCalledWith(canonicalFirstWorktreePath, boundedRemovalOptions)
+    expect(rmSync).toHaveBeenCalledWith(canonicalSecondWorktreePath, boundedRemovalOptions)
+    expect(rmSync).toHaveBeenCalledWith(canonicalRepoPath, boundedRemovalOptions)
   })
 })

@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { retryTransientMainEvaluate } from './helpers/electron-main-evaluate-retry'
 import { expect, test } from './helpers/orca-app'
 
 test('panel consent enables real local transcript search; clearing restores history', async ({
@@ -7,7 +8,9 @@ test('panel consent enables real local transcript search; clearing restores hist
   orcaPage,
   seededRepoPath
 }, testInfo) => {
-  const home = await electronApp.evaluate(({ app }) => app.getPath('home'))
+  const home = await retryTransientMainEvaluate(() =>
+    electronApp.evaluate(({ app }) => app.getPath('home'))
+  )
   const directory = path.join(home, '.claude', 'projects', '-synthetic-pr7')
   mkdirSync(directory, { recursive: true })
   const sessionId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
@@ -53,8 +56,13 @@ test('panel consent enables real local transcript search; clearing restores hist
     await testInfo.attach(name, { path: screenshotPath, contentType: 'image/png' })
   }
   await screenshot('consent.png')
-  await orcaPage.getByRole('button', { name: 'Not now', exact: true }).click()
+  await orcaPage.getByRole('button', { name: 'Clear search', exact: true }).click()
   await expect(input).toHaveValue('')
+  expect(
+    await orcaPage.evaluate(
+      () => window.__store?.getState().settings?.aiVaultSearch?.enabled ?? false
+    )
+  ).toBe(false)
   await input.fill('nebulariver')
   await orcaPage.getByRole('button', { name: 'Enable', exact: true }).click()
   // Indexed searches are snapshots; enabling starts indexing independently of the panel.

@@ -11,6 +11,7 @@ import {
 import { tmpdir } from 'node:os'
 import * as path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { normalizeRuntimePathSeparators } from '../../shared/cross-platform-path'
 import {
   getGitRepoRoot,
   getLinkedWorktreeMainRepoRoot,
@@ -80,7 +81,7 @@ describe('isGitRepo', () => {
     git(realRepo, ['init', '--quiet'])
 
     withGitUnavailable(() => {
-      expect(getGitRepoRoot(nestedDir)).toBe(realRepo)
+      expect(getGitRepoRoot(nestedDir)).toBe(normalizeRuntimePathSeparators(realRepo))
     })
   })
 
@@ -330,7 +331,7 @@ describe('isGitRepo', () => {
     const bareRepo = path.join(tmpDir, 'bare.git')
     git(tmpDir, ['init', '--bare', '--quiet', bareRepo])
 
-    expect(getGitRepoRoot(bareRepo)).toBe(bareRepo)
+    expect(getGitRepoRoot(bareRepo)).toBe(normalizeRuntimePathSeparators(bareRepo))
   })
 })
 

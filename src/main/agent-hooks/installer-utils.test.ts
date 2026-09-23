@@ -37,6 +37,7 @@ import {
 } from './hook-stdin-contract'
 import { wrapRuntimeHomeHookCommand } from './runtime-home-hook-command'
 import { findBareHookCommandVariables } from './managed-hook-command-env.test-fixture'
+import { findGitBash } from './windows-git-bash-path.test-fixture'
 
 let tmpDir: string
 let configPath: string
@@ -802,10 +803,7 @@ describe('wrapRuntimeHomeHookCommand', () => {
     writeFileSync(join(sourceScriptDir, 'claude-hook.sh'), '#!/bin/sh\nexit 9\n', 'utf-8')
     chmodSync(join(destinationScriptDir, 'claude-hook.sh'), 0o755)
 
-    const shell =
-      process.platform === 'win32'
-        ? join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
-        : '/bin/sh'
+    const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
     const result = spawnSync(shell, ['-c', wrapRuntimeHomeHookCommand('claude-hook')], {
       env: {
         ...process.env,
@@ -823,8 +821,7 @@ describe('wrapRuntimeHomeHookCommand', () => {
     const scriptDir = join(destinationHome, '.orca', 'agent-hooks')
     mkdirSync(scriptDir, { recursive: true })
     writeFileSync(join(scriptDir, 'claude-hook.cmd'), '@echo off\r\nexit /b 7\r\n', 'utf-8')
-    const gitBash = join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
-    const result = spawnSync(gitBash, ['-c', wrapRuntimeHomeHookCommand('claude-hook')], {
+    const result = spawnSync(findGitBash(), ['-c', wrapRuntimeHomeHookCommand('claude-hook')], {
       env: { ...process.env, HOME: destinationHome.replaceAll('\\', '/') }
     })
 
@@ -834,10 +831,7 @@ describe('wrapRuntimeHomeHookCommand', () => {
 
   it('drains stdin when HOME is unavailable', () => {
     const command = `unset HOME; ${wrapRuntimeHomeHookCommand('claude-hook')}`
-    const shell =
-      process.platform === 'win32'
-        ? join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
-        : '/bin/sh'
+    const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
     const result = spawnSync(shell, ['-c', command], {
       input: Buffer.alloc(1_000_000, 'x')
     })
@@ -847,10 +841,7 @@ describe('wrapRuntimeHomeHookCommand', () => {
   })
 
   it('emits neutral JSON when a lifecycle script is missing', () => {
-    const shell =
-      process.platform === 'win32'
-        ? join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
-        : '/bin/sh'
+    const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
     const result = spawnSync(
       shell,
       ['-c', wrapRuntimeHomeHookCommand('missing-orca-hook', { neutralJsonWhenMissing: true })],

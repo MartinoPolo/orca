@@ -17,6 +17,7 @@ const ruleName = 'typescript/consistent-type-assertions'
 // Built rather than written out so no line here is itself a casting directive the gate would scan.
 const directive = (reason) => `// oxlint-disable-next-line ${ruleName} -- ${reason}`
 const trailingDirective = (reason) => `// oxlint-disable-line ${ruleName} -- ${reason}`
+const fixtureDirectoryPrefix = '.casting-lint-test-'
 
 function lint(file, args = []) {
   const result = spawnSync(
@@ -29,9 +30,10 @@ function lint(file, args = []) {
 }
 
 it.each(['config', 'mobile'])('enforces new casts without changing full lint in %s', (parent) => {
-  const directory = mkdtempSync(path.join(root, parent, 'casting-lint-test-'))
+  const directory = mkdtempSync(path.join(root, parent, fixtureDirectoryPrefix))
   const file = path.join(directory, 'fixture.test.ts')
   try {
+    expect(path.basename(directory).startsWith('.')).toBe(true)
     writeFileSync(
       file,
       [
@@ -73,7 +75,7 @@ it.each(['config', 'mobile'])('enforces new casts without changing full lint in 
 })
 
 it("exempts the SAFETY: directive from the untyped scan's unused-directive warning", () => {
-  const directory = mkdtempSync(path.join(root, 'config', 'casting-lint-test-'))
+  const directory = mkdtempSync(path.join(root, 'config', fixtureDirectoryPrefix))
   const file = path.join(directory, 'fixture.test.ts')
   try {
     writeFileSync(
@@ -101,7 +103,7 @@ it("exempts the SAFETY: directive from the untyped scan's unused-directive warni
 })
 
 it('rejects a casting suppression on an added line that omits the SAFETY: rationale', () => {
-  const directory = mkdtempSync(path.join(root, 'config', 'casting-lint-test-'))
+  const directory = mkdtempSync(path.join(root, 'config', fixtureDirectoryPrefix))
   const file = path.join(directory, 'fixture.test.ts')
   try {
     writeFileSync(
@@ -135,7 +137,7 @@ it('rejects a casting suppression on an added line that omits the SAFETY: ration
 // Why: an earlier pattern skipped a directive whose `//` sat right after a quote, which let an
 // unjustified cast through the gate -- the wrong failure direction for a gate.
 it('catches a trailing casting suppression that abuts a string literal', () => {
-  const directory = mkdtempSync(path.join(root, 'config', 'casting-lint-test-'))
+  const directory = mkdtempSync(path.join(root, 'config', fixtureDirectoryPrefix))
   const file = path.join(directory, 'fixture.test.ts')
   try {
     writeFileSync(file, `export const abutted = 'a'${trailingDirective('no required prefix')}\n`)

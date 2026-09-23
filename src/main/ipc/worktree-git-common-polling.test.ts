@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rename, rm, stat, utimes, writeFile } from 'node:fs/promises'
 import type * as NodeFsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
@@ -14,12 +14,14 @@ import type {
 // real disk timing (#17828). `entryZeroStatCalls` tracks every stat under a
 // specific pre-existing entry (its dir plus every leaf), used to prove the
 // entry-dir signature gate keeps an unchanged entry to one stat per tick.
-const { statDelayMs, readdirCalls, concurrency, entryZeroStatCalls } = vi.hoisted(() => ({
-  statDelayMs: { current: 0 },
-  readdirCalls: { count: 0 },
-  concurrency: { current: 0, peak: 0 },
-  entryZeroStatCalls: { count: 0 }
-}))
+const { statDelayMs, readdirCalls, completedReaddirCalls, concurrency, entryZeroStatCalls } =
+  vi.hoisted(() => ({
+    statDelayMs: { current: 0 },
+    readdirCalls: { count: 0 },
+    completedReaddirCalls: { count: 0 },
+    concurrency: { current: 0, peak: 0 },
+    entryZeroStatCalls: { count: 0 }
+  }))
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof NodeFsPromises>()
@@ -27,7 +29,14 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     ...actual,
     readdir: (...args: Parameters<typeof actual.readdir>) => {
       readdirCalls.count += 1
-      return actual.readdir(...args)
+      const result = actual.readdir(...args)
+      void result.then(
+        () => {
+          completedReaddirCalls.count += 1
+        },
+        () => undefined
+      )
+      return result
     },
     stat: async (...args: Parameters<typeof actual.stat>) => {
       concurrency.current += 1
@@ -79,6 +88,7 @@ describe('startGitCommonPolling fan-out bounds (#17828)', () => {
   beforeEach(() => {
     statDelayMs.current = 0
     readdirCalls.count = 0
+    completedReaddirCalls.count = 0
     concurrency.current = 0
     concurrency.peak = 0
     entryZeroStatCalls.count = 0
@@ -146,31 +156,47 @@ describe('startGitCommonPolling fan-out bounds (#17828)', () => {
     const commonDir = await makeCommonDir(1)
     dirsToRemove.push(commonDir)
     const events: WorktreeBasePollEvent[][] = []
+    const entryDir = join(commonDir, 'worktrees', 'wt-0')
+    const headPath = join(entryDir, 'HEAD')
+    const headLockPath = join(entryDir, 'HEAD.lock')
+    // An old baseline mtime makes the real lock+rename change the entry signature even on coarse clocks.
+    const oldEntryTime = new Date('2000-01-01T00:00:00Z')
+    await utimes(entryDir, oldEntryTime, oldEntryTime)
+    const baselineEntryMtimeMs = (await stat(entryDir)).mtimeMs
+    vi.useFakeTimers()
+    let completedScansAtDetection: number | undefined
     const pollIntervalMs = 20
     const sub = await startGitCommonPolling(
       commonDir,
-      (batch) => events.push(batch),
+      (batch) => {
+        events.push(batch)
+        if (
+          completedScansAtDetection === undefined &&
+          batch.some((event) => event.type === 'update' && event.path === headPath)
+        ) {
+          completedScansAtDetection = completedReaddirCalls.count
+        }
+      },
       pollIntervalMs,
       alwaysVisible
     )
     cleanups.push(() => sub.unsubscribe())
-    // Let the bootstrap snapshot settle before mutating.
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
 
-    const entryDir = join(commonDir, 'worktrees', 'wt-0')
-    const headPath = join(entryDir, 'HEAD')
-    const headLockPath = join(entryDir, 'HEAD.lock')
-    // Every real git ref write goes through a lock file + rename inside the entry
-    // dir (never an in-place overwrite), which moves the entry dir's own signature.
+    const completedScansAtMutation = completedReaddirCalls.count
+    expect(completedScansAtMutation).toBe(1)
+    // Keep the first scheduled scan paused until the real lock write and rename finish.
     await writeFile(headLockPath, 'ref: refs/heads/feature\n')
     await rename(headLockPath, headPath)
+    expect((await stat(entryDir)).mtimeMs).toBeGreaterThan(baselineEntryMtimeMs)
 
+    await vi.advanceTimersByTimeAsync(pollIntervalMs)
     await vi.waitFor(
       () => {
         expect(events.flat()).toContainEqual({ type: 'update', path: headPath })
       },
-      { timeout: pollIntervalMs * 10 }
+      { timeout: 2_000 }
     )
+    expect(completedScansAtDetection).toBe(completedScansAtMutation + 1)
   })
 
   it('detects an in-place gitdir rewrite only once the periodic backstop rescans it', async () => {
