@@ -7,7 +7,11 @@ import { Readable } from 'node:stream'
 import { resetSessionParseCacheForTests } from '../../parse-cache/session-parse-cache-store'
 import { sessionCandidatesFromDiscoveries } from '../../discovery/session-scanner-candidates'
 import { scanAiVaultSessions } from '../../session-scanner'
-import { isolatedScanRoots, jsonLines } from '../../scanner-fixtures/session-scanner-test-fixtures'
+import {
+  expectedPosixCodexResumeCommand,
+  isolatedScanRoots,
+  jsonLines
+} from '../../scanner-fixtures/session-scanner-test-fixtures'
 
 const reads = vi.hoisted(
   (): {
@@ -153,7 +157,11 @@ describe('scanAiVaultSessions codex dual-root dedup', () => {
     )
     expect(managedOnly).toMatchObject({
       codexHome: managedHome,
-      resumeCommand: `cd '/repo/app' && CODEX_HOME='${managedHome}' codex resume '029f0000-1111-7222-8333-555555555555'`
+      resumeCommand: expectedPosixCodexResumeCommand(
+        '/repo/app',
+        managedHome,
+        '029f0000-1111-7222-8333-555555555555'
+      )
     })
   })
 

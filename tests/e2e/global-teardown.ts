@@ -3,6 +3,13 @@ import { readFileSync, readdirSync, existsSync, realpathSync, rmSync } from 'nod
 import { basename, dirname, join } from 'node:path'
 import { TEST_REPO_PATH_FILE } from './global-setup'
 
+const OWNED_DIRECTORY_REMOVAL_OPTIONS = {
+  recursive: true,
+  force: true,
+  maxRetries: 5,
+  retryDelay: 100
+} as const
+
 export function linkedWorktreePaths(testRepoDir: string): string[] {
   const root = realpathSync.native(testRepoDir)
   const output = execFileSync('git', ['-C', testRepoDir, 'worktree', 'list', '--porcelain'], {
@@ -35,10 +42,10 @@ export function cleanupTestRepository(testRepoDir: string): void {
   }
   for (const worktreeDir of worktreePaths) {
     if (existsSync(worktreeDir)) {
-      rmSync(worktreeDir, { recursive: true, force: true })
+      rmSync(worktreeDir, OWNED_DIRECTORY_REMOVAL_OPTIONS)
     }
   }
-  rmSync(root, { recursive: true, force: true })
+  rmSync(root, OWNED_DIRECTORY_REMOVAL_OPTIONS)
 }
 
 export function cleanupTestRepositoryPathFiles(runPathFile: string): void {
