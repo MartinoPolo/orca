@@ -1,4 +1,3 @@
-import { dispatchTerminalNotification } from '@/components/terminal-pane/use-notification-dispatch'
 import { getEagerPtyBufferHandle } from '@/components/terminal-pane/pty-dispatcher'
 import { warnTerminalLifecycleAnomaly } from '@/components/terminal-pane/terminal-lifecycle-diagnostics'
 import {
@@ -209,6 +208,9 @@ export async function syncRuntimeGraph(): Promise<void> {
       ) {
         continue
       }
+      // The notification module reads the store; loading it during terminal-slice construction cycles.
+      const { dispatchTerminalNotification } =
+        await import('@/components/terminal-pane/use-notification-dispatch')
       dispatchTerminalNotification(entry.worktreeId, {
         source: 'agent-task-complete',
         desktopOnly: true,
