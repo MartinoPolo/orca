@@ -20,7 +20,10 @@ import { useFocusedAgentPaneKey } from './focused-agent-row-highlight'
 import { CompactAgentExpansion } from './worktree-card-compact-agents'
 import { CompactAgentRow } from './worktree-card-compact-agent-row'
 import { revealCompactAgentCard } from '../../worktree-list/navigation/worktree-sidebar-reveal'
-import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion-state'
+import {
+  COMPACT_AGENT_SUMMARY_MIN_ROOT_COUNT,
+  useWorktreeAgentExpansionState
+} from './worktree-card-agents-expansion-state'
 import { useTranslate } from '@/i18n/use-translate'
 import { agentSendDisabledReasonLabel } from '@/lib/agent-session/messaging/agent-send-disabled-reason-label'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
@@ -144,7 +147,7 @@ function WorktreeCardAgentsBody({
     ]
   )
   const compact = display.agentActivityDisplayMode === 'compact',
-    summary = compact && roots.length > 1 && !targets
+    summary = compact && roots.length >= COMPACT_AGENT_SUMMARY_MIN_ROOT_COUNT && !targets
   const rootRef = useRef<HTMLDivElement | null>(null),
     previousExpanded = useRef(expansion.compactRootListExpanded)
   useLayoutEffect(() => {

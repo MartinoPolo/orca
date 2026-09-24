@@ -12,7 +12,10 @@ import {
 } from '../../../../../../shared/worktree/host-qualified-identity'
 import { selectAgentRowsUnread } from '../activity/worktree-card-agent-ack-inputs'
 import { selectSendTargetControlInputs } from '../activity/worktree-card-send-target-inputs'
-import { useWorktreeAgentExpansionState } from '../activity/worktree-card-agents-expansion-state'
+import {
+  COMPACT_AGENT_SUMMARY_MIN_ROOT_COUNT,
+  useWorktreeAgentExpansionState
+} from '../activity/worktree-card-agents-expansion-state'
 import type { WorktreeCardController } from '../controller/use-worktree-card-controller'
 import { collectLineageSlotTargets, useLineageSlotSummary } from '../../worktree-card-slot-rollup'
 import {
@@ -79,10 +82,9 @@ export function WorktreeCardTitleStatusProvider({
     (s) => selectSendTargetControlInputs(s, worktree.id).targetMode !== null
   )
   const { compactRootListExpanded } = useWorktreeAgentExpansionState(worktree.id, worktree.hostId)
-  // Compact mode folds two or more agents behind a summary row until it is expanded.
   const foldedBehindSummary =
     card.agentActivityDisplayMode === 'compact' &&
-    signals.rootCount > 1 &&
+    signals.rootCount >= COMPACT_AGENT_SUMMARY_MIN_ROOT_COUNT &&
     !compactRootListExpanded &&
     !pickingSendTarget
   const linesShown = showInlineAgentList && signals.rootCount > 0 && !foldedBehindSummary

@@ -12,12 +12,15 @@ export type WorktreeAgentExpansionState = {
   compactRootListExpanded: boolean
 }
 
+// Small compact lists need no summary row; longer ones fold behind it.
+export const COMPACT_AGENT_SUMMARY_MIN_ROOT_COUNT = 4
+
 const EMPTY_PANE_KEYS: ReadonlySet<string> = new Set()
 
 const DEFAULT_EXPANSION_STATE: WorktreeAgentExpansionState = {
   expandedLineageParents: EMPTY_PANE_KEYS,
   expandedIdleChildGroups: EMPTY_PANE_KEYS,
-  compactRootListExpanded: false
+  compactRootListExpanded: true
 }
 
 // Retain disclosures across virtualizer/lineage remounts in a bounded renderer-session cache; reload resets them.
@@ -57,7 +60,7 @@ function persistExpansionState(
   // Refresh LRU order and retain only non-default disclosures.
   expansionByKey.delete(key)
   if (
-    state.compactRootListExpanded ||
+    !state.compactRootListExpanded ||
     state.expandedLineageParents.size > 0 ||
     state.expandedIdleChildGroups.size > 0
   ) {
