@@ -152,9 +152,15 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-  await journals.closeAll()
-  await host.flushAllStreamedEvents()
-  await rm(root, { recursive: true, force: true })
+  try {
+    await host.flushAllStreamedEvents()
+  } finally {
+    try {
+      await journals.closeAll()
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  }
 })
 
 /** A restarted process swaps the store and the host under the same directories.
