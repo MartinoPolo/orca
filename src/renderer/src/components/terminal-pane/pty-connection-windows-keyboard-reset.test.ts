@@ -5,6 +5,8 @@ import {
   RESET_TERMINAL_CURSOR_STYLE
 } from '../../../../shared/terminal-mode-reset-profiles'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { resolveTerminalShortcutAction } from './terminal-shortcut-policy'
+import { REATTACH_IDLE_AGENT_CURSOR_RESET_DELAY_MS } from './pty-connection/foreground-output-scan'
 import {
   temporarilySetNavigatorUserAgent,
   sendTerminalInputThroughPane
@@ -17,8 +19,9 @@ import {
 } from './pty-connection-test-pane-fixtures'
 import { buildPaneConnectionDeps } from './pty-connection-test-deps'
 import { createInitialStoreState } from './pty-connection-test-store-fixtures'
+import { flushAsyncTicks } from './pty-connection-test-async'
 import type { StoreState } from './pty-connection-test-store-state'
-import type { MockTransport } from './pty-connection-test-pane-fixtures'
+import type { ConnectCallbacks, MockTransport } from './pty-connection-test-pane-fixtures'
 import {
   installTerminalTestGlobals,
   restoreTerminalTestGlobals
@@ -363,6 +366,106 @@ describe('connectPanePty', () => {
         expect.any(Function)
       )
     } finally {
+      restoreUserAgent()
+    }
+  })
+
+  it('preserves Pi-negotiated Alt input across Windows done and reattach idle resets until the application resets it', async () => {
+    const restoreUserAgent = temporarilySetNavigatorUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    )
+    const { connectPanePty } = await import('./pty-connection')
+    const transport = createMockTransport()
+    let outputCallbacks: ConnectCallbacks | undefined
+    transport.connect.mockImplementation(async ({ callbacks }) => {
+      outputCallbacks = callbacks
+      return { id: 'tab-pty', isReattach: true }
+    })
+    transportFactoryQueue.push(transport)
+    let binding: ReturnType<typeof connectPanePty> | undefined
+
+    try {
+      mockStoreState.tabsByWorktree['wt-1'][0].ptyId = null
+      mockStoreState.tabsByWorktree['wt-1'][0].title = 'Pi ready'
+      const paneKey = makePaneKey('tab-1', LEAF_1)
+      const pane = createPane(1)
+      const deps = createDeps({
+        restoredLeafId: LEAF_1,
+        restoredPtyIdByLeafId: { [LEAF_1]: 'tab-pty' }
+      })
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Connection fixtures provide the pane, manager, and dependencies exercised by this mocked transport.
+      binding = connectPanePty(pane as never, createManager(1) as never, deps as never)
+      const onData = outputCallbacks?.onData
+      if (!onData) {
+        throw new Error('Expected connected PTY output callback')
+      }
+      vi.useFakeTimers()
+      await flushAsyncTicks(30)
+      onData('\x1b[>7u')
+      const mirror = deps.paneKittyKeyboardModesRef.current.get(pane.id)
+      if (
+        !mirror ||
+        typeof mirror !== 'object' ||
+        !('flags' in mirror) ||
+        typeof mirror.flags !== 'number'
+      ) {
+        throw new Error('Expected pane kitty keyboard mirror')
+      }
+      const resolveAltP = () =>
+        resolveTerminalShortcutAction(
+          {
+            key: 'p',
+            code: 'KeyP',
+            metaKey: false,
+            ctrlKey: false,
+            altKey: true,
+            shiftKey: false
+          },
+          false,
+          'false',
+          0,
+          true,
+          undefined,
+          undefined,
+          () => (typeof mirror.flags === 'number' ? mirror.flags : 0)
+        )
+      expect(mirror.flags).toBe(7)
+      expect(resolveAltP()).toMatchObject({ type: 'sendInput', data: '\x1b[112;3u' })
+
+      mockStoreState.agentStatusByPaneKey[paneKey] = {
+        state: 'done',
+        prompt: 'ship it',
+        updatedAt: Date.now(),
+        stateStartedAt: Date.now(),
+        agentType: 'pi',
+        paneKey,
+        stateHistory: []
+      }
+      notifyStoreSubscribers()
+      expect(pane.terminal.write).toHaveBeenCalledWith(
+        `${RESET_TERMINAL_CURSOR_STYLE}${RESET_KITTY_KEYBOARD_PROTOCOL}`,
+        expect.any(Function)
+      )
+      expect(mirror.flags).toBe(7)
+      expect(resolveAltP()).toMatchObject({ type: 'sendInput', data: '\x1b[112;3u' })
+
+      const resetWritesBeforeReattachTimer = pane.terminal.write.mock.calls.filter(
+        ([data]) => data === `${RESET_TERMINAL_CURSOR_STYLE}${RESET_KITTY_KEYBOARD_PROTOCOL}`
+      ).length
+      await vi.advanceTimersByTimeAsync(REATTACH_IDLE_AGENT_CURSOR_RESET_DELAY_MS)
+      expect(
+        pane.terminal.write.mock.calls.filter(
+          ([data]) => data === `${RESET_TERMINAL_CURSOR_STYLE}${RESET_KITTY_KEYBOARD_PROTOCOL}`
+        )
+      ).toHaveLength(resetWritesBeforeReattachTimer + 1)
+      expect(mirror.flags).toBe(7)
+      expect(resolveAltP()).toMatchObject({ type: 'sendInput', data: '\x1b[112;3u' })
+
+      onData('\x1b[=0u')
+      expect(mirror.flags).toBe(0)
+      expect(resolveAltP()).toBeNull()
+    } finally {
+      binding?.dispose()
       restoreUserAgent()
     }
   })

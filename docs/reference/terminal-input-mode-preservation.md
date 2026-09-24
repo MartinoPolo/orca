@@ -12,8 +12,10 @@ frame must retain those protocols; repainting alone does not renegotiate them.
   retain their existing arrow-scroll behavior.
 - Negotiated unshifted printable Alt shortcuts on Windows/Linux use the application-owned Kitty mode mirror,
   as macOS Option shortcuts do. Renderer-only interrupt/replay resets must not change the encoding
-  expected by a surviving application. Keep legacy input, AltGr, composition, and dead-shell cleanup
-  intact; do not enable Kitty globally on Windows to compensate.
+  expected by a surviving application. Agent-idle cleanup uses the renderer write path without
+  scanning its synthetic reset into the application mode mirror; real PTY resets still clear it.
+  Keep legacy input, AltGr, composition, and dead-shell cleanup intact; do not enable Kitty globally
+  on Windows to compensate.
 
 These safeguards do not force mouse reporting back on after an application or ConPTY disables it.
 For fullscreen Pi, switching TUI mode off and on reinitializes mouse reporting; `/model` bypasses a
