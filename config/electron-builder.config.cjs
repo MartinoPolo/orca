@@ -91,6 +91,8 @@ const {
 const {
   buildMacShipItScheduling
 } = require('./scripts/desktop-distribution/macos/macos-shipit-scheduling.cjs')
+const { assertForkReleaseSource, REPOSITORY } = require('./scripts/fork-release-policy.cjs')
+const { assertForkBuildSource } = require('./scripts/fork-build-source.cjs')
 
 // Dev channels need release bundle ID/signature/notarization so Squirrel.Mac accepts updates and macOS retains app identity.
 const isMacHourly = process.env.ORCA_MAC_HOURLY === '1'
@@ -119,7 +121,16 @@ const packagedVersion = devChannelBuildVersion ?? localBuildVersion
 const isManualUpdateBuild = process.env.ORCA_MANUAL_UPDATES_ONLY === '1'
 const extraMetadata = {
   ...(packagedVersion ? { version: packagedVersion } : {}),
-  ...(isManualUpdateBuild ? { orcaManualUpdatesOnly: true } : {})
+  ...(isManualUpdateBuild
+    ? {
+        orcaManualUpdatesOnly: true,
+        orcaBuildSource: {
+          branch: 'main',
+          repository: REPOSITORY,
+          commit: process.env.ORCA_BUILD_COMMIT
+        }
+      }
+    : {})
 }
 // Separate dev-channel repos: 24 hourly tags/day would evict stable/RC from the ten-entry release feed; isolate adhoc/daily from hourly subscribers too.
 const devChannelRepo = isHourlyChannel
@@ -314,6 +325,7 @@ module.exports = {
     '!out/electron-dev{,/**/*}',
     // extraResources already ships relay; duplicating it in asar added 14MB and let script-heuristic quarantine gut the whole archive (#20966/#20972).
     '!out/relay{,/**/*}',
+    '!out/fork-build-source.json',
     '!electron.vite.config.{js,ts,mjs,cjs}',
     '!{.oxlintrc.json,.oxfmtrc.json,components.json,opencode.json,orca.yaml,pnpm-workspace.yaml,vite.web.config.ts}',
     '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}',
@@ -405,6 +417,26 @@ module.exports = {
   ) => {
     // The template is the server every SSH host gets, so a dark test template must never ship.
     assertNotDarkBuild([join(__dirname, '..', 'out', 'main'), mobileWebBundleDir, orcadTemplateDir])
+    if (isManualUpdateBuild) {
+      if (!/^\d+\.\d+\.\d+-local\.\d{14}\.g[0-9a-f]{8}$/.test(localBuildVersion ?? '')) {
+        throw new Error('Fork manual packaging requires a unique local build version')
+      }
+      if (!/^[0-9a-f]{40}$/.test(process.env.ORCA_BUILD_COMMIT ?? '') || !process.env.MPX_APPS) {
+        throw new Error('Fork manual packaging requires ORCA_BUILD_COMMIT and MPX_APPS')
+      }
+      const cwd = resolve(__dirname, '..')
+      const source = assertForkReleaseSource({
+        cwd,
+        manifestPath: join(process.env.MPX_APPS, 'Orca-Lab', 'verified-build.json'),
+        expectedCommit: process.env.ORCA_BUILD_COMMIT
+      })
+      assertForkBuildSource({
+        cwd,
+        proofPath: join(cwd, 'out', 'fork-build-source.json'),
+        source,
+        version: localBuildVersion
+      })
+    }
     assertPackagedNativeVariantsInstalled(context.electronPlatformName, context.arch)
     assertBundledRipgrepInstalled()
     assertProcessHostOutputBuilt()

@@ -5,7 +5,7 @@
 ## Fork Patches
 
 - **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
-- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks.
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages also require a clean published `main`, merged development refs, and a verified previous Lab source; use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build.
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Send Pi's Ctrl+Enter as CSI-u from trusted panes without enabling the protocol globally for Windows ConPTY shells.
@@ -20,7 +20,7 @@ Add or update a one-to-three-sentence entry here for every fork-only patch.
 
 ## Installation
 
-Build with `ORCA_MANUAL_UPDATES_ONLY=1` and a unique `ORCA_LOCAL_BUILD_VERSION`, validate with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.
+Run `pnpm run build:fork` from a clean, published fork `main`, validate the generated unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.
 
 # Useful Commands
 
