@@ -17,6 +17,7 @@ import {
   makeTabWithIds,
   makeWorktree
 } from '@/components/activity/ActivityPrototypePage-test-fixtures'
+import WorktreeContextMenu from '@/components/sidebar/WorktreeContextMenu'
 
 function renderMenu(onMarkUnread = vi.fn(), onPriorityChange = vi.fn()) {
   const triggerRef = createRef<HTMLButtonElement>()
@@ -144,6 +145,42 @@ describe('SessionAttentionContextMenu', () => {
     expect(container.querySelector('[role="listitem"]')?.getAttribute('aria-label')).toBe('target')
     expect(onSelect).not.toHaveBeenCalled()
     await waitFor(() => expect(document.activeElement).toBe(targetRow))
+  })
+
+  it('owns right-clicks when nested inside a workspace context menu', async () => {
+    const triggerRef = createRef<HTMLButtonElement>()
+    const onWorkspaceContextMenuSelect = vi.fn(() => [makeWorktree()])
+    const onWorkspaceMenuOpenChange = vi.fn()
+    render(
+      <WorktreeContextMenu
+        worktree={makeWorktree()}
+        onContextMenuSelect={onWorkspaceContextMenuSelect}
+        onOpenChange={onWorkspaceMenuOpenChange}
+      >
+        <SessionAttentionContextMenu
+          triggerRef={triggerRef}
+          sessionIdentity="nested-session"
+          sessionName="Nested session"
+          priority={3}
+          unread={false}
+          onPriorityChange={vi.fn()}
+          onSavedColorChange={vi.fn()}
+          onMarkRead={vi.fn()}
+          onMarkUnread={vi.fn()}
+        >
+          <button ref={triggerRef} type="button">
+            Nested session
+          </button>
+        </SessionAttentionContextMenu>
+      </WorktreeContextMenu>
+    )
+
+    fireEvent.contextMenu(triggerRef.current!)
+
+    expect(await screen.findByRole('menuitem', { name: 'Priority' })).toBeTruthy()
+    expect(screen.queryByText('Workspace')).toBeNull()
+    expect(onWorkspaceContextMenuSelect).not.toHaveBeenCalled()
+    expect(onWorkspaceMenuOpenChange).not.toHaveBeenCalled()
   })
 
   it('opens a real Activity row context menu with Shift+F10', async () => {

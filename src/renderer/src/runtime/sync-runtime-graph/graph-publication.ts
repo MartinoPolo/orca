@@ -1,3 +1,4 @@
+import { dispatchTerminalNotification } from '@/components/terminal-pane/use-notification-dispatch'
 import { getEagerPtyBufferHandle } from '@/components/terminal-pane/pty-dispatcher'
 import { warnTerminalLifecycleAnomaly } from '@/components/terminal-pane/terminal-lifecycle-diagnostics'
 import {
@@ -189,7 +190,40 @@ export async function syncRuntimeGraph(): Promise<void> {
     const result = await window.api.runtime.syncWindowGraph(graph)
     commitMobileSessionPublication(mobileSessionTabs, result?.mobileSessionResyncWorktrees)
     const currentState = graphState.getStoreState()
-    currentState?.setRuntimeAgentOrchestrationByPaneKey?.(result?.agentOrchestrationByPaneKey ?? {})
+    const previousOrchestration = currentState?.runtimeAgentOrchestrationByPaneKey
+    const nextOrchestration = result?.agentOrchestrationByPaneKey ?? {}
+    currentState?.setRuntimeAgentOrchestrationByPaneKey?.(nextOrchestration)
+    for (const [paneKey, current] of Object.entries(nextOrchestration)) {
+      const previous = previousOrchestration?.[paneKey]
+      const entry = currentState?.agentStatusByPaneKey[paneKey]
+      if (
+        entry?.state !== 'done' ||
+        !entry.worktreeId ||
+        !previous ||
+        previous.taskId !== current.taskId ||
+        previous.dispatchId !== current.dispatchId ||
+        (previous.dispatchStatus !== 'dispatched' &&
+          previous.dispatchStatus !== 'pending' &&
+          previous.dispatchStatus !== 'completed') ||
+        (current.dispatchStatus !== 'failed' && current.dispatchStatus !== 'circuit_broken')
+      ) {
+        continue
+      }
+      dispatchTerminalNotification(entry.worktreeId, {
+        source: 'agent-task-complete',
+        desktopOnly: true,
+        soundCategory: 'failed',
+        paneKey,
+        terminalTitle: entry.terminalTitle,
+        agentStatusSnapshot: {
+          state: 'done',
+          agentType: entry.agentType,
+          prompt: entry.prompt,
+          stateStartedAt: entry.stateStartedAt,
+          lastAssistantMessage: entry.lastAssistantMessage
+        }
+      })
+    }
     for (const resolution of result?.nativeChatLaunchDraftResolutions ?? []) {
       if (currentState) {
         applyNativeChatLaunchDraftResolved(currentState, {

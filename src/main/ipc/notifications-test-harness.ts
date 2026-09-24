@@ -116,12 +116,20 @@ export function getOpenSystemSettingsHandler(): (event: unknown) => unknown {
   return findRegisteredHandler('notifications:openSystemSettings') as (event: unknown) => unknown
 }
 
-export function getLoadSoundHandler(): (event: unknown) => Promise<unknown> {
-  return findRegisteredHandler('notifications:loadSound') as (event: unknown) => Promise<unknown>
+export function getLoadSoundHandler(): (event: unknown, category?: string) => Promise<unknown> {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: handler is registered with exactly this IPC signature by registerNotificationSoundHandlers.
+  return findRegisteredHandler('notifications:loadSound') as (
+    event: unknown,
+    category?: string
+  ) => Promise<unknown>
 }
 
-export function getResolveSoundPathHandler(): (event: unknown) => unknown {
-  return findRegisteredHandler('notifications:resolveSoundPath') as (event: unknown) => unknown
+export function getResolveSoundPathHandler(): (event: unknown, category?: string) => unknown {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: handler is registered with exactly this IPC signature by registerNotificationSoundHandlers.
+  return findRegisteredHandler('notifications:resolveSoundPath') as (
+    event: unknown,
+    category?: string
+  ) => unknown
 }
 
 export function getNotificationEventHandler(eventName: string): (...args: unknown[]) => void {

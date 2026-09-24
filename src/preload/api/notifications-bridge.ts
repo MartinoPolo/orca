@@ -6,7 +6,8 @@ import type {
   NotificationPermissionStatusResult,
   NotificationSoundDataResult,
   NotificationSoundPathResult,
-  NotificationSoundResult
+  NotificationSoundResult,
+  NotificationSoundCategory
 } from '../../shared/notification-settings-types'
 import type { PreloadApi } from '../api-types'
 
@@ -51,6 +52,7 @@ export const notificationsApi = {
   playSound: async (options?: {
     force?: boolean
     volume?: number
+    category?: NotificationSoundCategory
   }): Promise<NotificationSoundResult> => {
     try {
       // Why: drop replays while still ringing; the test button passes force to always confirm.
@@ -58,8 +60,10 @@ export const notificationsApi = {
         return { played: false, reason: 'deduped' }
       }
 
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: IPC handler returns NotificationSoundPathResult; Electron invoke is untyped.
       const resolved = (await ipcRenderer.invoke(
-        'notifications:resolveSoundPath'
+        'notifications:resolveSoundPath',
+        options?.category
       )) as NotificationSoundPathResult
       if (!resolved.ok) {
         if (cachedNotificationSound) {
@@ -70,8 +74,10 @@ export const notificationsApi = {
 
       let entry = cachedNotificationSound
       if (!entry || entry.path !== resolved.path) {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: IPC handler returns NotificationSoundDataResult; Electron invoke is untyped.
         const sound = (await ipcRenderer.invoke(
-          'notifications:loadSound'
+          'notifications:loadSound',
+          options?.category
         )) as NotificationSoundDataResult
         if (!sound.ok) {
           disposeCachedNotificationSound()

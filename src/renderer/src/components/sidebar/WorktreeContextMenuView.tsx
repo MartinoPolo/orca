@@ -43,7 +43,8 @@ import {
   isWorktreeParentPickerDisabled,
   shouldIgnoreNestedWorktreeContextMenuScope,
   shouldRevealWorktreeDeveloperMenu,
-  shouldUseNativeContextMenu
+  shouldUseNativeContextMenu,
+  shouldYieldToNestedContextMenu
 } from './worktree-context-menu-policy'
 
 export default function WorktreeContextMenuView({ model }: { model: WorktreeContextMenuModel }) {
@@ -110,7 +111,10 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
         if (!isEventTargetInsideCurrentTarget(event.currentTarget, event.target)) {
           return
         }
-        if (shouldUseNativeContextMenu(event.target)) {
+        if (
+          shouldUseNativeContextMenu(event.target) ||
+          shouldYieldToNestedContextMenu(event.target)
+        ) {
           return
         }
         if (shouldIgnoreNestedWorktreeContextMenuScope(event.currentTarget, event.target)) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { dispatchTerminalNotification } from '../terminal-pane/use-notification-dispatch'
 import { useShallow } from 'zustand/react/shallow'
 import { agentProviderSessionsEqual } from '../../../../shared/agent-session-resume'
 import type {
@@ -18,7 +19,10 @@ import {
 import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { useAppStore } from '@/store'
 import { getActiveRuntimeTarget, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
-import { getStructuredAgentSessionStatusFeed } from '@/runtime/structured-agent-session-status-feed'
+import {
+  getStructuredAgentSessionStatusFeed,
+  type StructuredAgentSessionStatusFeedOwner
+} from '@/runtime/structured-agent-session-status-feed'
 import { getStructuredAgentSessionTabs, type StructuredTab } from './structured-agent-session-tabs'
 
 // Re-exported so the bridge stays the one import site its consumers already know.
@@ -28,9 +32,12 @@ export { getStructuredAgentSessionTabs } from './structured-agent-session-tabs'
 function useStructuredAgentSessionStatusSummary(
   sessionId: string,
   target: RuntimeClientTarget
-): { summary: AgentSessionStatusSummary | null; observation: 'live' | 'unverifiable' } {
+): {
+  summary: AgentSessionStatusSummary | null
+  observation: 'live' | 'unverifiable'
+  feed: StructuredAgentSessionStatusFeedOwner
+} {
   const feed = useMemo(() => getStructuredAgentSessionStatusFeed(target), [target])
-  useEffect(() => feed.activate(), [feed])
   const summary = useSyncExternalStore(
     feed.subscribe,
     () => feed.getSnapshot().get(sessionId) ?? null,
@@ -41,7 +48,7 @@ function useStructuredAgentSessionStatusSummary(
     () => feed.getSessionObservation(sessionId),
     () => 'unverifiable' as const
   )
-  return { summary, observation }
+  return { summary, observation, feed }
 }
 
 /** Matches the wire-parse bound in `normalizeSubagentSnapshot`. */
@@ -183,10 +190,43 @@ function StructuredAgentSessionStatusProjection({ tab }: { tab: StructuredTab })
     () => getActiveRuntimeTarget({ activeRuntimeEnvironmentId: environmentId }),
     [environmentId]
   )
-  const { summary, observation } = useStructuredAgentSessionStatusSummary(tab.entityId, target)
+  const { summary, observation, feed } = useStructuredAgentSessionStatusSummary(
+    tab.entityId,
+    target
+  )
   useEffect(() => {
     projectStatus(tab, summary, observation)
   }, [summary, observation, tab])
+  useEffect(() => {
+    const unsubscribe = feed.subscribeLiveTransition(tab.entityId, (previous, current) => {
+      if (
+        previous.status !== 'working' ||
+        (current.status !== 'attention' && current.status !== 'idle')
+      ) {
+        return
+      }
+      dispatchTerminalNotification(tab.worktreeId, {
+        source: 'agent-task-complete',
+        desktopOnly: true,
+        paneKey: structuredAgentSessionPaneKey(tab.id, tab.entityId),
+        terminalTitle: tab.label,
+        agentStatusSnapshot: {
+          state: structuredAgentSessionStatusState(current.status),
+          agentType: tab.agentSessionAgent,
+          prompt: current.latestPrompt,
+          stateStartedAt: current.updatedAt,
+          lastAssistantMessage: current.lastAssistantMessage,
+          toolName: current.toolName,
+          toolInput: current.toolInput
+        }
+      })
+    })
+    const deactivate = feed.activate()
+    return () => {
+      unsubscribe()
+      deactivate()
+    }
+  }, [tab, feed])
   useEffect(
     () => () =>
       useAppStore.getState().removeAgentStatus(structuredAgentSessionPaneKey(tab.id, tab.entityId)),
