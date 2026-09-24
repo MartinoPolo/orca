@@ -6,6 +6,7 @@ import type { AgentSessionSubscribeEvent } from '../../../shared/agent-session-w
 import { join } from 'node:path'
 import { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
+import type * as JournalStoreFactory from '../agent-session-journal/journal-store-factory'
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 import { StructuredAgentSessionHost } from './structured-agent-session-host'
 import {
@@ -16,9 +17,20 @@ import {
   ensureParams,
   envelope,
   hostTestState,
+  journals,
   replaceHostTestState,
   seedApproval
 } from './structured-agent-session-host-test-harness'
+
+vi.mock('../agent-session-journal/journal-store-factory', async (importOriginal) => {
+  const actual = await importOriginal<typeof JournalStoreFactory>()
+  return {
+    ...actual,
+    openAgentSessionJournal: async (...args: Parameters<typeof actual.openAgentSessionJournal>) =>
+      journals.track(await actual.openAgentSessionJournal(...args))
+  }
+})
+
 import {
   HOST_TEST_NOW as NOW,
   HOST_TEST_SESSION as SESSION,
