@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { join, sep } from 'node:path'
+import { tmpdir } from 'node:os'
+import { join, normalize } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import type { Repo } from '../../shared/repo-types'
 import type {
@@ -7,9 +8,9 @@ import type {
   WorktreeBasePollerOptions
 } from './worktree-base-directory-poller'
 
-vi.mock('fs/promises', () => ({
+vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(async () => ''),
-  realpath: vi.fn(async (path: string) => path),
+  realpath: vi.fn(async (path: string) => normalize(path)),
   stat: vi.fn(async () => ({ isDirectory: () => true }))
 }))
 
@@ -58,7 +59,8 @@ type PollerCallback = (events: WorktreeBasePollEvent[]) => void
 const watcherCallbacks = new Map<string, PollerCallback>()
 const unsubscribeMocks = new Map<string, ReturnType<typeof vi.fn>>()
 const pollerOptions = new Map<string, WorktreeBasePollerOptions>()
-const absolutePath = (...parts: string[]): string => join(sep, ...parts)
+const absolutePath = (...parts: string[]): string =>
+  join(tmpdir(), 'orca-watcher-fixtures', ...parts)
 const WORKTREE_ROOT = absolutePath('workspace', 'worktrees')
 const PROJECT_ROOT = absolutePath('workspace', 'projects', 'project')
 const PROJECT_GIT_COMMON_DIR = join(PROJECT_ROOT, '.git')
@@ -82,10 +84,7 @@ function makeRepo(overrides: Partial<Repo> = {}): Repo {
 }
 
 function makeStore(repos: Repo[]) {
-  return {
-    getSettings: () => settings,
-    getRepos: () => repos
-  }
+  return { getSettings: () => settings, getRepos: () => repos }
 }
 
 function makeWindow(options: { destroyed?: () => boolean } = {}) {
@@ -234,7 +233,9 @@ describe('worktree base directory watcher', () => {
     )
     await syncWorktreeBaseDirectoryWatchers(makeStore([makeRepo()]) as never, makeWindow() as never)
     const getPaths = pollerOptions.get(PROJECT_GIT_COMMON_DIR)?.getGitStatusRefPaths
-    expect(getPaths?.()).toEqual([join(PROJECT_GIT_COMMON_DIR, 'refs/remotes/origin/first')])
+    expect(getPaths?.().map(normalize)).toEqual([
+      join(PROJECT_GIT_COMMON_DIR, 'refs/remotes/origin/first')
+    ])
 
     await setWorktreeGitStatusRefWatch(
       {
@@ -254,7 +255,9 @@ describe('worktree base directory watcher', () => {
       },
       async () => undefined
     )
-    expect(getPaths?.()).toEqual([join(PROJECT_GIT_COMMON_DIR, 'refs/remotes/origin/next')])
+    expect(getPaths?.().map(normalize)).toEqual([
+      join(PROJECT_GIT_COMMON_DIR, 'refs/remotes/origin/next')
+    ])
 
     await setWorktreeGitStatusRefWatch(
       {
