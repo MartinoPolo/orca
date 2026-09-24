@@ -220,6 +220,8 @@ export function useComposerSubmitOrchestration(
   })
   const quickSubmitAction = useQuickSubmitAction({
     effectiveLinkedPR: target.derivedComposerState.effectiveLinkedPR,
+    ephemeralVmsEnabled: target.runtimeTargetSelection.ephemeralVmsEnabled,
+    selectedEphemeralVmRecipeId: target.runtimeTargetSelection.selectedEphemeralVmRecipeId,
     executeQuickCreation: quickCreationExecution.executeQuickCreation,
     fallbackCreatureName: target.derivedComposerState.fallbackCreatureName,
     isProjectGroupTarget: target.runtimeTargetSelection.isProjectGroupTarget,
@@ -234,7 +236,13 @@ export function useComposerSubmitOrchestration(
       external.githubSubmitResolution.resolvePendingSmartGitHubSubmit,
     selectedRepo: target.runtimeTargetSelection.selectedRepo,
     selectedRepoRequiresConnection: target.runtimeTargetSelection.selectedRepoRequiresConnection,
+    selectedRepoAgentLaunchPlatform: target.runtimeTargetSelection.selectedRepoAgentLaunchPlatform,
+    selectedRepoExecutionHostId: target.runtimeTargetSelection.selectedRepoExecutionHostId,
+    selectedRepoIsRemote: target.runtimeTargetSelection.selectedRepoIsRemote,
+    selectedRepoSettings: target.runtimeTargetSelection.selectedRepoSettings,
+    selectedRepoStartupShell: target.runtimeTargetSelection.selectedRepoStartupShell,
     selectedWorkspaceTarget: target.runtimeTargetSelection.selectedWorkspaceTarget,
+    settings: target.composerTargetStore.settings,
     setCreateError: target.asyncComposerState.setCreateError,
     setCreating: target.asyncComposerState.setCreating,
     setupDecision: target.asyncComposerState.setupDecision,

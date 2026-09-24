@@ -25,6 +25,7 @@ function makeRequest(
 ): NotificationDispatchRequest {
   return {
     source: 'agent-task-complete',
+    priority: 5,
     worktreeId: 'wt-1',
     worktreeLabel: 'wt-1',
     ...overrides
@@ -81,6 +82,43 @@ beforeEach(() => {
 })
 
 describe('createNotificationDeliveryService', () => {
+  it('limits agent banners to P4/P5 without withholding mobile delivery', () => {
+    const harness = makeHarness(makeSettings())
+    const service = createNotificationDeliveryService(harness.deps)
+    expect(service.dispatch(makeRequest({ priority: 3 }))).toEqual({
+      delivered: false,
+      reason: 'priority'
+    })
+    expect(harness.dispatchMobileNotification).toHaveBeenCalledTimes(1)
+    expect(harness.deliverNative).not.toHaveBeenCalled()
+    expect(service.dispatch(makeRequest({ priority: undefined, worktreeId: 'wt-3' }))).toEqual({
+      delivered: false,
+      reason: 'priority'
+    })
+    expect(service.dispatch(makeRequest({ priority: 4, worktreeId: 'wt-2' }))).toEqual({
+      delivered: true
+    })
+    expect(service.dispatch(makeRequest({ priority: 5, worktreeId: 'wt-4' }))).toEqual({
+      delivered: true
+    })
+  })
+
+  it('delivers desktop-only failures without a second mobile completion', () => {
+    const harness = makeHarness(makeSettings())
+    const service = createNotificationDeliveryService(harness.deps)
+    expect(service.dispatch(makeRequest({ desktopOnly: true, soundCategory: 'failed' }))).toEqual({
+      delivered: true
+    })
+    expect(harness.dispatchMobileNotification).not.toHaveBeenCalled()
+    expect(harness.deliverNative).toHaveBeenCalledWith(
+      expect.objectContaining({ desktopOnly: true }),
+      expect.objectContaining({ title: expect.stringContaining('failed') }),
+      expect.anything()
+    )
+    expect(service.dispatch(makeRequest({ worktreeId: 'wt-2' }))).toEqual({ delivered: true })
+    expect(harness.dispatchMobileNotification).toHaveBeenCalledOnce()
+  })
+
   it('lights the tray dot before the enabled/cooldown gates can reject the event', () => {
     const harness = makeHarness(makeSettings({ enabled: false }))
     const result = createNotificationDeliveryService(harness.deps).dispatch(makeRequest())

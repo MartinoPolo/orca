@@ -1,5 +1,9 @@
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import {
+  buildPiLaunchProfileEnv,
+  type PiLaunchProfile
+} from '../../../../shared/pi-launch-profiles'
 import type { AgentStartupShell } from '../../../../shared/tui-agent-startup-shell'
 import type { AgentStartedTelemetry } from '@/lib/worktree-startup-payload'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
@@ -15,6 +19,7 @@ import { tuiAgentToAgentKind } from '@/lib/telemetry'
 
 export type QuickComposerStartupInput = {
   agent: TuiAgent | null
+  piProfile?: PiLaunchProfile
   prompt: string
   draftPrompt: string | null | undefined
   settings: GlobalSettings | null | undefined
@@ -33,6 +38,16 @@ export type QuickComposerStartup = {
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
   const { agent, draftPrompt, prompt, settings } = input
+  const commandOverrides = input.piProfile
+    ? { ...settings?.agentCmdOverrides, pi: input.piProfile.command }
+    : (settings?.agentCmdOverrides ?? {})
+  const agentEnvironment =
+    agent === null
+      ? undefined
+      : {
+          ...resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
+          ...(input.piProfile ? buildPiLaunchProfileEnv(input.piProfile) : {})
+        }
   const sessionOptions =
     agent === null
       ? undefined
@@ -58,9 +73,9 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
       : buildAgentDraftLaunchPlan({
           agent,
           draft: draftPrompt,
-          cmdOverrides: settings?.agentCmdOverrides ?? {},
+          cmdOverrides: commandOverrides,
           agentArgs: resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs),
-          agentEnv: resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
+          agentEnv: agentEnvironment,
           sessionOptions,
           platform: input.platform,
           shell: input.shell ?? undefined,
@@ -84,9 +99,9 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
     startupPlan = buildAgentStartupPlan({
       agent,
       prompt,
-      cmdOverrides: settings?.agentCmdOverrides ?? {},
+      cmdOverrides: commandOverrides,
       agentArgs: resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs),
-      agentEnv: resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
+      agentEnv: agentEnvironment,
       sessionOptions,
       platform: input.platform,
       shell: input.shell ?? undefined,

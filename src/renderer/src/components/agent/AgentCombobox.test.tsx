@@ -11,6 +11,47 @@ import AgentCombobox from './AgentCombobox'
 afterEach(cleanup)
 
 describe('AgentCombobox', () => {
+  it('offers searchable named Pi alongside built-in pi without changing other consumers', () => {
+    const profile = {
+      id: 'work',
+      name: 'piw',
+      command: '/tools/piw',
+      agentDirectory: '/accounts/work'
+    }
+    const onPiProfileChange = vi.fn()
+    const onValueChange = vi.fn()
+    const { rerender } = render(
+      <AgentCombobox
+        agents={AGENT_CATALOG.filter((entry) => entry.id === 'pi')}
+        value="pi"
+        onValueChange={onValueChange}
+        piProfiles={[profile]}
+        onPiProfileChange={onPiProfileChange}
+      />
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    expect(screen.getByRole('option', { name: 'piw' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'pi' })).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('Search agents...'), { target: { value: 'piw' } })
+    fireEvent.click(screen.getByRole('option', { name: 'piw' }))
+    expect(onPiProfileChange).toHaveBeenCalledWith(profile)
+    rerender(
+      <AgentCombobox
+        agents={AGENT_CATALOG.filter((entry) => entry.id === 'pi')}
+        value="pi"
+        onValueChange={onValueChange}
+        piProfiles={[profile]}
+        selectedPiProfile={profile}
+        onPiProfileChange={onPiProfileChange}
+      />
+    )
+    expect(screen.getByRole('combobox').textContent).toContain('piw')
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('option', { name: 'pi' }))
+    expect(onPiProfileChange).toHaveBeenLastCalledWith(null)
+    expect(onValueChange).toHaveBeenCalledWith('pi')
+  })
+
   it('sets the closed trigger selection as the default agent', () => {
     const onSetDefault = vi.fn()
     render(

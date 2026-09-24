@@ -2,6 +2,34 @@ import { describe, expect, it } from 'vitest'
 import { buildFolderWorkspaceLinkedStartupPlan } from './folder-workspace-composer-submit'
 
 describe('buildFolderWorkspaceLinkedStartupPlan', () => {
+  it('preserves the named Pi command and account in a folder linked draft', () => {
+    const plan = buildFolderWorkspaceLinkedStartupPlan({
+      agent: 'pi',
+      linkedWorkItem: {
+        provider: 'github',
+        type: 'issue',
+        number: 42,
+        title: 'Review',
+        url: 'https://example.com/42',
+        repoId: 'repo-1'
+      },
+      note: '',
+      agentCmdOverrides: { pi: '/tools/piw' },
+      agentEnv: {
+        PI_CODING_AGENT_DIR: '/accounts/work',
+        ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work'
+      },
+      platform: 'linux',
+      isRemote: false
+    })
+    expect(plan?.launchCommand).toContain('/tools/piw')
+    expect(plan?.env).toMatchObject({
+      PI_CODING_AGENT_DIR: '/accounts/work',
+      ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work',
+      ORCA_PI_PREFILL: expect.stringContaining('https://example.com/42')
+    })
+  })
+
   it('uses cmd quoting for configured arguments on local Windows', () => {
     const plan = buildFolderWorkspaceLinkedStartupPlan({
       agent: 'hermes',

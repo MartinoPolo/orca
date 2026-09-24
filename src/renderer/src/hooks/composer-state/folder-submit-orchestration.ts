@@ -4,7 +4,6 @@ type FolderSubmitOrchestrationInput = Pick<
   ComposerModel,
   | 'clearNewWorkspaceDraft'
   | 'createFolderWorkspace'
-  | 'decisions'
   | 'disabledTuiAgents'
   | 'folderCreateDisabled'
   | 'folderSourceRepos'
@@ -25,10 +24,21 @@ type FolderSubmitOrchestrationInput = Pick<
   | 'settings'
   | 'taskSourceContext'
   | 'telemetrySource'
->
+> & {
+  decisions: Pick<ComposerModel['decisions'], 'canResolveFolderSmartGitHubSubmit'>
+}
 
 import { useCallback } from 'react'
+import { useAppStore } from '@/store'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import {
+  buildPiLaunchProfileEnv,
+  type PiLaunchProfile
+} from '../../../../shared/pi-launch-profiles'
+import {
+  canLaunchFolderComposerPiProfile,
+  getValidatedComposerPiProfile
+} from '@/lib/composer-pi-profile-target'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import {
@@ -77,13 +87,18 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
   const { canResolveFolderSmartGitHubSubmit } = decisions
 
   const submitFolderTarget = useCallback(
-    async (requestedAgent: TuiAgent | null): Promise<void> => {
+    async (requestedAgent: TuiAgent | null, piProfile?: PiLaunchProfile): Promise<void> => {
       if (!selectedProjectGroup?.parentPath || folderCreateDisabled) {
         return
       }
       setCreateError(null)
       setCreating(true)
       try {
+        const selectedProfile = getValidatedComposerPiProfile(
+          piProfile,
+          useAppStore.getState().settings,
+          requestedAgent === 'pi' && canLaunchFolderComposerPiProfile(selectedProjectGroup)
+        )
         const shouldResolveSmartGitHubSubmit = canResolveFolderSmartGitHubSubmit({
           hasFolderSourceRepos: folderSourceRepos.length > 0
         })
@@ -104,6 +119,11 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           requestedAgent && isTuiAgentEnabled(requestedAgent, disabledTuiAgents)
             ? requestedAgent
             : null
+        if (selectedProfile && agent !== 'pi') {
+          throw new Error(
+            'Pi is no longer available. Select another agent before creating the workspace.'
+          )
+        }
         if (isSubmissionCancelled()) {
           return
         }
@@ -127,12 +147,19 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           note,
           quickAgent: agent,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
-          agentCmdOverrides: settings?.agentCmdOverrides,
+          agentCmdOverrides: selectedProfile
+            ? { ...settings?.agentCmdOverrides, pi: selectedProfile.command }
+            : settings?.agentCmdOverrides,
           linkedWorkItemPromptTemplate,
           agentArgs: agent
             ? resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs)
             : undefined,
-          agentEnv: agent ? resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv) : undefined,
+          agentEnv: agent
+            ? {
+                ...resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
+                ...(selectedProfile ? buildPiLaunchProfileEnv(selectedProfile) : {})
+              }
+            : undefined,
           sessionOptions: agent
             ? resolveInitialNativeChatSessionOptions(
                 {

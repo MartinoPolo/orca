@@ -7678,18 +7678,18 @@
         },
         "NotificationsPane": {
           "906b4afebf": "Send Test Notification",
-          "2772d2f257": "Skip notifications when the triggering worktree is already visible.",
+          "2772d2f257": "Skip banners when the triggering worktree is already visible; sounds still play.",
           "00cd406dbb": "Suppress While Focused",
           "2a42dd8d6f": "Notification sound volume",
           "4aa5085cd7": "Custom:",
           "c258cb96dc": "Choose notification sound",
-          "2a2033c388": "Choose the alert Orca plays when a desktop notification is delivered.",
+          "2a2033c388": "Choose the sound Orca plays for this agent event, even when banners are suppressed.",
           "88686e6ca8": "Notification Sound",
           "b6fc369244": "A background terminal emits a bell character.",
           "591fe605b9": "Terminal Bell",
-          "55f901a59b": "A coding agent finishes and becomes idle.",
+          "55f901a59b": "Alert when an agent finishes, needs input, or becomes blocked.",
           "ca76d06fd2": "Agent Task Complete",
-          "deff6d30da": "Native system notifications for background events.",
+          "deff6d30da": "Agent sounds and native banners for background events.",
           "841c8c549f": "Enable Notifications",
           "0fadad17ce": "Notification sound could not be played",
           "406feb0aa6": "Test notification was not delivered",
@@ -18016,11 +18016,17 @@
     "crashLoopMessage": "The app window crashed repeatedly and stopped reloading automatically."
   },
   "notifications": {
+    "sound": {
+      "done": "Done",
+      "needsInput": "Needs input",
+      "failed": "Failed / blocked"
+    },
     "agentStatus": {
       "needsInput": "needs input",
       "working": "working",
       "stopped": "stopped",
-      "finished": "finished"
+      "finished": "finished",
+      "failed": "failed"
     }
   },
   "sessionSearch": {

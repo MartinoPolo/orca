@@ -63,30 +63,41 @@ export function hasWorktreeParentLink(
   )
 }
 
+function closestEventTarget(target: EventTarget | null, selector: string): Element | null {
+  if (!target) {
+    return null
+  }
+  if ('closest' in target && typeof target.closest === 'function') {
+    const closest = target.closest(selector)
+    if (closest) {
+      return closest
+    }
+  }
+  if (
+    'parentElement' in target &&
+    target.parentElement &&
+    typeof target.parentElement === 'object' &&
+    'closest' in target.parentElement &&
+    typeof target.parentElement.closest === 'function'
+  ) {
+    return target.parentElement.closest(selector)
+  }
+  return null
+}
+
 export function shouldUseNativeContextMenu(target: EventTarget | null): boolean {
-  const maybeElement = target as {
-    closest?: (selector: string) => Element | null
-    parentElement?: { closest?: (selector: string) => Element | null }
-  } | null
-  const nativeContextMenuSelector = `[${WORKTREE_NATIVE_CONTEXT_MENU_ATTR}]`
-  return (
-    (maybeElement?.closest?.(nativeContextMenuSelector) ??
-      maybeElement?.parentElement?.closest?.(nativeContextMenuSelector)) != null
-  )
+  return closestEventTarget(target, `[${WORKTREE_NATIVE_CONTEXT_MENU_ATTR}]`) != null
+}
+
+export function shouldYieldToNestedContextMenu(target: EventTarget | null): boolean {
+  return closestEventTarget(target, '[data-slot="context-menu-trigger"]') != null
 }
 
 export function shouldIgnoreNestedWorktreeContextMenuScope(
   currentTarget: EventTarget,
   target: EventTarget | null
 ): boolean {
-  const maybeScopedTarget = target as {
-    closest?: (selector: string) => Element | null
-    parentElement?: { closest?: (selector: string) => Element | null }
-  } | null
-  const scopeSelector = `[${WORKTREE_CONTEXT_MENU_SCOPE_ATTR}]`
-  const closestScope =
-    maybeScopedTarget?.closest?.(scopeSelector) ??
-    maybeScopedTarget?.parentElement?.closest?.(scopeSelector)
+  const closestScope = closestEventTarget(target, `[${WORKTREE_CONTEXT_MENU_SCOPE_ATTR}]`)
   // Why: lineage child previews live inside the parent card DOM but own their
   // context menu target. The parent must ignore only those nested scopes.
   return closestScope != null && closestScope !== currentTarget

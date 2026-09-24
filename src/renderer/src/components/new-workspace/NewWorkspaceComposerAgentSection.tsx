@@ -11,6 +11,9 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   NewWorkspaceComposerCardProps,
   | 'quickAgent'
   | 'onQuickAgentChange'
+  | 'piProfiles'
+  | 'selectedPiProfile'
+  | 'onPiProfileChange'
   | 'onOpenAgentSettings'
   | 'createDisabled'
   | 'onCreate'
@@ -27,6 +30,9 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
 export function NewWorkspaceComposerAgentSection({
   quickAgent,
   onQuickAgentChange,
+  piProfiles,
+  selectedPiProfile,
+  onPiProfileChange,
   onOpenAgentSettings,
   createDisabled,
   onCreate,
@@ -69,6 +75,9 @@ export function NewWorkspaceComposerAgentSection({
           agents={visibleQuickAgents}
           value={quickAgent}
           onValueChange={onQuickAgentChange}
+          piProfiles={piProfiles}
+          selectedPiProfile={selectedPiProfile}
+          onPiProfileChange={onPiProfileChange}
           onOpenManageAgents={onOpenAgentSettings}
           defaultAgent={defaultTuiAgent}
           onSetDefault={handleSetDefaultAgent}
