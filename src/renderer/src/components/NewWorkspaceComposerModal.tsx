@@ -21,6 +21,7 @@ import { shouldAllowComposerEnterSubmitTarget } from '@/lib/new-workspace-enter-
 import { isScreenSubmitShortcut } from '@/lib/screen-submit-shortcut'
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
 import type { TuiAgent } from '../../../shared/tui-agent'
+import { normalizePiLaunchProfiles, type PiLaunchProfile } from '../../../shared/pi-launch-profiles'
 import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../../shared/workspace-source'
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
@@ -123,6 +124,7 @@ function QuickTabBody({
     onComposerNodeChange,
     nameInputRef,
     submitQuick,
+    piProfilesAvailable,
     createDisabled,
     selectAddedProjectRepo
   } = useComposerState({
@@ -177,15 +179,21 @@ function QuickTabBody({
     // before the child selector renders an unavailable option for one commit.
     setQuickAgentOverride(resolvedQuickAgentSelection.quickAgentOverride)
   }
-  const quickAgent = resolvedQuickAgentSelection.quickAgent
+  const [selectedPiProfile, setSelectedPiProfile] = useState<PiLaunchProfile | null>(null)
+  const quickAgent = selectedPiProfile ? 'pi' : resolvedQuickAgentSelection.quickAgent
+  const availablePiProfiles =
+    piProfilesAvailable && !settings?.disabledTuiAgents?.includes('pi')
+      ? normalizePiLaunchProfiles(settings?.piLaunchProfiles)
+      : []
 
   const handleQuickAgentChange = useCallback((agent: TuiAgent | null) => {
     setQuickAgentOverride(agent)
+    setSelectedPiProfile(null)
   }, [])
 
   const handleCreate = useCallback(async (): Promise<void> => {
-    await submitQuick(quickAgent)
-  }, [quickAgent, submitQuick])
+    await submitQuick(quickAgent, selectedPiProfile ?? undefined)
+  }, [quickAgent, selectedPiProfile, submitQuick])
   // Why: Add Project layers over the composer as a nested dialog instead of
   // replacing it in the activeModal slot — closing the composer mid-flow (and
   // losing the typed name/prompt) was the old, abrupt behavior. Once opened it
@@ -301,6 +309,14 @@ function QuickTabBody({
         nameInputRef={nameInputRef}
         quickAgent={quickAgent}
         onQuickAgentChange={handleQuickAgentChange}
+        piProfiles={availablePiProfiles}
+        selectedPiProfile={selectedPiProfile}
+        onPiProfileChange={(profile) => {
+          setSelectedPiProfile(profile)
+          if (profile) {
+            setQuickAgentOverride('pi')
+          }
+        }}
         {...cardProps}
         primaryActionLabel={primaryActionLabel}
         onOpenAgentSettings={() => setAgentSettingsOpen(true)}

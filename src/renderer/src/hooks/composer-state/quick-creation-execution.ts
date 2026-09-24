@@ -1,40 +1,13 @@
-import type { ComposerModel } from './composer-model'
-
-type QuickCreationExecutionInput = Pick<
-  ComposerModel,
-  | 'clearNewWorkspaceDraft'
-  | 'createMultiple'
-  | 'effectivePresetId'
-  | 'ephemeralVmRecipes'
-  | 'ephemeralVmsEnabled'
-  | 'isSubmissionCancelled'
-  | 'linkedGitLabIssue'
-  | 'linkedGitLabMR'
-  | 'normalizedSparseDirectories'
-  | 'onCreated'
-  | 'parentWorktreeId'
-  | 'persistDraft'
-  | 'persistSetupAgentStartupPolicy'
-  | 'prepareQuickSubmit'
-  | 'resetForNextCreate'
-  | 'resolvedInitialWorkspaceStatus'
-  | 'selectedEphemeralVmRecipeId'
-  | 'selectedRepoAgentLaunchPlatform'
-  | 'selectedRepoExecutionHostId'
-  | 'selectedRepoIsGit'
-  | 'selectedRepoIsRemote'
-  | 'selectedRepoSettings'
-  | 'selectedRepoStartupShell'
-  | 'selectedWorkspaceTarget'
-  | 'settings'
-  | 'sparseEnabled'
-  | 'taskSourceContext'
-  | 'telemetrySource'
->
+import type { QuickCreationExecutionInput } from './quick-creation-execution-input'
 
 import { useCallback } from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import {
+  getValidatedComposerPiProfile,
+  isComposerRepoPiProfileTarget
+} from '@/lib/composer-pi-profile-target'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
@@ -84,11 +57,24 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
     async (
       smartGitHubResolution: PendingSmartGitHubSubmitResolution,
       requestedAgent: TuiAgent | null,
+      piProfile: PiLaunchProfile | undefined,
       workspaceNameSeed: string,
       workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
       repoId: string,
       selectedRepo: Repo
     ): Promise<void> => {
+      const selectedProfile = getValidatedComposerPiProfile(
+        piProfile,
+        useAppStore.getState().settings,
+        requestedAgent === 'pi' &&
+          isComposerRepoPiProfileTarget({
+            executionHostId: workspaceRunContext?.hostId ?? selectedRepoExecutionHostId,
+            connectionId: selectedRepo.connectionId,
+            settings: selectedRepoSettings,
+            launchPlatform: selectedRepoAgentLaunchPlatform,
+            ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
+          })
+      )
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
         requestedAgent,
@@ -121,6 +107,11 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         trimmedNote
       } = prepared
 
+      if (selectedProfile && agent !== 'pi') {
+        throw new Error(
+          'Pi is no longer available. Select another agent before creating the workspace.'
+        )
+      }
       const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
 
       const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
@@ -136,6 +127,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         telemetry: quickTelemetry
       } = buildQuickComposerStartup({
         agent,
+        piProfile: selectedProfile,
         prompt: quickPrompt,
         draftPrompt: quickDraftPrompt,
         settings,

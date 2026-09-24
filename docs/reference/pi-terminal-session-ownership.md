@@ -56,7 +56,11 @@ on Windows, POSIX wrapper commands require a compatible configured shell such as
 Bash. The recommended two-account setup keeps the built-in default as `pi` and
 adds one profile named `piw` with command `piw` and the work account directory.
 Launch menus show `pi` for the default and each profile's exact configured name;
-do not add a duplicate Personal profile for the default account.
+do not add a duplicate Personal profile for the default account. New worktree and
+folder workspace creation offer configured profiles alongside built-in `pi` on
+local-native targets; selecting a profile carries its command and account directory
+into the initial startup, including linked-item drafts. SSH, WSL, paired runtime,
+and ephemeral-VM targets cannot use local account profiles.
 
 Launches snapshot the concrete command plus `PI_CODING_AGENT_DIR` and
 `ORCA_PI_SOURCE_AGENT_DIR`. Local-native restore and history flows compare lexical

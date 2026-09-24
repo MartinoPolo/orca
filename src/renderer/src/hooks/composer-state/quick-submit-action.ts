@@ -1,5 +1,13 @@
 import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import { normalizePiAccountPath, type PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import {
+  getValidatedComposerPiProfile,
+  isComposerRepoPiProfileTarget
+} from '@/lib/composer-pi-profile-target'
+import { getLocalDefaultPiAgentDirectory } from '@/lib/pi-profile-resume-provenance'
+import { buildQuickComposerStartup } from './quick-startup-plan'
+import type { SleepingAgentLaunchConfig } from '../../../../shared/agent-session-resume'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { findPendingLinkedWorkItemCreationId } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
@@ -16,6 +24,14 @@ import type { ComposerModel } from './composer-model'
 type QuickSubmitActionInput = Pick<
   ComposerModel,
   | 'effectiveLinkedPR'
+  | 'ephemeralVmsEnabled'
+  | 'selectedEphemeralVmRecipeId'
+  | 'selectedRepoAgentLaunchPlatform'
+  | 'selectedRepoExecutionHostId'
+  | 'selectedRepoIsRemote'
+  | 'selectedRepoSettings'
+  | 'selectedRepoStartupShell'
+  | 'settings'
   | 'executeQuickCreation'
   | 'fallbackCreatureName'
   | 'isProjectGroupTarget'
@@ -39,9 +55,53 @@ type QuickSubmitActionInput = Pick<
   | 'submitFolderTarget'
 >
 
+function capturedPiAccountDirectory(
+  config: SleepingAgentLaunchConfig,
+  allowImplicitDefaultDirectory: boolean
+): string | null {
+  const source = config.agentEnv.ORCA_PI_SOURCE_AGENT_DIR
+  const runtime = config.agentEnv.PI_CODING_AGENT_DIR
+  const normalizedSource = source ? normalizePiAccountPath(source) : ''
+  const normalizedRuntime = runtime ? normalizePiAccountPath(runtime) : ''
+  if ((source && !normalizedSource) || (runtime && !normalizedRuntime)) {
+    return null
+  }
+  if (normalizedSource && normalizedSource !== normalizedRuntime) {
+    return null
+  }
+  return (
+    normalizedRuntime ||
+    (allowImplicitDefaultDirectory
+      ? normalizePiAccountPath(getLocalDefaultPiAgentDirectory() ?? '')
+      : null) ||
+    null
+  )
+}
+
+function isMatchingPendingPiStartup(
+  pendingConfig: SleepingAgentLaunchConfig | undefined,
+  selectedConfig: SleepingAgentLaunchConfig | undefined,
+  allowImplicitDefaultDirectory: boolean
+): boolean {
+  if (!pendingConfig?.agentCommand || !selectedConfig?.agentCommand) {
+    return false
+  }
+  const pendingDirectory = capturedPiAccountDirectory(pendingConfig, allowImplicitDefaultDirectory)
+  const selectedDirectory = capturedPiAccountDirectory(
+    selectedConfig,
+    allowImplicitDefaultDirectory
+  )
+  return Boolean(
+    pendingDirectory &&
+    pendingDirectory === selectedDirectory &&
+    pendingConfig.agentCommand === selectedConfig.agentCommand
+  )
+}
+
 export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   const {
     effectiveLinkedPR,
+    ephemeralVmsEnabled,
     executeQuickCreation,
     fallbackCreatureName,
     isProjectGroupTarget,
@@ -55,7 +115,14 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
     resolvePendingSmartGitHubSubmit,
     selectedRepo,
     selectedRepoRequiresConnection,
+    selectedRepoAgentLaunchPlatform,
+    selectedRepoExecutionHostId,
+    selectedRepoIsRemote,
+    selectedRepoSettings,
+    selectedRepoStartupShell,
+    selectedEphemeralVmRecipeId,
     selectedWorkspaceTarget,
+    settings,
     setCreateError,
     setCreating,
     setupDecision,
@@ -66,9 +133,9 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   } = input
 
   const submitQuick = useCallback(
-    async (requestedAgent: TuiAgent | null): Promise<void> => {
+    async (requestedAgent: TuiAgent | null, piProfile?: PiLaunchProfile): Promise<void> => {
       if (isProjectGroupTarget) {
-        await submitFolderTarget(requestedAgent)
+        await submitFolderTarget(requestedAgent, piProfile)
         return
       }
 
@@ -120,6 +187,58 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       )
 
       if (pendingCreationId) {
+        if (
+          requestedAgent === 'pi' ||
+          liveStore.pendingWorktreeCreations[pendingCreationId]?.request.agent === 'pi'
+        ) {
+          try {
+            const isLocalPiTarget = isComposerRepoPiProfileTarget({
+              executionHostId: workspaceRunContext?.hostId ?? selectedRepoExecutionHostId,
+              connectionId: selectedRepo.connectionId,
+              settings: selectedRepoSettings,
+              launchPlatform: selectedRepoAgentLaunchPlatform,
+              ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
+            })
+            const selectedProfile = getValidatedComposerPiProfile(
+              piProfile,
+              liveStore.settings,
+              requestedAgent === 'pi' && isLocalPiTarget
+            )
+            const pendingRequest = liveStore.pendingWorktreeCreations[pendingCreationId]?.request
+            const selectedStartup =
+              requestedAgent === 'pi'
+                ? buildQuickComposerStartup({
+                    agent: 'pi',
+                    piProfile: selectedProfile,
+                    prompt: '',
+                    draftPrompt: null,
+                    settings,
+                    repoConnectionId: selectedRepo.connectionId,
+                    platform: selectedRepoAgentLaunchPlatform,
+                    shell: selectedRepoStartupShell,
+                    isRemote: selectedRepoIsRemote,
+                    telemetrySource: undefined
+                  }).startupPlan?.launchConfig
+                : undefined
+            if (
+              pendingRequest?.agent !== 'pi' ||
+              !isMatchingPendingPiStartup(
+                pendingRequest.startupPlan?.launchConfig ?? pendingRequest.startup?.launchConfig,
+                selectedStartup,
+                isLocalPiTarget && !selectedProfile
+              )
+            ) {
+              throw new Error(
+                'This linked workspace has a pending creation with a different Pi account. Open that creation to finish or retry it before submitting again.'
+              )
+            }
+          } catch (error) {
+            const formattedError = formatWorkspaceCreateError(error)
+            setCreateError(formattedError)
+            toast.error(getWorkspaceCreateErrorToastMessage(formattedError))
+            return
+          }
+        }
         liveStore.setActivePendingWorktreeCreation(pendingCreationId)
         liveStore.setActiveView('terminal')
         liveStore.setSidebarOpen(true)
@@ -141,6 +260,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
         await executeQuickCreation(
           smartGitHubSettlement.value,
           requestedAgent,
+          piProfile,
           workspaceNameSeed,
           workspaceRunContext,
           repoId,
@@ -159,6 +279,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
     },
     [
       effectiveLinkedPR,
+      ephemeralVmsEnabled,
       executeQuickCreation,
       fallbackCreatureName,
       isProjectGroupTarget,
@@ -172,7 +293,14 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       resolvePendingSmartGitHubSubmit,
       selectedRepo,
       selectedRepoRequiresConnection,
+      selectedRepoAgentLaunchPlatform,
+      selectedRepoExecutionHostId,
+      selectedRepoIsRemote,
+      selectedRepoSettings,
+      selectedRepoStartupShell,
+      selectedEphemeralVmRecipeId,
       selectedWorkspaceTarget,
+      settings,
       setCreateError,
       setCreating,
       setupDecision,
