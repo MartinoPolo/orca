@@ -9,7 +9,7 @@ const EMPTY_COLLAPSED_PARENTS: ReadonlySet<string> = new Set()
 
 const DEFAULT_EXPANSION_STATE: WorktreeAgentExpansionState = {
   collapsedLineageParents: EMPTY_COLLAPSED_PARENTS,
-  compactRootListExpanded: false
+  compactRootListExpanded: true
 }
 
 // Retain disclosures across virtualizer/lineage remounts in a bounded renderer-session cache; reload resets them.
@@ -33,7 +33,7 @@ function readExpansionState(worktreeId: string): WorktreeAgentExpansionState {
 function persistExpansionState(worktreeId: string, state: WorktreeAgentExpansionState): void {
   // Refresh LRU order and retain only non-default disclosures.
   expansionByWorktreeId.delete(worktreeId)
-  if (state.compactRootListExpanded || state.collapsedLineageParents.size > 0) {
+  if (!state.compactRootListExpanded || state.collapsedLineageParents.size > 0) {
     expansionByWorktreeId.set(worktreeId, state)
     trimPersistedExpansions()
   }

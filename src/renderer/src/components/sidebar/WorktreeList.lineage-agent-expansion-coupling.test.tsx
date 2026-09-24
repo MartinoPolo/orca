@@ -137,6 +137,8 @@ const TAB_ID = 'tabP'
 const PANE_ROOT = `${TAB_ID}:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`
 const PANE_CHILD = `${TAB_ID}:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`
 const PANE_ROOT_2 = `${TAB_ID}:cccccccc-cccc-4ccc-8ccc-cccccccccccc`
+const PANE_ROOT_3 = `${TAB_ID}:dddddddd-dddd-4ddd-8ddd-dddddddddddd`
+const PANE_ROOT_4 = `${TAB_ID}:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee`
 
 function makeRepo(): Repo {
   return {
@@ -223,7 +225,7 @@ function makeParentTab(): TerminalTab {
 
 function setAgentLineageState(options: {
   agentActivityDisplayMode: 'compact' | 'full'
-  secondRootAgent?: boolean
+  extraRootAgents?: boolean
   collapsedGroups?: Set<string>
 }): void {
   const repo = makeRepo()
@@ -249,8 +251,10 @@ function setAgentLineageState(options: {
       parentPaneKey: PANE_ROOT
     })
   }
-  if (options.secondRootAgent) {
+  if (options.extraRootAgents) {
     agentStatusByPaneKey[PANE_ROOT_2] = makeAgentEntry(PANE_ROOT_2, 'SECOND_ROOT_PROMPT')
+    agentStatusByPaneKey[PANE_ROOT_3] = makeAgentEntry(PANE_ROOT_3, 'THIRD_ROOT_PROMPT')
+    agentStatusByPaneKey[PANE_ROOT_4] = makeAgentEntry(PANE_ROOT_4, 'FOURTH_ROOT_PROMPT')
   }
 
   mockStore.state = {
@@ -501,21 +505,23 @@ describe('WorktreeCard agent-list <-> child-worktrees expansion coupling', () =>
   })
 
   it('[compact mode] toggling CHILD WORKTREES preserves the compact agent summary expansion (regression)', async () => {
-    setAgentLineageState({ agentActivityDisplayMode: 'compact', secondRootAgent: true })
+    setAgentLineageState({ agentActivityDisplayMode: 'compact', extraRootAgents: true })
     const { container, root } = await renderWorktreeList()
 
+    // Four roots use a summary even though the lineage child is a fifth row.
     const summary = compactAgentSummary(container)
     expect(summary).not.toBeNull()
-    expect(summary!.getAttribute('aria-expanded')).toBe('false')
+    expect(summary!.getAttribute('aria-expanded')).toBe('true')
+    expect(summary!.getAttribute('aria-label')).toContain('4 agents')
 
     await click(summary!)
-    expect(compactAgentSummary(container)!.getAttribute('aria-expanded')).toBe('true')
+    expect(compactAgentSummary(container)!.getAttribute('aria-expanded')).toBe('false')
 
     await click(childWorktreeChip(container)!)
     expect(mockStore.state.toggleCollapsedGroup).toHaveBeenCalledWith('lineage:parent')
     await rerender(root)
 
     expect(childWorktreeCardPresent(container)).toBe(false)
-    expect(compactAgentSummary(container)!.getAttribute('aria-expanded')).toBe('true')
+    expect(compactAgentSummary(container)!.getAttribute('aria-expanded')).toBe('false')
   })
 })
