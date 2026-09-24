@@ -59,6 +59,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'hermes',
@@ -135,6 +136,31 @@ describe('registerNotificationHandlers', () => {
     )
   })
 
+  it('sends a default P3 agent alert to mobile while suppressing its desktop banner', async () => {
+    const dispatchMobileNotification = vi.fn()
+    registerNotificationHandlers(
+      {
+        getSettings: () => ({
+          notifications: {
+            enabled: true,
+            agentTaskComplete: true,
+            terminalBell: true,
+            suppressWhenFocused: false
+          }
+        })
+      } as never,
+      { dispatchMobileNotification } as never
+    )
+
+    expect(
+      await getDispatchHandler()({}, { source: 'agent-task-complete', worktreeId: 'repo::wt1' })
+    ).toEqual({ delivered: false, reason: 'priority' })
+    expect(dispatchMobileNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'agent-task-complete', worktreeId: 'repo::wt1' })
+    )
+    expect(notificationCtorMock).not.toHaveBeenCalled()
+  })
+
   it('dispatches one mobile notification when the active worktree is focused on desktop', async () => {
     getAllWindowsMock.mockReturnValue([
       {
@@ -160,6 +186,7 @@ describe('registerNotificationHandlers', () => {
     const handler = getDispatchHandler()
     const focusedNotification = {
       source: 'agent-task-complete' as const,
+      priority: 4,
       worktreeId: 'repo::wt1',
       isActiveWorktree: true
     }
@@ -196,7 +223,9 @@ describe('registerNotificationHandlers', () => {
     )
 
     const handler = getDispatchHandler()
-    expect(await handler({}, { source: 'agent-task-complete', worktreeId: 'repo::wt1' })).toEqual({
+    expect(
+      await handler({}, { source: 'agent-task-complete', priority: 4, worktreeId: 'repo::wt1' })
+    ).toEqual({
       delivered: true
     })
     expect(await handler({}, { source: 'terminal-bell', worktreeId: 'repo::wt1' })).toEqual({
@@ -251,7 +280,10 @@ describe('registerNotificationHandlers', () => {
 
     const dispatchHandler = getDispatchHandler()
     expect(
-      await dispatchHandler({}, { source: 'agent-task-complete', notificationId: 'agent:one' })
+      await dispatchHandler(
+        {},
+        { source: 'agent-task-complete', priority: 4, notificationId: 'agent:one' }
+      )
     ).toEqual({ delivered: true })
 
     const dismissHandler = getDismissHandler()

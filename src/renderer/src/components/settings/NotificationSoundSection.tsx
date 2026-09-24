@@ -35,6 +35,7 @@ type NotificationSoundSectionProps = {
   onVolumeDraftChange: (value: number) => void
   onVolumeCommit: (value: number) => void
   onUpdateNotificationSettings: (updates: Partial<GlobalSettings['notifications']>) => Promise<void>
+  category?: 'done' | 'needs-input' | 'failed'
 }
 
 export function NotificationSoundSection({
@@ -43,20 +44,31 @@ export function NotificationSoundSection({
   volumeDraft,
   onVolumeDraftChange,
   onVolumeCommit,
-  onUpdateNotificationSettings
+  onUpdateNotificationSettings,
+  category = 'done'
 }: NotificationSoundSectionProps): React.JSX.Element {
   const mountedRef = useMountedRef()
+  const soundIdKey =
+    category === 'needs-input'
+      ? 'needsInputSoundId'
+      : category === 'failed'
+        ? 'failedSoundId'
+        : 'customSoundId'
+  const soundPathKey =
+    category === 'needs-input'
+      ? 'needsInputSoundPath'
+      : category === 'failed'
+        ? 'failedSoundPath'
+        : 'customSoundPath'
+  const selectedSoundId = notificationSettings[soundIdKey] ?? 'system'
+  const selectedSoundPath = notificationSettings[soundPathKey] ?? null
   const [isPickingSound, setIsPickingSound] = useState(false)
 
-  const previewSound = async (
-    customSoundId: GlobalSettings['notifications']['customSoundId']
-  ): Promise<void> => {
-    if (customSoundId === 'system') {
-      return
-    }
+  const previewSound = async (): Promise<void> => {
     const result = await window.api.notifications.playSound({
       force: true,
-      volume: volumeDraft
+      volume: volumeDraft,
+      category
     })
     if (!result.played) {
       toast.error(
@@ -73,8 +85,8 @@ export function NotificationSoundSection({
     try {
       const soundPath = await window.api.shell.pickAudio()
       if (soundPath) {
-        await onUpdateNotificationSettings({ customSoundId: 'custom', customSoundPath: soundPath })
-        await previewSound('custom')
+        await onUpdateNotificationSettings({ [soundIdKey]: 'custom', [soundPathKey]: soundPath })
+        await previewSound()
       }
     } finally {
       if (mountedRef.current) {
@@ -88,12 +100,11 @@ export function NotificationSoundSection({
       await handleChooseCustomSound()
       return
     }
-    await onUpdateNotificationSettings({ customSoundId: value })
-    await previewSound(value)
+    await onUpdateNotificationSettings({ [soundIdKey]: value })
+    await previewSound()
   }
 
-  const selectedSoundId = notificationSettings.customSoundId
-  const soundOptions = getNotificationSoundOptions(notificationSettings.customSoundPath)
+  const soundOptions = getNotificationSoundOptions(selectedSoundPath)
 
   return (
     <div className="space-y-2 py-2">
@@ -101,16 +112,17 @@ export function NotificationSoundSection({
         <div className="flex items-center gap-2">
           <FileAudio className="size-4" />
           <Label>
-            {translate(
-              'auto.components.settings.NotificationsPane.88686e6ca8',
-              'Notification Sound'
-            )}
+            {category === 'done'
+              ? translate('notifications.sound.done', 'Done')
+              : category === 'needs-input'
+                ? translate('notifications.sound.needsInput', 'Needs input')
+                : translate('notifications.sound.failed', 'Failed / blocked')}
           </Label>
         </div>
         <p className="text-xs text-muted-foreground">
           {translate(
             'auto.components.settings.NotificationsPane.2a2033c388',
-            'Choose the alert Orca plays when a desktop notification is delivered.'
+            'Choose the sound Orca plays for this agent event, even when banners are suppressed.'
           )}
         </p>
       </div>
@@ -141,7 +153,7 @@ export function NotificationSoundSection({
           <SelectItem value={CHOOSE_CUSTOM_SOUND_VALUE}>
             <Upload className="size-4" />
             <span>
-              {notificationSettings.customSoundPath
+              {selectedSoundPath
                 ? translate(
                     'auto.components.settings.NotificationsPane.76e02467b8',
                     'Change Custom File'
@@ -154,13 +166,13 @@ export function NotificationSoundSection({
           </SelectItem>
         </SelectContent>
       </Select>
-      {notificationSettings.customSoundPath ? (
+      {selectedSoundPath ? (
         <p
           className="truncate font-mono text-[11px] text-muted-foreground"
-          title={notificationSettings.customSoundPath}
+          title={selectedSoundPath}
         >
           {translate('auto.components.settings.NotificationsPane.4aa5085cd7', 'Custom:')}{' '}
-          {notificationSettings.customSoundPath}
+          {selectedSoundPath}
         </p>
       ) : null}
       {selectedSoundId !== 'system' ? (

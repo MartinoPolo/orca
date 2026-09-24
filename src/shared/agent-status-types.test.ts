@@ -254,6 +254,27 @@ Fix dispatch fallback preview for normalized status prompts`
     })
   })
 
+  it('keeps requiresInput only for a blocked status with explicit boolean true', () => {
+    expect(parseAgentStatusPayload('{"state":"blocked","requiresInput":true}')?.requiresInput).toBe(
+      true
+    )
+    expect(
+      pickParsedAgentStatusPayload({ state: 'blocked', prompt: '', requiresInput: true })
+        .requiresInput
+    ).toBe(true)
+    for (const state of ['working', 'waiting', 'done'] as const) {
+      expect(
+        parseAgentStatusPayload(JSON.stringify({ state, requiresInput: true }))?.requiresInput
+      ).toBeUndefined()
+    }
+    for (const requiresInput of [false, 'true', 1, null]) {
+      expect(
+        parseAgentStatusPayload(JSON.stringify({ state: 'blocked', requiresInput }))?.requiresInput
+      ).toBeUndefined()
+    }
+    expect(parseAgentStatusPayload('{"state":"blocked"}')?.requiresInput).toBeUndefined()
+  })
+
   it('parses interactivePrompt without single-line collapse', () => {
     const interactivePrompt = JSON.stringify({
       questions: [{ question: 'Pick one', options: ['a', 'b'] }]

@@ -71,7 +71,7 @@ export function createNotificationDeliveryService(
       const notificationOptions = buildNotificationOptions(request)
 
       // Why: desktop focus only means this computer sees the worktree; the paired phone may still need the alert.
-      if (deps.dispatchMobileNotification && request.source !== 'test') {
+      if (deps.dispatchMobileNotification && request.source !== 'test' && !request.desktopOnly) {
         if (
           reserveNotificationCooldown(
             recentMobileNotifications,
@@ -102,6 +102,11 @@ export function createNotificationDeliveryService(
 
       if (!desktopAllowed) {
         return { delivered: false, reason: settings.enabled ? 'source-disabled' : 'disabled' }
+      }
+
+      // Keep mobile fan-out above this desktop-only priority gate.
+      if (request.source === 'agent-task-complete' && (request.priority ?? 3) < 4) {
+        return { delivered: false, reason: 'priority' }
       }
 
       const browserWindow = deps.findActiveWindow()

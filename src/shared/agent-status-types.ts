@@ -128,6 +128,8 @@ export type AgentStatusEntry = {
   /** JSON of the AskUserQuestion tool input, captured live; unlike toolInput it's not
    *  truncated (clients render the full card). Cleared once the agent moves on so a stale prompt can't linger. */
   interactivePrompt?: string
+  /** Hook-confirmed request for user input without a structured question card. */
+  requiresInput?: true
   /** Most recent assistant message preview, when the hook carried one. */
   lastAssistantMessage?: string
   /** True when `lastAssistantMessage` came from a tool result/error, not assistant prose.
@@ -178,6 +180,7 @@ export type AgentStatusPayload = {
   /** JSON string of the AskUserQuestion tool input, captured live. See the
    *  AgentStatusEntry field for semantics. Not truncated like toolInput. */
   interactivePrompt?: string
+  requiresInput?: true
   lastAssistantMessage?: string
   /** See the AgentStatusEntry field for semantics. */
   lastAssistantMessageIsToolOutput?: boolean
@@ -221,6 +224,7 @@ export function pickParsedAgentStatusPayload(
     ...(row.toolName !== undefined ? { toolName: row.toolName } : {}),
     ...(row.toolInput !== undefined ? { toolInput: row.toolInput } : {}),
     ...(row.interactivePrompt !== undefined ? { interactivePrompt: row.interactivePrompt } : {}),
+    ...(row.requiresInput ? { requiresInput: true as const } : {}),
     ...(row.lastAssistantMessage !== undefined
       ? { lastAssistantMessage: row.lastAssistantMessage }
       : {}),
@@ -385,6 +389,7 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
       obj.interactivePrompt,
       AGENT_STATUS_INTERACTIVE_PROMPT_MAX_LENGTH
     ),
+    requiresInput: state === 'blocked' && obj.requiresInput === true ? true : undefined,
     lastAssistantMessage: normalizeOptionalMultilineField(
       obj.lastAssistantMessage,
       AGENT_STATUS_ASSISTANT_MESSAGE_MAX_LENGTH

@@ -2,6 +2,11 @@ import { useCallback } from 'react'
 import { useAppStore } from '@/store'
 import { resolveCommittedTitleAgentType } from '@/lib/pane-agent-evidence'
 import { playDesktopNotificationSound } from '@/lib/desktop-notification-sound'
+import { resolveEntryIdentity } from '@/store/slices/session-attention-transition'
+import type {
+  NotificationSettings,
+  NotificationSoundCategory
+} from '../../../../shared/notification-settings-types'
 import { showBlockedNotificationFallbackToast } from '@/lib/blocked-notification-fallback'
 import { buildAgentNotificationId } from '../../../../shared/agent-notification-id'
 import { shareCompatibleTitleIdentityGroup } from '../../../../shared/agent-title-owner'
@@ -16,6 +21,8 @@ import type {
 } from './agent-completion-coordinator-types'
 import { getNotificationWorkspaceLabels } from './terminal-notification-state'
 import { createTerminalAttentionSurface } from './terminal-attention-surface'
+import { createStructuredAttentionSurface } from '../native-chat/structured-attention-surface'
+import { parsePaneKey } from '../../../../shared/stable-pane-id'
 import {
   applyAgentAttention,
   resolveAgentAttention,
@@ -23,6 +30,49 @@ import {
 } from '@/attention/agent-attention-policy'
 
 const AGENT_NOTIFICATION_SNAPSHOT_MAX_AGE_MS = 10_000
+
+function resolveAgentSoundCategory(
+  status: AgentCompletionStatusSnapshot | AgentStatusEntry | undefined,
+  stored: AgentStatusEntry | undefined,
+  isStructuredSession: boolean
+): NotificationSoundCategory {
+  if (
+    status?.state === 'waiting' ||
+    (status?.state === 'blocked' &&
+      (isStructuredSession || Boolean(status.interactivePrompt) || status.requiresInput === true))
+  ) {
+    return 'needs-input'
+  }
+  if (status?.state === 'blocked') {
+    return 'failed'
+  }
+  if (
+    status &&
+    stored?.agentType === status.agentType &&
+    stored?.stateStartedAt === status.stateStartedAt &&
+    (stored?.orchestration?.dispatchStatus === 'failed' ||
+      stored?.orchestration?.dispatchStatus === 'circuit_broken')
+  ) {
+    return 'failed'
+  }
+  return 'done'
+}
+
+function selectAgentSound(
+  settings: NotificationSettings | undefined,
+  category: NotificationSoundCategory
+): { soundId: NotificationSettings['customSoundId']; volume: number | undefined } {
+  if (category === 'needs-input') {
+    return {
+      soundId: settings?.needsInputSoundId ?? 'system',
+      volume: settings?.needsInputSoundVolume
+    }
+  }
+  if (category === 'failed') {
+    return { soundId: settings?.failedSoundId ?? 'system', volume: settings?.failedSoundVolume }
+  }
+  return { soundId: settings?.customSoundId ?? 'system', volume: settings?.customSoundVolume }
+}
 
 function agentSnapshotMatchesExplicitTitle(
   snapshot: { agentType?: string | null } | undefined,
@@ -51,6 +101,8 @@ export type TerminalNotificationEvent = {
   paneKey?: string
   agentStatusSnapshot?: AgentCompletionStatusSnapshot
   agentCompletionSource?: AgentCompletionDispatchMeta['source']
+  desktopOnly?: boolean
+  soundCategory?: NotificationSoundCategory
 }
 
 /**
@@ -114,6 +166,13 @@ export function dispatchTerminalNotification(
   }
   const agentNotificationStateStartedAt =
     eventAgentStatusSnapshot?.stateStartedAt ?? freshStoredAgentStatus?.stateStartedAt
+  const tabId = parsePaneKey(event.paneKey ?? '')?.tabId
+  const isStructuredSession = (state.unifiedTabsByWorktree?.[worktreeId] ?? []).some(
+    (tab) => tab.contentType === 'agent-session' && tab.id === tabId
+  )
+  const soundCategory =
+    event.soundCategory ??
+    resolveAgentSoundCategory(agentStatus, storedAgentStatus, isStructuredSession)
   const attentionDecision = resolveAgentAttention(
     {
       subject: { workspaceId: worktreeId, surfaceKey: event.paneKey },
@@ -125,7 +184,9 @@ export function dispatchTerminalNotification(
       hasFreshActivityEvidence: Boolean(agentStatus),
       groupAttentionEnabled: state.settings?.experimentalTerminalAttention === true
     },
-    createTerminalAttentionSurface(state)
+    isStructuredSession
+      ? createStructuredAttentionSurface(state)
+      : createTerminalAttentionSurface(state)
   )
   if (!attentionDecision.admitted) {
     return
@@ -133,8 +194,43 @@ export function dispatchTerminalNotification(
 
   // Desktop settings are applied in main after independent mobile delivery.
 
-  const customSoundId = state.settings?.notifications?.customSoundId ?? 'system'
-  const customSoundVolume = state.settings?.notifications?.customSoundVolume ?? null
+  const notificationSettings = state.settings?.notifications
+  const soundSelection = selectAgentSound(notificationSettings, soundCategory)
+  const retainedAgentStatus = event.paneKey
+    ? state.retainedAgentsByPaneKey[event.paneKey]?.entry
+    : undefined
+  let identityEntry: AgentStatusEntry | undefined
+  if (
+    isStructuredSession &&
+    storedAgentStatus?.paneKey === event.paneKey &&
+    storedAgentStatus?.worktreeId === worktreeId &&
+    storedAgentStatus?.agentType === eventAgentStatusSnapshot?.agentType
+  ) {
+    identityEntry = storedAgentStatus
+  } else if (eventAgentStatusSnapshot) {
+    identityEntry = [storedAgentStatus, retainedAgentStatus].find(
+      (entry) =>
+        entry?.worktreeId === worktreeId &&
+        entry.agentType === eventAgentStatusSnapshot.agentType &&
+        (entry.stateStartedAt === eventAgentStatusSnapshot.stateStartedAt ||
+          (eventAgentStatusSnapshot.localStateStartedAt !== undefined &&
+            entry.stateStartedAt === eventAgentStatusSnapshot.localStateStartedAt))
+    )
+  } else if (storedAgentStatus?.worktreeId === worktreeId) {
+    identityEntry = storedAgentStatus
+  }
+  const sessionIdentity = identityEntry ? resolveEntryIdentity(state, identityEntry) : null
+  let priority = 3
+  if (sessionIdentity?.sessionIdentity) {
+    const identities = [sessionIdentity.sessionIdentity, ...sessionIdentity.identityAliases]
+    for (const identity of identities) {
+      const savedPriority = state.sessionAttentionMetadataByIdentity[identity]?.priority
+      if (savedPriority !== undefined) {
+        priority = savedPriority
+        break
+      }
+    }
+  }
   // Why: pane keys are reused across turns. A rich OS notification must not
   // expose the previous turn's prompt if the current turn has no fresh hook snapshot yet.
   const agentSnapshot = agentStatus
@@ -164,6 +260,8 @@ export function dispatchTerminalNotification(
     void window.api.notifications
       .dispatch({
         source: event.source,
+        ...(event.source === 'agent-task-complete' ? { priority, soundCategory } : {}),
+        ...(event.desktopOnly ? { desktopOnly: true } : {}),
         ...(notificationId ? { notificationId } : {}),
         worktreeId: request.workspaceId,
         paneKey: request.subjectKey ?? undefined,
@@ -173,10 +271,6 @@ export function dispatchTerminalNotification(
         ...agentSnapshot
       })
       .then((result) => {
-        if (result.delivered) {
-          void playDesktopNotificationSound(customSoundId, customSoundVolume)
-          return
-        }
         // Why: macOS is silently swallowing notifications (permission off or
         // prompt unanswered) — surface an in-app pointer at the fix instead of
         // letting the alert vanish without a trace.
@@ -187,6 +281,27 @@ export function dispatchTerminalNotification(
       .catch((err) => {
         console.warn('Failed to dispatch notification:', err)
       })
+    // Sound is an event channel, not an OS delivery receipt. Respect the same
+    // desktop source gates but never suppress it for focus, priority or banner cooldown.
+    if (
+      notificationSettings?.enabled !== false &&
+      (event.source !== 'agent-task-complete' ||
+        notificationSettings?.agentTaskComplete !== false) &&
+      (event.source !== 'terminal-bell' || notificationSettings?.terminalBell !== false)
+    ) {
+      if (event.source === 'agent-task-complete' || soundSelection.soundId !== 'system') {
+        void playDesktopNotificationSound(
+          soundSelection.soundId,
+          soundSelection.volume,
+          soundCategory
+        )
+      }
+    }
+  }
+
+  if (event.desktopOnly) {
+    requestDelivery(attentionDecision.delivery)
+    return
   }
 
   applyAgentAttention(attentionDecision, {
