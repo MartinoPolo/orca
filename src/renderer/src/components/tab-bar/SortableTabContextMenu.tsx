@@ -1,5 +1,6 @@
 import {
   MessageSquare,
+  Palette,
   PanelLeftClose,
   PanelRightClose,
   Pin,
@@ -236,10 +237,12 @@ export function SortableTabContextMenu({
           </div>
           <div className="flex gap-2 pb-2">
             <DropdownMenuItem onSelect={() => onSetTabColor(tab.id, null)}>
+              <Palette className="size-3.5" />
               {translate('components.tab.bar.SortableTabContextMenu.automatic', 'Automatic')}
               {tab.color === null ? ' ✓' : ''}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onSetTabColor(tab.id, '')}>
+              <X className="size-3.5" />
               {translate('components.tab.bar.SortableTabContextMenu.noColor', 'No color')}
               {tab.color === '' ? ' ✓' : ''}
             </DropdownMenuItem>
