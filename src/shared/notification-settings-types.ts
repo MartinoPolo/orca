@@ -1,5 +1,7 @@
 import type { AgentStatusState, AgentType } from './agent-status-types'
 
+export type NotificationSoundCategory = 'done' | 'needs-input' | 'failed'
+
 export type NotificationSettings = {
   enabled: boolean
   agentTaskComplete: boolean
@@ -19,12 +21,23 @@ export type NotificationSettings = {
     | 'custom'
   customSoundPath: string | null
   customSoundVolume: number
+  needsInputSoundId?: NotificationSettings['customSoundId']
+  needsInputSoundPath?: string | null
+  needsInputSoundVolume?: number
+  failedSoundId?: NotificationSettings['customSoundId']
+  failedSoundPath?: string | null
+  failedSoundVolume?: number
 }
 
 export type NotificationEventSource = 'agent-task-complete' | 'terminal-bell' | 'test'
 
 export type NotificationDispatchRequest = {
   source: NotificationEventSource
+  /** Session priority resolved from the existing host/workspace identity. Absent means P3. */
+  priority?: number
+  soundCategory?: NotificationSoundCategory
+  /** Local presentation alert, not a new agent completion for paired mobile clients. */
+  desktopOnly?: boolean
   notificationId?: string
   /** Why: useful for fast native failures, but macOS can still drop notifications after 'show'. */
   requireDisplayConfirmation?: boolean
@@ -54,6 +67,7 @@ export type NotificationDispatchResult = {
     | 'source-disabled'
     | 'suppressed-focus'
     | 'cooldown'
+    | 'priority'
     | 'not-supported'
     | 'not-displayed'
     | 'blocked-by-system'

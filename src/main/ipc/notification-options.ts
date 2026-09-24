@@ -70,6 +70,9 @@ function buildAgentTaskCompleteNotificationOptions(
 // explicit terminal state, or no state at all (the hook snapshot expired and the
 // notification itself is the completion signal), may say "finished".
 function formatAgentNotificationStatusText(args: NotificationDispatchRequest): string {
+  if (args.soundCategory === 'failed') {
+    return translateMain('notifications.agentStatus.failed', 'failed')
+  }
   if (args.agentState === 'blocked' || args.agentState === 'waiting') {
     return translateMain('notifications.agentStatus.needsInput', 'needs input')
   }
@@ -140,7 +143,10 @@ function buildAgentTaskCompleteFallbackNotificationOptions(args: NotificationDis
   body: string
 } {
   return {
-    title: `Task complete in ${args.worktreeLabel ?? 'workspace'}`,
+    title:
+      args.soundCategory === 'failed'
+        ? `Task failed in ${args.worktreeLabel ?? 'workspace'}`
+        : `Task complete in ${args.worktreeLabel ?? 'workspace'}`,
     body: buildAgentTaskCompleteFallbackBody(args)
   }
 }

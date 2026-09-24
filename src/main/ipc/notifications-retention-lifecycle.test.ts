@@ -85,7 +85,10 @@ describe('registerNotificationHandlers', () => {
     const paneKey = 'tab-1:11111111-1111-4111-8111-111111111111'
     const handler = getDispatchHandler()
     expect(
-      await handler({}, { source: 'agent-task-complete', worktreeId: 'repo::wt1', paneKey })
+      await handler(
+        {},
+        { source: 'agent-task-complete', priority: 4, worktreeId: 'repo::wt1', paneKey }
+      )
     ).toEqual({ delivered: true })
     expect(vi.getTimerCount()).toBe(1)
 
@@ -126,7 +129,9 @@ describe('registerNotificationHandlers', () => {
     } as never)
 
     const handler = getDispatchHandler()
-    expect(await handler({}, { source: 'agent-task-complete' })).toEqual({ delivered: true })
+    expect(await handler({}, { source: 'agent-task-complete', priority: 4 })).toEqual({
+      delivered: true
+    })
     expect(vi.getTimerCount()).toBe(1)
 
     const closeHandler = getNotificationEventHandler('close')
@@ -151,7 +156,9 @@ describe('registerNotificationHandlers', () => {
       } as never)
 
       const handler = getDispatchHandler()
-      expect(await handler({}, { source: 'agent-task-complete' })).toEqual({ delivered: true })
+      expect(await handler({}, { source: 'agent-task-complete', priority: 4 })).toEqual({
+        delivered: true
+      })
       expect(vi.getTimerCount()).toBe(1)
 
       const failedHandler = getNotificationEventHandler('failed')
@@ -181,11 +188,17 @@ describe('registerNotificationHandlers', () => {
 
     const dispatchHandler = getDispatchHandler()
     expect(
-      await dispatchHandler({}, { source: 'agent-task-complete', notificationId: 'agent:replace' })
+      await dispatchHandler(
+        {},
+        { source: 'agent-task-complete', priority: 4, notificationId: 'agent:replace' }
+      )
     ).toEqual({ delivered: true })
     vi.advanceTimersByTime(5001)
     expect(
-      await dispatchHandler({}, { source: 'agent-task-complete', notificationId: 'agent:replace' })
+      await dispatchHandler(
+        {},
+        { source: 'agent-task-complete', priority: 4, notificationId: 'agent:replace' }
+      )
     ).toEqual({ delivered: true })
 
     expect(notificationCloseMock).toHaveBeenCalledTimes(1)

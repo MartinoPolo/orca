@@ -10,6 +10,10 @@ import {
   resetNotificationDispatchMocks
 } from './notifications-test-harness'
 
+vi.mock('../../../resources/notification-sounds/two-tone.mp3?asset', () => ({
+  default: '/notification-sounds/two-tone.mp3'
+}))
+
 vi.mock('electron', async () =>
   (await import('./notifications-test-harness')).createElectronModuleMock()
 )
@@ -68,6 +72,35 @@ describe('registerNotificationHandlers', () => {
     } finally {
       Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true })
     }
+  })
+
+  it('plays System Default agent audio through the local sound path, without a second banner sound', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the mocked store exposes only fields the notification handlers read.
+    registerNotificationHandlers({
+      getSettings: () => ({
+        notifications: {
+          enabled: true,
+          agentTaskComplete: true,
+          terminalBell: true,
+          suppressWhenFocused: false,
+          customSoundId: 'system',
+          customSoundPath: null
+        }
+      })
+    } as never)
+    expect(await getResolveSoundPathHandler()({}, 'done')).toMatchObject({ ok: true })
+    expect(
+      await getDispatchHandler()(
+        {},
+        {
+          source: 'agent-task-complete',
+          priority: 5,
+          soundCategory: 'done',
+          worktreeId: 'wt'
+        }
+      )
+    ).toEqual({ delivered: true })
+    expect(notificationCtorMock).toHaveBeenCalledWith(expect.objectContaining({ silent: true }))
   })
 
   it('does not request a native macOS sound when a custom sound is configured', async () => {
@@ -141,6 +174,38 @@ describe('registerNotificationHandlers', () => {
       data: new Uint8Array([1, 2, 3]),
       mimeType: 'audio/ogg'
     })
+  })
+
+  it('loads independent input and failure sound paths without changing Done', async () => {
+    const donePath = join(tempDir, 'done.mp3')
+    const inputPath = join(tempDir, 'input.mp3')
+    const failedPath = join(tempDir, 'failed.mp3')
+    writeFileSync(donePath, Buffer.from([1]))
+    writeFileSync(inputPath, Buffer.from([2]))
+    writeFileSync(failedPath, Buffer.from([3]))
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the mocked store exposes only fields the sound IPC handler reads.
+    registerNotificationHandlers({
+      getSettings: () => ({
+        notifications: {
+          customSoundId: 'custom',
+          customSoundPath: donePath,
+          needsInputSoundId: 'custom',
+          needsInputSoundPath: inputPath,
+          failedSoundId: 'custom',
+          failedSoundPath: failedPath
+        }
+      })
+    } as never)
+    expect(await getResolveSoundPathHandler()({}, 'needs-input')).toEqual({
+      ok: true,
+      path: inputPath
+    })
+    expect(await getLoadSoundHandler()({}, 'failed')).toMatchObject({
+      ok: true,
+      path: failedPath,
+      data: new Uint8Array([3])
+    })
+    expect(await getResolveSoundPathHandler()({})).toEqual({ ok: true, path: donePath })
   })
 
   it('rejects unsupported custom sound file types', async () => {

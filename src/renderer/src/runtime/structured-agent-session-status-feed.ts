@@ -22,6 +22,10 @@ export type StructuredAgentSessionStatusFeedOwner = {
   activate: () => () => void
   getSnapshot: () => StructuredAgentSessionStatusSnapshot
   getSessionObservation: (sessionId: string) => 'live' | 'unverifiable'
+  subscribeLiveTransition: (
+    sessionId: string,
+    listener: (previous: AgentSessionStatusSummary, current: AgentSessionStatusSummary) => void
+  ) => () => void
   subscribe: (listener: () => void) => () => void
 }
 
@@ -39,6 +43,10 @@ export function structuredAgentSessionStatusFeedKey(target: RuntimeClientTarget)
 function createOwner(target: RuntimeClientTarget): OwnedStatusFeed {
   let snapshot: StructuredAgentSessionStatusSnapshot = new Map()
   const confirmedSessions = new Set<string>()
+  const transitionListeners = new Map<
+    string,
+    Set<(previous: AgentSessionStatusSummary, current: AgentSessionStatusSummary) => void>
+  >()
   const listeners = new Set<() => void>()
   const activations = new Set<symbol>()
   let generation = 0
@@ -69,6 +77,16 @@ function createOwner(target: RuntimeClientTarget): OwnedStatusFeed {
       return
     }
     if (event.type === 'status') {
+      const previous = snapshot.get(event.session.sessionId)
+      if (
+        confirmedSessions.has(event.session.sessionId) &&
+        previous &&
+        previous.status !== event.session.status
+      ) {
+        for (const listener of transitionListeners.get(event.session.sessionId) ?? []) {
+          listener(previous, event.session)
+        }
+      }
       confirmedSessions.add(event.session.sessionId)
       const next = new Map(snapshot)
       next.set(event.session.sessionId, event.session)
@@ -216,6 +234,20 @@ function createOwner(target: RuntimeClientTarget): OwnedStatusFeed {
       }
     },
     getSnapshot: () => snapshot,
+    subscribeLiveTransition: (sessionId, listener) => {
+      let subscribers = transitionListeners.get(sessionId)
+      if (!subscribers) {
+        subscribers = new Set()
+        transitionListeners.set(sessionId, subscribers)
+      }
+      subscribers.add(listener)
+      return () => {
+        subscribers.delete(listener)
+        if (subscribers.size === 0) {
+          transitionListeners.delete(sessionId)
+        }
+      }
+    },
     getSessionObservation: (sessionId) =>
       confirmedSessions.has(sessionId) ? 'live' : 'unverifiable',
     subscribe: (listener) => {
