@@ -100,7 +100,8 @@ export function runQuickCommandInNewTab({
   }
   const store = useAppStore.getState()
   const tab = store.createTab(worktreeId, targetGroupId, undefined, {
-    quickCommandLabel: command.label
+    quickCommandLabel: command.label,
+    launchKind: 'command'
   })
 
   store.queueTabStartupCommand(tab.id, {

@@ -4,7 +4,7 @@ This is the **UI/visual design** doc for Orca — color tokens, typography, comp
 
 ## Overview
 
-Orca is an Electron desktop app for orchestrating coding agents across git worktrees. The visual identity is **monochrome and quiet** — neutral grays carry the chrome, color is reserved for state (selection ring, destructive, git decorations). The product spends most of its time hosting other people's tools (Monaco, xterm, Markdown previews), so Orca's own UI should recede and frame.
+Orca is an Electron desktop app for orchestrating coding agents across git worktrees. The visual identity is **monochrome and quiet** — neutral grays carry the chrome, color is reserved for state (selection ring, destructive, git decorations) and muted terminal tab header identity tints. The product spends most of its time hosting other people's tools (Monaco, xterm, Markdown previews), so Orca's own UI should recede and frame.
 
 When in doubt:
 
@@ -44,6 +44,10 @@ Tokens come in pairs: a **surface** and a **foreground** that meets contrast on 
 | `editor-surface`                         | Background of Monaco / markdown editor panes                | App chrome                                          |
 
 The `sidebar` family expands into `--sidebar`, `--sidebar-foreground`, `--sidebar-primary`, `--sidebar-primary-foreground`, `--sidebar-accent`, `--sidebar-accent-foreground`, `--sidebar-border`, and `--sidebar-ring` — use them inside the worktree sidebar so its hover/selected/focus states stay consistent and don't bleed into other panels. `editor-surface` is its own token (not just `background`) because Monaco and the markdown editor have a slightly darker surface in dark mode to match VS Code conventions; reach for it whenever you're rendering an editor pane.
+
+### Terminal tab headers
+
+Terminal headers may use a subdued solid tint to distinguish launch identity: Claude orange, Pi blue, named Piw profile purple, and ordinary command launches teal. Active tabs have a stronger tint and a matching bottom strip; inactive tabs have a softer tint. Manual swatches override automatic identity; No color keeps a neutral header. Keep text contrast accessible in both themes, and do not apply these tints to other surfaces.
 
 ### Git decoration colors
 

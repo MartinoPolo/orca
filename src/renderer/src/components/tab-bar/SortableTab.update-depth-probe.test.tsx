@@ -135,7 +135,7 @@ const probeStore = useAppStore as unknown as StoreApiWithHook
 let renderCount = 0
 let tabRenderCount = 0
 
-function Harness({ tab }: { tab: TerminalTab }): ReactElement {
+function Harness({ tab, isActive = true }: { tab: TerminalTab; isActive?: boolean }): ReactElement {
   renderCount += 1
   return (
     <SortableTab
@@ -145,7 +145,7 @@ function Harness({ tab }: { tab: TerminalTab }): ReactElement {
       tabCount={1}
       hasTabsToRight={false}
       hasTabsToLeft={false}
-      isActive
+      isActive={isActive}
       isPinned={false}
       isExpanded={false}
       onActivate={vi.fn()}
@@ -183,6 +183,22 @@ afterEach(() => {
 })
 
 describe('SortableTab update-depth probe', () => {
+  it('uses foreground text on inactive colored tabs while keeping neutral tabs muted', () => {
+    const { container } = render(
+      <>
+        <Harness tab={makeTab({ color: '#3b82f6' })} isActive={false} />
+        <Harness tab={makeTab({ id: 'terminal-tab-2', color: '' })} isActive={false} />
+      </>
+    )
+    const colored = container.querySelector('[data-tab-color="#3b82f6"]')
+    const neutral = container.querySelector('[data-tab-color="none"]')
+
+    expect(colored?.classList.contains('text-foreground')).toBe(true)
+    expect(colored?.classList.contains('text-muted-foreground')).toBe(false)
+    expect(neutral?.classList.contains('text-muted-foreground')).toBe(true)
+    expect(neutral?.classList.contains('text-foreground')).toBe(false)
+  })
+
   it('settles when the rename shortcut targets this tab', () => {
     const { container } = render(<Harness tab={makeTab()} />)
     act(() => requestTerminalTabRename('terminal-tab-1'))

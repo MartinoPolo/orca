@@ -17536,7 +17536,9 @@
         "SortableTabContextMenu": {
           "switchToTerminalView": "Switch to terminal view",
           "switchToChatView": "Switch to chat view",
-          "closeTabsToLeft": "Close Tabs To The Left"
+          "closeTabsToLeft": "Close Tabs To The Left",
+          "automatic": "Automatic",
+          "noColor": "No color"
         },
         "BrowserTab": {
           "closeOthers": "Close Others",

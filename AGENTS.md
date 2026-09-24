@@ -24,6 +24,8 @@
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 
+- **Implemented:** Terminal tab headers use launch-aware muted tints (Claude orange, Pi blue, named Piw purple, command launches teal), with manual swatches, Automatic, and No color choices; ordinary terminals remain neutral.
+
 ## Installation
 
 Build with `ORCA_MANUAL_UPDATES_ONLY=1` and a unique `ORCA_LOCAL_BUILD_VERSION`, validate with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.

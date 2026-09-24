@@ -51,6 +51,10 @@ export function applyDefaultTerminalTabs(
     const tab = store.createTab(worktreeId, undefined, undefined, {
       pendingActivationSpawn: true,
       recordInteraction: false,
+      ...((isStartupTab && startup?.command && !launchAgent) ||
+      (template.command?.trim() && defaultTabs.runCommands && !(index === 0 && startup))
+        ? { launchKind: 'command' as const }
+        : {}),
       ...(launchAgent
         ? {
             launchAgent,

@@ -24,66 +24,62 @@ import { translate } from '@/i18n/i18n'
 import { TerminalTabSplitMenuSection } from './TerminalTabSplitMenuSection'
 import { TAB_CONTEXT_MENU_CONTENT_CLASS } from './tab-context-menu-sizing'
 
+import { TAB_COLOR_VALUES } from './terminal-tab-color'
+
 const TAB_COLORS = [
-  {
-    get label() {
-      return translate('auto.components.tab.bar.SortableTabContextMenu.20baa43c05', 'None')
-    },
-    value: null
-  },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.cb3eadefd2', 'Blue')
     },
-    value: '#3b82f6'
+    value: TAB_COLOR_VALUES.blue
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.c2d8b0991f', 'Purple')
     },
-    value: '#a855f7'
+    value: TAB_COLOR_VALUES.purple
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.03cf6dab1a', 'Pink')
     },
-    value: '#ec4899'
+    value: TAB_COLOR_VALUES.pink
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.620aec6729', 'Red')
     },
-    value: '#ef4444'
+    value: TAB_COLOR_VALUES.red
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.a47629b3cf', 'Orange')
     },
-    value: '#f97316'
+    value: TAB_COLOR_VALUES.orange
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.69682e2ce4', 'Yellow')
     },
-    value: '#eab308'
+    value: TAB_COLOR_VALUES.yellow
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.be905e9b0a', 'Green')
     },
-    value: '#22c55e'
+    value: TAB_COLOR_VALUES.green
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.845576bed1', 'Teal')
     },
-    value: '#14b8a6'
+    value: TAB_COLOR_VALUES.teal
   },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.7703990447', 'Gray')
     },
-    value: '#9ca3af'
+    value: TAB_COLOR_VALUES.gray
   }
 ] as const
 
@@ -238,26 +234,31 @@ export function SortableTabContextMenu({
           <div className="text-xs font-medium text-muted-foreground mb-1.5">
             {translate('auto.components.tab.bar.SortableTabContextMenu.35e8892fd0', 'Tab Color')}
           </div>
+          <div className="flex gap-2 pb-2">
+            <DropdownMenuItem onSelect={() => onSetTabColor(tab.id, null)}>
+              {translate('components.tab.bar.SortableTabContextMenu.automatic', 'Automatic')}
+              {tab.color === null ? ' ✓' : ''}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onSetTabColor(tab.id, '')}>
+              {translate('components.tab.bar.SortableTabContextMenu.noColor', 'No color')}
+              {tab.color === '' ? ' ✓' : ''}
+            </DropdownMenuItem>
+          </div>
           <div className="flex flex-wrap gap-2">
             {TAB_COLORS.map((color) => {
               const isSelected = tab.color === color.value
               return (
                 <DropdownMenuItem
-                  key={color.label}
+                  key={color.value}
+                  aria-label={color.label}
                   className={`relative h-4 w-4 min-w-4 p-0 rounded-full border ${
                     isSelected ? 'ring-1 ring-foreground/70 ring-offset-1 ring-offset-popover' : ''
-                  } ${
-                    color.value ? 'border-transparent' : 'border-muted-foreground/50 bg-transparent'
                   }`}
-                  style={color.value ? { backgroundColor: color.value } : undefined}
+                  style={{ backgroundColor: color.value }}
                   onSelect={() => {
                     onSetTabColor(tab.id, color.value)
                   }}
-                >
-                  {color.value === null && (
-                    <span className="absolute block h-px w-3 rotate-45 bg-muted-foreground/80" />
-                  )}
-                </DropdownMenuItem>
+                />
               )
             })}
           </div>

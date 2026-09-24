@@ -66,6 +66,37 @@ beforeEach(() => {
 })
 
 describe('terminal recently-closed capture', () => {
+  it('preserves an explicit neutral color on reopen', () => {
+    const store = makeSeededStore()
+    const tab = store.getState().createTab(WT, undefined, undefined, { launchAgent: 'claude' })
+    store.getState().setTabColor(tab.id, '')
+    store.getState().closeTab(tab.id)
+
+    expect(store.getState().reopenClosedTerminalTab(WT)).toBe(true)
+    const reopened = store.getState().tabsByWorktree[WT]?.[0]
+    expect(reopened?.color).toBe('')
+    expect(reopened?.launchAgent).toBeUndefined()
+  })
+
+  it.each(['command', 'piw'] as const)(
+    'retains %s launch provenance on reopen without restarting an agent',
+    (launchKind) => {
+      const store = makeSeededStore()
+      const tab = store.getState().createTab(WT, undefined, undefined, {
+        launchKind,
+        ...(launchKind === 'piw' ? { launchAgent: 'pi' as const } : {})
+      })
+      store.getState().closeTab(tab.id)
+
+      expect(store.getState().recentlyClosedTerminalTabsByWorktree[WT]?.[0]?.launchKind).toBe(
+        launchKind
+      )
+      expect(store.getState().reopenClosedTerminalTab(WT)).toBe(true)
+      expect(store.getState().tabsByWorktree[WT]?.[0]).toMatchObject({ launchKind })
+      expect(store.getState().tabsByWorktree[WT]?.[0]?.launchAgent).toBeUndefined()
+    }
+  )
+
   it('captures a snapshot and kind entry on user close', () => {
     const store = makeSeededStore()
     const tab = store

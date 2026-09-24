@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { X, Minimize2, Pin } from 'lucide-react'
 import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
 import { useTabAgent } from '@/lib/use-tab-agent'
+import { cn } from '@/lib/utils'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -24,6 +25,7 @@ import { TAB_CONTAINER_WIDTH_CLASSES, TAB_LABEL_WIDTH_CLASSES } from './tab-widt
 import { useOptionalShortcutLabel } from '@/hooks/useShortcutLabel'
 import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { TerminalTabLeadingIcon } from './TerminalTabLeadingIcon'
+import { resolveTerminalTabColor } from './terminal-tab-color'
 import {
   isTerminalTabActivityLive,
   resolveTerminalTabActivityStatus,
@@ -115,6 +117,7 @@ export default function SortableTab({
 
   // Why: use hook status + title evidence so the icon reflects the harness running now, not just the launch command.
   const tabAgent = useTabAgent(tab)
+  const tabColor = resolveTerminalTabColor(tab, tabAgent)
 
   // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
   const displayTitle =
@@ -186,10 +189,17 @@ export default function SortableTab({
       // Why: DOM attribute lets E2E assert real selection state; a store-only check would miss render breaks (PR #1186 shipped in #1193).
       data-active={isActive ? 'true' : 'false'}
       data-agent-activity-status={activityStatus}
+      data-tab-color={tabColor ?? 'none'}
       {...attributes}
       {...dragListeners}
-      // Why: subtle amber wash flags unread activity at a glance, layered over the active highlight so it still reads selected.
-      className={`group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${cn(getTabRootStateClasses(isActive), tabColor && 'text-foreground')}`}
+      style={
+        tabColor
+          ? {
+              backgroundColor: `color-mix(in srgb, ${tabColor} ${isActive ? 27 : 14}%, var(--card))`
+            }
+          : undefined
+      }
       onDoubleClick={(e) => {
         if (isEditing) {
           return
@@ -224,7 +234,13 @@ export default function SortableTab({
         }
       }}
     >
-      {isActive && <span className={ACTIVE_TAB_INDICATOR_CLASSES} aria-hidden />}
+      {isActive && (
+        <span
+          className={ACTIVE_TAB_INDICATOR_CLASSES}
+          style={tabColor ? { backgroundColor: tabColor } : undefined}
+          aria-hidden
+        />
+      )}
       {showUnreadActivity && (
         // Why: a real DOM child keeps both drop-indicator pseudo-elements free and pointer events reaching the tab.
         <span aria-hidden className="pointer-events-none absolute inset-0 bg-amber-500/10" />
@@ -295,12 +311,6 @@ export default function SortableTab({
             {displayTitle}
           </TooltipContent>
         </Tooltip>
-      )}
-      {tab.color && !isEditing && (
-        <span
-          className="mr-1.5 size-2 rounded-full shrink-0"
-          style={{ backgroundColor: tab.color }}
-        />
       )}
       {isExpanded && !isEditing && (
         <button

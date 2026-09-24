@@ -96,6 +96,7 @@ const terminalTabSchema = z.object({
     .optional()
     .catch(undefined),
   quickCommandLabel: z.string().nullable().optional(),
+  launchKind: z.enum(['command', 'piw']).optional().catch(undefined),
   customTitle: z.string().nullable(),
   color: z.string().nullable(),
   isPinned: z.boolean().optional(),

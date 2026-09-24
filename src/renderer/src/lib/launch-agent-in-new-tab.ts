@@ -29,6 +29,7 @@ import { launchAgentInStructuredNewTab } from '@/lib/launch-agent-in-new-tab-str
 import { workspaceKindForWorktreeId } from '@/lib/agent-launch-route-input'
 import { planAgentSessionLaunch } from '@/lib/agent-session-launch-plan'
 import { resolvePiProfileLaunchInputs } from '@/lib/pi-profile-launch-inputs'
+import { normalizePiProfileName } from '../../../shared/pi-launch-profiles'
 import type {
   LaunchAgentInNewTabArgs,
   LaunchAgentInNewTabResult
@@ -230,6 +231,9 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   // Why: followup path pastes an unsubmitted draft, so gate the initial chat view like a draft launch, not auto-submit.
   const tab = store.createTab(worktreeId, groupId, undefined, {
     launchAgent: agent,
+    ...(agent === 'pi' && piLaunchProfile && normalizePiProfileName(piLaunchProfile.name) === 'piw'
+      ? { launchKind: 'piw' as const }
+      : {}),
     quickCommandLabel,
     ...initialViewModeProps
   })
