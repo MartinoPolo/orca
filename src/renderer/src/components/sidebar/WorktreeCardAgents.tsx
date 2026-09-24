@@ -362,8 +362,8 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
 
   if (agentActivityDisplayMode === 'compact') {
     const summaryAgents = hasLineage ? rootAgents : agents
-    // Why: compact cards collapse multiple agents to one status line, except in send-target mode where rows are the picker surface.
-    const shouldUseSummaryRow = summaryAgents.length > 1 && !isAgentSendTargetModeActive
+    // Small lists need no summary; send-target mode always exposes the picker rows.
+    const shouldUseSummaryRow = summaryAgents.length > 3 && !isAgentSendTargetModeActive
     const subjectLabel = `${hasLineage ? rootAgents.length : agents.length} agents`
 
     return (

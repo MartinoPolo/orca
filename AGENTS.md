@@ -24,6 +24,8 @@
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 
+- **Implemented:** Sidebar agent lists start expanded; compact lists offer a collapse row only above three top-level agents. Explicit collapse choices survive sidebar remounts within the renderer session.
+
 ## Installation
 
 Build with `ORCA_MANUAL_UPDATES_ONLY=1` and a unique `ORCA_LOCAL_BUILD_VERSION`, validate with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.

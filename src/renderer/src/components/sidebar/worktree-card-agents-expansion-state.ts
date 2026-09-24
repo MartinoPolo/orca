@@ -14,7 +14,7 @@ const EMPTY_COLLAPSED_PARENTS: ReadonlySet<string> = new Set()
 
 const DEFAULT_EXPANSION_STATE: WorktreeAgentExpansionState = {
   collapsedLineageParents: EMPTY_COLLAPSED_PARENTS,
-  compactRootListExpanded: false
+  compactRootListExpanded: true
 }
 
 // Why: the inline agent list's expand/collapse must outlive the WorktreeCard
@@ -47,7 +47,7 @@ function persistExpansionState(worktreeId: string, state: WorktreeAgentExpansion
   // Re-insert to refresh LRU order; drop entries that carry no non-default
   // state so idle worktrees never occupy a slot.
   expansionByWorktreeId.delete(worktreeId)
-  if (state.compactRootListExpanded || state.collapsedLineageParents.size > 0) {
+  if (!state.compactRootListExpanded || state.collapsedLineageParents.size > 0) {
     expansionByWorktreeId.set(worktreeId, state)
     trimPersistedExpansions()
   }

@@ -3,6 +3,10 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
 import { makePaneKey } from '../../../../shared/stable-pane-id'
+import {
+  clearWorktreeAgentExpansionStateForTests,
+  seedWorktreeAgentExpansionStateForTests
+} from './worktree-card-agents-expansion-state'
 
 const LEAF_A = '11111111-1111-4111-8111-111111111111'
 const LEAF_B = '22222222-2222-4222-8222-222222222222'
@@ -200,6 +204,7 @@ describe('WorktreeCardAgents', () => {
     mockPromptCacheTtlMs = 60_000
     mockCacheTimerByKey = {}
     capturedRowActivations = []
+    clearWorktreeAgentExpansionStateForTests()
   })
 
   it('renders ordinary rows in full mode without a child disclosure', async () => {
@@ -541,30 +546,26 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toBe('')
   })
 
-  it('renders a compact summary affordance for two flat agents', async () => {
+  it.each([1, 2, 3])('shows all %i flat compact agents without a summary', async (count) => {
     mockAgentActivityDisplayMode = 'compact'
-    mockAgents = [
-      mockAgent({ agentType: 'codex', state: 'done', startedAt: 1000, prompt: 'First agent' }),
+    mockAgents = Array.from({ length: count }, (_, index) =>
       mockAgent({
-        paneKey: 'tab-1:2',
-        agentType: 'claude',
+        paneKey: `tab-1:${index + 1}`,
+        agentType: 'codex',
         state: 'done',
-        startedAt: 1500,
-        prompt: 'Second agent'
+        startedAt: 1000 + index,
+        prompt: `Agent ${index + 1}`
       })
-    ]
+    )
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('All 2 agents done')
-    expect(markup).toContain('Expand All 2 agents done')
-    expect(markup).not.toContain('title="Codex done"')
-    expect(markup).not.toContain('title="Claude done"')
-    expect(markup).not.toContain('>2 done<')
-    expect(markup).not.toContain('First agent')
-    expect(markup).not.toContain('Second agent')
-    expect(markup).not.toContain('data-testid="agent-row"')
+    for (let index = 0; index < count; index++) {
+      expect(markup).toContain(`Agent ${index + 1}`)
+    }
+    expect(markup.match(/compact-agent-row group\/compact-agent-row/g)).toHaveLength(count)
+    expect(markup).not.toContain('compact-agent-summary-button')
   })
 
   it('does not show a prompt-cache timer on a collapsed compact summary row', async () => {
@@ -586,14 +587,21 @@ describe('WorktreeCardAgents', () => {
         state: 'done',
         startedAt: 1500,
         prompt: 'Second agent'
-      })
+      }),
+      mockAgent({ paneKey: 'tab-1:3', state: 'done', startedAt: 1600, prompt: 'Third agent' }),
+      mockAgent({ paneKey: 'tab-1:4', state: 'done', startedAt: 1700, prompt: 'Fourth agent' })
     ]
+    seedWorktreeAgentExpansionStateForTests('wt-1', {
+      collapsedLineageParents: new Set(),
+      compactRootListExpanded: false
+    })
     mockCacheTimerByKey = { [paneKey]: 10_000 }
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('All 2 agents done')
+    expect(markup).toContain('All 4 agents done')
+    expect(markup).toContain('aria-expanded="false"')
     expect(markup).not.toContain('Prompt cache expires')
     expect(markup).not.toContain('compact-agent-row')
   })
@@ -688,7 +696,7 @@ describe('WorktreeCardAgents', () => {
     expect(markup).not.toContain('href="https://example.com/screenshot.png"')
   })
 
-  it('renders a compact summary affordance for multiple flat agents', async () => {
+  it('renders four flat compact agents expanded under a summary by default', async () => {
     mockAgentActivityDisplayMode = 'compact'
     mockAgents = [
       mockAgent({
@@ -711,21 +719,20 @@ describe('WorktreeCardAgents', () => {
         startedAt: 1700,
         stateStartedAt: 1700,
         prompt: 'Review spacing'
-      })
+      }),
+      mockAgent({ paneKey: 'tab-1:4', startedAt: 1800, prompt: 'Fourth agent' })
     ]
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('aria-expanded="false"')
-    expect(markup).toContain('-space-x-0.5')
-    expect(markup).toContain('inline-flex size-4 items-center justify-center')
-    expect(markup).toContain('width="13"')
-    expect(markup).toContain('3 agents: 1 waiting, 1 working, 1 done')
-    expect(markup).toContain('Expand 3 agents: 1 waiting, 1 working, 1 done')
-    expect(markup).not.toContain('title="Codex waiting"')
-    expect(markup).not.toContain('title="Claude working"')
-    expect(markup).not.toContain('title="Gemini done"')
+    expect(markup).toContain('aria-expanded="true"')
+    expect(markup).toContain('Collapse 4 agents')
+    expect(markup).toContain('Pick a layout')
+    expect(markup).toContain('Run tests')
+    expect(markup).toContain('Review spacing')
+    expect(markup).toContain('Fourth agent')
+    expect(markup).toContain('compact-agent-summary-panel-expanded')
     expect(markup).not.toContain('data-testid="agent-row"')
   })
 
@@ -746,16 +753,21 @@ describe('WorktreeCardAgents', () => {
         state: 'done',
         startedAt: 1700,
         prompt: 'Three'
-      })
+      }),
+      mockAgent({ paneKey: 'tab-1:4', state: 'done', startedAt: 1800, prompt: 'Four' })
     ]
+    seedWorktreeAgentExpansionStateForTests('wt-1', {
+      collapsedLineageParents: new Set(),
+      compactRootListExpanded: false
+    })
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('All 3 agents done')
-    expect(markup).toContain('Expand All 3 agents done')
-    expect(markup).not.toContain('3 agents: 3 done')
-    expect(markup).not.toContain('>+3<')
+    expect(markup).toContain('All 4 agents done')
+    expect(markup).toContain('Expand All 4 agents done')
+    expect(markup).not.toContain('4 agents: 4 done')
+    expect(markup).not.toContain('>+4<')
   })
 
   it('prioritizes agent varieties in compact summary icons', async () => {
@@ -769,6 +781,10 @@ describe('WorktreeCardAgents', () => {
     ].map(([paneKey, agentType, prompt]) =>
       mockAgent({ paneKey, agentType, startedAt: 1000, prompt })
     )
+    seedWorktreeAgentExpansionStateForTests('wt-1', {
+      collapsedLineageParents: new Set(),
+      compactRootListExpanded: false
+    })
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
@@ -843,48 +859,22 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toContain('compact-agent-expansion-content flex flex-col gap-0.5 pt-0.5 pl-1')
   })
 
-  it('summarizes compact lineage by parent rows before revealing children', async () => {
+  it('shows three compact lineage roots and their children without a summary', async () => {
     mockAgentActivityDisplayMode = 'compact'
     mockAgents = [
-      mockAgent({
-        paneKey: 'tab-parent-a:1',
-        agentType: 'codex',
-        startedAt: 1000,
-        prompt: 'Parent A'
-      }),
+      mockAgent({ paneKey: 'tab-parent-a:1', prompt: 'Parent A' }),
       mockAgent({
         paneKey: 'tab-child-a:1',
-        agentType: 'claude',
-        state: 'done',
-        startedAt: 1100,
-        stateStartedAt: 1100,
         prompt: 'Child A',
         orchestration: { parentPaneKey: 'tab-parent-a:1' }
       }),
-      mockAgent({
-        paneKey: 'tab-parent-b:1',
-        agentType: 'gemini',
-        state: 'waiting',
-        startedAt: 1200,
-        stateStartedAt: 1200,
-        prompt: 'Parent B'
-      }),
+      mockAgent({ paneKey: 'tab-parent-b:1', prompt: 'Parent B' }),
       mockAgent({
         paneKey: 'tab-child-b:1',
-        agentType: 'codex',
-        startedAt: 1300,
-        stateStartedAt: 1300,
         prompt: 'Child B',
         orchestration: { parentPaneKey: 'tab-parent-b:1' }
       }),
-      mockAgent({
-        paneKey: 'tab-parent-c:1',
-        agentType: 'codex',
-        state: 'done',
-        startedAt: 1400,
-        stateStartedAt: 1400,
-        prompt: 'Parent C'
-      })
+      mockAgent({ paneKey: 'tab-parent-c:1', prompt: 'Parent C' })
     ]
     const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
 
@@ -892,12 +882,11 @@ describe('WorktreeCardAgents', () => {
 
     expect(markup).toContain('data-compact-agent-list="true"')
     expect(markup).toContain('role="tree"')
-    expect(markup).toContain('3 agents: 1 waiting, 1 working, 1 done')
-    expect(markup).not.toContain('title="Gemini waiting"')
-    expect(markup).not.toContain('title="Codex working"')
-    expect(markup).not.toContain('title="Codex done"')
-    expect(markup).not.toContain('Parent A')
-    expect(markup).not.toContain('Child A')
-    expect(markup).not.toContain('compact-agent-row')
+    expect(markup).not.toContain('compact-agent-summary-button')
+    expect(markup).toContain('Parent A')
+    expect(markup).toContain('Child A')
+    expect(markup).toContain('Parent B')
+    expect(markup).toContain('Child B')
+    expect(markup).toContain('Parent C')
   })
 })
