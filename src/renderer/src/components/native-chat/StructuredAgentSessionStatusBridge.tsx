@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useEffectEvent, useMemo, useSyncExternalStore } from 'react'
 import { dispatchTerminalNotification } from '../terminal-pane/use-notification-dispatch'
 import { useShallow } from 'zustand/react/shallow'
 import { agentProviderSessionsEqual } from '../../../../shared/agent-session-resume'
@@ -197,8 +197,8 @@ function StructuredAgentSessionStatusProjection({ tab }: { tab: StructuredTab })
   useEffect(() => {
     projectStatus(tab, summary, observation)
   }, [summary, observation, tab])
-  useEffect(() => {
-    const unsubscribe = feed.subscribeLiveTransition(tab.entityId, (previous, current) => {
+  const notifyLiveTransition = useEffectEvent(
+    (previous: AgentSessionStatusSummary, current: AgentSessionStatusSummary) => {
       if (
         previous.status !== 'working' ||
         (current.status !== 'attention' && current.status !== 'idle')
@@ -220,13 +220,18 @@ function StructuredAgentSessionStatusProjection({ tab }: { tab: StructuredTab })
           toolInput: current.toolInput
         }
       })
+    }
+  )
+  useEffect(() => {
+    const unsubscribe = feed.subscribeLiveTransition(tab.entityId, (previous, current) => {
+      notifyLiveTransition(previous, current)
     })
     const deactivate = feed.activate()
     return () => {
       unsubscribe()
       deactivate()
     }
-  }, [tab, feed])
+  }, [tab.entityId, tab.id, feed])
   useEffect(
     () => () =>
       useAppStore.getState().removeAgentStatus(structuredAgentSessionPaneKey(tab.id, tab.entityId)),

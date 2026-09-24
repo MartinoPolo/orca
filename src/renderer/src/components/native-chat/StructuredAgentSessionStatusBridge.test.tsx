@@ -239,6 +239,34 @@ describe('StructuredAgentSessionStatusBridge', () => {
     expect(mocks.dispatchTerminalNotification).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps a confirmed live feed across tab metadata updates and notifies with the latest title', async () => {
+    render(<StructuredAgentSessionStatusBridge />)
+    await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledOnce())
+    act(() => feed().emit({ type: 'snapshot', sessions: [summary()] }))
+
+    act(() =>
+      mocks.store?.setState({
+        unifiedTabsByWorktree: {
+          'wt-1': [{ ...structuredTab, label: 'Renamed Chat', customLabel: 'Renamed Chat' }]
+        }
+      })
+    )
+    expect(mocks.subscribeStatus).toHaveBeenCalledOnce()
+    expect(mocks.unsubscribe).not.toHaveBeenCalled()
+    expect(statuses()[0]?.terminalTitle).toBe('Renamed Chat')
+
+    act(() => feed().emit({ type: 'status', session: summary({ status: 'idle', updatedAt: 2 }) }))
+    expect(mocks.dispatchTerminalNotification).toHaveBeenCalledOnce()
+    expect(mocks.dispatchTerminalNotification).toHaveBeenCalledWith(
+      'wt-1',
+      expect.objectContaining({
+        source: 'agent-task-complete',
+        terminalTitle: 'Renamed Chat',
+        agentStatusSnapshot: expect.objectContaining({ state: 'done', stateStartedAt: 2 })
+      })
+    )
+  })
+
   it('delivers each live transition despite batched renders and does not replay on remount', async () => {
     const view = render(<StructuredAgentSessionStatusBridge />)
     await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledOnce())
@@ -668,6 +696,44 @@ describe('StructuredAgentSessionStatusBridge', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('rebinds the live feed when a tab changes session identity', async () => {
+    render(<StructuredAgentSessionStatusBridge />)
+    await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledOnce())
+    act(() => feed().emit({ type: 'snapshot', sessions: [summary()] }))
+
+    act(() =>
+      mocks.store?.setState({
+        unifiedTabsByWorktree: {
+          'wt-1': [{ ...structuredTab, entityId: 'session-2' }]
+        }
+      })
+    )
+    await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledTimes(2))
+    expect(mocks.unsubscribe).toHaveBeenCalledOnce()
+    expect(statuses()).toEqual([])
+
+    act(() =>
+      feed(1).emit({
+        type: 'snapshot',
+        sessions: [summary({ sessionId: 'session-2', updatedAt: 2 })]
+      })
+    )
+    expect(statuses()).toEqual([
+      expect.objectContaining({ state: 'working', tabId: structuredTab.id })
+    ])
+  })
+
+  it('rebinds the live feed when the worktree runtime target changes', async () => {
+    render(<StructuredAgentSessionStatusBridge />)
+    await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledOnce())
+    act(() => feed().emit({ type: 'snapshot', sessions: [summary()] }))
+
+    act(() => mocks.store?.setState({ testRuntimeOwner: 'env-2' }))
+    await waitFor(() => expect(mocks.subscribeStatus).toHaveBeenCalledTimes(2))
+    expect(mocks.unsubscribe).toHaveBeenCalledOnce()
+    expect(feed(1).target).toEqual({ kind: 'environment', environmentId: 'env-2' })
   })
 
   it('keys the feed by the worktree runtime environment', async () => {
