@@ -28,13 +28,15 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuItem: ({
     children,
     disabled,
-    onSelect
+    onSelect,
+    'aria-label': ariaLabel
   }: {
     children?: ReactNode
     disabled?: boolean
     onSelect?: () => void
+    'aria-label'?: string
   }) => (
-    <button type="button" disabled={disabled} onClick={() => onSelect?.()}>
+    <button type="button" aria-label={ariaLabel} disabled={disabled} onClick={() => onSelect?.()}>
       {children}
     </button>
   ),
@@ -58,6 +60,7 @@ vi.mock('lucide-react', () => ({
   Copy: () => null,
   ListX: () => null,
   MessageSquare: () => null,
+  Palette: () => null,
   PanelBottomClose: () => null,
   PanelLeftClose: () => null,
   PanelRightClose: () => null,
@@ -69,7 +72,8 @@ vi.mock('lucide-react', () => ({
 }))
 
 vi.mock('@/i18n/i18n', () => ({
-  translate: (_key: string, fallback: string) => fallback
+  translate: (key: string, fallback: string) =>
+    key === 'auto.components.tab.bar.SortableTabContextMenu.cb3eadefd2' ? 'Azul' : fallback
 }))
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -210,6 +214,16 @@ describe('requestActiveTerminalPaneSplit', () => {
 })
 
 describe('SortableTabContextMenu', () => {
+  it('uses the localized swatch label for accessibility', () => {
+    const onSetTabColor = vi.fn()
+    const { container } = renderMenu({ onSetTabColor })
+    const blueSwatch = container.querySelector('button[aria-label="Azul"]')
+
+    expect(blueSwatch).not.toBeNull()
+    act(() => blueSwatch?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(onSetTabColor).toHaveBeenCalledWith('term-1', '#3b82f6')
+  })
+
   it('does not expose a native/terminal view switch', () => {
     const { container } = renderMenu()
 

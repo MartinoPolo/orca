@@ -69,6 +69,8 @@ export type TerminalTab = {
   aiVaultTitle?: AiVaultSessionTitle | null
   /** Stable label from the tab-bar Quick Command that created this terminal. */
   quickCommandLabel?: string | null
+  /** Persisted launch provenance for automatic tab tint; not inferred from mutable titles. */
+  launchKind?: 'command' | 'piw'
   customTitle: string | null
   color: string | null
   /** Pinned tabs survive "close others"; host-persisted for remote servers. */

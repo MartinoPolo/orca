@@ -82,7 +82,7 @@ describe('launchAgentInNewTab named Pi profiles', () => {
     delete agentDefaultEnv.pi
   })
 
-  it('queues the concrete profile command and account-root snapshot', async () => {
+  it('stamps Piw provenance and queues the concrete profile command and account-root snapshot', async () => {
     agentDefaultArgs.pi = '--model test'
     agentDefaultEnv.pi = { PI_THEME: 'dark' }
     const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
@@ -92,13 +92,19 @@ describe('launchAgentInNewTab named Pi profiles', () => {
       worktreeId: 'wt-1',
       piLaunchProfile: {
         id: 'work',
-        name: 'Work',
+        name: 'Piw',
         command: 'C:/tools/piw',
         agentDirectory: 'C:/Users/ada/.pi-work/agent'
       }
     })
 
     expect(result).not.toBeNull()
+    expect(mockCreateTab).toHaveBeenCalledWith(
+      'wt-1',
+      undefined,
+      undefined,
+      expect.objectContaining({ launchAgent: 'pi', launchKind: 'piw' })
+    )
     expect(mockQueueTabStartupCommand).toHaveBeenCalledWith(
       'tab-1',
       expect.objectContaining({

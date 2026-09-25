@@ -117,9 +117,15 @@ describe('launchWorktreeBackgroundTerminals', () => {
     })
 
     expect(mockCreateTab).toHaveBeenCalledTimes(2)
-    expect(mockCreateTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
+    expect(mockCreateTab).toHaveBeenNthCalledWith(1, 'wt-1', undefined, undefined, {
       activate: false,
-      recordInteraction: false
+      recordInteraction: false,
+      launchKind: 'command'
+    })
+    expect(mockCreateTab).toHaveBeenNthCalledWith(2, 'wt-1', undefined, undefined, {
+      activate: false,
+      recordInteraction: false,
+      launchKind: 'command'
     })
     expect(mockSetTabCustomTitle).toHaveBeenCalledWith('tab-1', 'Dev', {
       recordInteraction: false

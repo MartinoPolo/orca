@@ -2314,10 +2314,20 @@
             "f7c3d7d5af": "Split Right"
           },
           "SortableTabContextMenu": {
+            "03cf6dab1a": "Pink",
             "0ce4bae39d": "Split Left",
+            "20baa43c05": "None",
             "21132389e9": "Split Right",
             "591f9b12c1": "Split Up",
-            "af80ed83c1": "Split Down"
+            "620aec6729": "Red",
+            "69682e2ce4": "Yellow",
+            "7703990447": "Gray",
+            "845576bed1": "Teal",
+            "a47629b3cf": "Orange",
+            "af80ed83c1": "Split Down",
+            "be905e9b0a": "Green",
+            "c2d8b0991f": "Purple",
+            "cb3eadefd2": "Blue"
           },
           "TabBarQuickCommandsButton": {
             "c781f992e4": "destructive"

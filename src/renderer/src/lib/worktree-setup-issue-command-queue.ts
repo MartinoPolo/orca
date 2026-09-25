@@ -34,6 +34,7 @@ export function queueSetupAndIssueCommands(
     if (mode === 'new-tab') {
       const setupTab = store.createTab(worktreeId, undefined, undefined, {
         recordInteraction: false,
+        launchKind: 'command',
         ...(opts?.activateCreatedTabs === false ? { activate: false } : {})
       })
       // Why: createTab auto-activates the new tab; revert so focus stays on the primary terminal while Setup runs in the background.

@@ -30,16 +30,17 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(store.setActiveTab).not.toHaveBeenCalled()
   })
 
-  it('creates a terminal when explicit launch work targets an empty workspace', () => {
+  it('marks a non-template startup command without an agent as a command tab', () => {
     const store = createMockStore({ tabsByWorktree: { 'wt-1': [] } })
 
-    ensureWorktreeHasInitialTerminal(store, 'wt-1', { command: 'claude "Fix this bug"' })
+    ensureWorktreeHasInitialTerminal(store, 'wt-1', { command: 'pnpm dev' })
 
     expect(store.createTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
-      pendingActivationSpawn: true
+      pendingActivationSpawn: true,
+      launchKind: 'command'
     })
     expect(store.queueTabStartupCommand).toHaveBeenCalledWith('tab-1', {
-      command: 'claude "Fix this bug"'
+      command: 'pnpm dev'
     })
   })
 
@@ -68,7 +69,8 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(createTab).toHaveBeenCalledTimes(2)
     expect(createTab).toHaveBeenNthCalledWith(1, 'wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
-      recordInteraction: false
+      recordInteraction: false,
+      launchKind: 'command'
     })
     expect(store.setTabCustomTitle).toHaveBeenCalledWith('tab-1', 'Claude', {
       recordInteraction: false
@@ -108,11 +110,13 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(createTab).toHaveBeenNthCalledWith(1, 'wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
       recordInteraction: false,
-      activate: false
+      activate: false,
+      launchKind: 'command'
     })
     expect(createTab).toHaveBeenNthCalledWith(2, 'wt-1', undefined, undefined, {
       recordInteraction: false,
-      activate: false
+      activate: false,
+      launchKind: 'command'
     })
     expect(store.setActiveTab).not.toHaveBeenCalled()
     expect(store.setTabCustomTitle).toHaveBeenCalledWith('tab-2', 'Setup', {

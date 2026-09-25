@@ -169,7 +169,8 @@ async function createBackgroundTab(args: {
   const store = useAppStore.getState()
   const tab = store.createTab(args.worktree.id, undefined, undefined, {
     activate: false,
-    recordInteraction: false
+    recordInteraction: false,
+    ...(args.launch.command ? { launchKind: 'command' as const } : {})
   })
   if (args.launch.title) {
     store.setTabCustomTitle(tab.id, args.launch.title, { recordInteraction: false })
@@ -294,16 +295,14 @@ export async function launchWorktreeBackgroundTerminals(
   }
 
   const setupMode = store.settings?.setupScriptLaunchMode ?? 'new-tab'
-  const shouldSplitSetup =
-    args.setup && (setupMode === 'split-horizontal' || setupMode === 'split-vertical')
-  if (shouldSplitSetup) {
+  if (args.setup && (setupMode === 'split-horizontal' || setupMode === 'split-vertical')) {
     const primaryTab =
       launchedTabs[0] ?? (await createBackgroundTab({ worktree, connectionId, launch: {} }))
     await addSetupSplit({
       worktree,
       connectionId,
       tab: primaryTab,
-      setup: args.setup!,
+      setup: args.setup,
       direction: setupMode === 'split-horizontal' ? 'horizontal' : 'vertical'
     })
     return
