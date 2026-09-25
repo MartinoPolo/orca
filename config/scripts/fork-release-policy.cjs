@@ -125,16 +125,8 @@ function assertForkReleaseSource({
     })
     .filter(({ name }) => name !== 'refs/heads/main')
   for (const ref of refs) {
-    if (
-      !SHA.test(ref.commit) ||
-      runProcessSync({
-        program: 'git',
-        args: ['merge-base', '--is-ancestor', ref.commit, commit],
-        cwd,
-        timeoutMs: 20000
-      }).code !== 0
-    ) {
-      throw new Error(`Unmerged development ref: ${ref.name}`)
+    if (!SHA.test(ref.commit)) {
+      throw new Error(`Invalid development ref: ${ref.name}`)
     }
   }
   let priorCommit = null

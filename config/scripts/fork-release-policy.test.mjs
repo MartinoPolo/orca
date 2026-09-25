@@ -119,32 +119,46 @@ describe('fork release safety', () => {
     commit(f.cwd, 'unpublished')
     expect(() => check(f)).toThrow(/published fork\/main/)
   })
-  it('rejects unmerged local and personal remote refs', () => {
+  it('records pending local and personal remote refs without releasing their code', () => {
     const f = fixture()
-    git(f.cwd, 'branch', 'unmerged', f.prior)
-    git(f.cwd, 'switch', 'unmerged')
-    const orphan = commit(f.cwd, 'unmerged change')
+    git(f.cwd, 'branch', 'pending', f.prior)
+    git(f.cwd, 'switch', 'pending')
+    const pendingCommit = commit(f.cwd, 'pending change')
     git(f.cwd, 'switch', 'main')
-    expect(() => check(f)).toThrow(/Unmerged development ref: refs\/heads\/unmerged/)
-    git(f.cwd, 'branch', '-D', 'unmerged')
-    git(f.cwd, 'push', f.bare, `${orphan}:refs/heads/martas/remote-only`)
-    expect(() => check(f)).toThrow(/fork\/martas\/remote-only/)
+    git(f.cwd, 'push', f.bare, `${pendingCommit}:refs/heads/martas/pending`)
+
+    const source = check(f)
+    expect(source.commit).toBe(f.later)
+    expect(git(f.cwd, 'show', 'main:tracked.txt')).toBe('later')
+    expect(source.auditedRefs).toEqual([
+      { name: 'refs/heads/pending', commit: pendingCommit },
+      { name: 'refs/remotes/fork/martas/pending', commit: pendingCommit }
+    ])
+    const candidate = {
+      cwd: f.cwd,
+      manifestPath: f.manifestPath,
+      metadata: {
+        orcaManualUpdatesOnly: true,
+        version: 'candidate',
+        orcaBuildSource: { commit: f.later, branch: 'main', repository: 'MartinoPolo/orca' }
+      },
+      provenance: { ...source, version: 'candidate' }
+    }
+    expect(assertForkPromotion(candidate).commit).toBe(f.later)
+    git(f.cwd, 'push', f.bare, ':refs/heads/martas/pending')
+    expect(() => assertForkPromotion(candidate)).toThrow(/provenance does not match/)
   })
-  it('prunes deleted personal remote branches while still rejecting unmerged local branches', () => {
+  it('prunes deleted personal remote branches and retains local pending branches', () => {
     const f = fixture()
-    git(f.cwd, 'branch', 'unmerged', f.prior)
-    git(f.cwd, 'switch', 'unmerged')
-    const orphan = commit(f.cwd, 'unmerged change')
+    git(f.cwd, 'branch', 'pending', f.prior)
+    git(f.cwd, 'switch', 'pending')
+    const pendingCommit = commit(f.cwd, 'pending change')
     git(f.cwd, 'switch', 'main')
-    git(f.cwd, 'branch', '-D', 'unmerged')
-    git(f.cwd, 'push', f.bare, `${orphan}:refs/heads/martas/removed`)
-    expect(() => check(f)).toThrow(/Unmerged development ref: refs\/remotes\/fork\/martas\/removed/)
+    git(f.cwd, 'push', f.bare, `${pendingCommit}:refs/heads/martas/removed`)
+    expect(check(f).auditedRefs).toHaveLength(2)
 
     git(f.cwd, 'push', f.bare, ':refs/heads/martas/removed')
-    expect(check(f).auditedRefs).toEqual([])
-
-    git(f.cwd, 'branch', 'unmerged', orphan)
-    expect(() => check(f)).toThrow(/Unmerged development ref: refs\/heads\/unmerged/)
+    expect(check(f).auditedRefs).toEqual([{ name: 'refs/heads/pending', commit: pendingCommit }])
   })
   it('rejects dropped release ancestry, tampered artifact and ambiguous legacy identity', () => {
     const f = fixture()
