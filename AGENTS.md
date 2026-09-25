@@ -9,7 +9,7 @@
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Add bindable directional tab moves that merge into direct neighboring tab groups or create splits; move-right defaults to `Mod+Alt+ArrowRight` (`Ctrl+Alt+Right` on Windows and Linux).
-- **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths.
+- **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths. Packaged CLI smoke checks use the shared bounded, hidden process runner.
 - **Implemented:** Refresh Cursor's chat metadata index on a cached miss so newly created chats are found even when workspace directory timestamps do not change; coalesce refreshes per scan and preserve WSL refusal recovery.
 - **Implemented:** Add session-scoped attention metadata, priority ordering, saved markers, and per-session sidebar/Activity treatments without changing execution-status authority or workspace-tree order.
 - **Implemented:** Agent alerts offer separate done, input, and blocked/failure sounds; desktop agent banners are reserved for P4/P5, while priority does not govern in-app attention or mobile fan-out. Runtime graph publication loads notification dispatch only after a qualifying failure transition to avoid a store initialization cycle.
