@@ -14,7 +14,7 @@ The launcher preserves `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, shell i
 
 Startup requires an absolute, non-symlink Lab root and validates application-storage paths before creating them. Electron `userData` and `sessionData` use `<root>/profile`, including Chromium session storage and cache. `home` and `appData` remain normal. Do not set the undocumented `cache` path: on Windows it aliases `appData`. `ORCA_USER_DATA_PATH` is canonicalized before runtime discovery initializes, so Orca runtime pointers, daemon endpoints, instance locks, and terminal bookkeeping remain profile-local. Windows daemon executable copies remain versioned under normal `LOCALAPPDATA`; they are code, not shared terminal state.
 
-Background verification uses a fresh empty profile and checks actual Electron/session storage paths, the Lab-owned runtime process tree, and unchanged main settings/catalogs. Whole-profile hashes are diagnostic while main is running: its UI and session bookkeeping can change independently.
+Background verification uses a fresh empty profile and checks actual Electron/session storage paths, the Lab-owned runtime process tree, and unchanged main settings/catalogs. Its hidden test launcher disables Chromium background/occlusion throttling for reliable CDP screenshots; normal Lab launches are unchanged. Whole-profile hashes are diagnostic while main is running: its UI and session bookkeeping can change independently.
 
 The Lab name is applied before readiness for a distinct macOS safe-storage identity, and its native main-window title remains **Orca Lab** across renderer loads. Use the isolated launcher and an unpacked build, never the standard installer or a directly opened executable. Launcher and artifact environment contracts must match.
 
