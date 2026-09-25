@@ -19,6 +19,7 @@ import {
 import { wireWslRelayLink } from './wsl-hook-relay-link'
 import { WslRelayRecovery } from './wsl-hook-relay-recovery'
 import { wslHookRelayStateKey } from './wsl-hook-relay-state-key'
+import type { WslHookRelayState } from './wsl-hook-relay-state'
 import { SshChannelMultiplexer, type MultiplexerTransport } from '../ssh/ssh-channel-multiplexer'
 import { AGENT_HOOK_REQUEST_REPLAY_METHOD } from '../../shared/agent-hook-relay'
 import {
@@ -31,28 +32,10 @@ import {
   wslRuntimeHomePathsEqual
 } from '../codex/managed-wsl-codex-home-registry'
 
-type DistroState = {
-  /** Original casing for wsl.exe argv and breadcrumbs; map keys are lowercased. */
-  distro: string
-  phase: 'starting' | 'running' | 'failed'
-  child?: ChildProcessWithoutNullStreams
-  mux?: SshChannelMultiplexer
-  guestHome?: string
-  codexHomePath?: string
-  guestEndpointFilePath?: string
-  opencodeOverlayDir?: string; opencode2OverlayDir?: string
-  failures: number
-  cooldownUntil: number
-  connectedAt?: number
-  restartTimer?: ReturnType<typeof setTimeout>
-  reinstallTimer?: ReturnType<typeof setTimeout>
-  lastInstallAt?: number
-}
-
 export class WslHookRelayManager {
   private deps: WslHookRelayManagerDeps
   private recovery: WslRelayRecovery
-  private states = new Map<string, DistroState>()
+  private states = new Map<string, WslHookRelayState>()
   private stoppedByHooksOff = new Map<string, string | undefined>()
   private defaultDistro: string | null = null
   private disposed = false
@@ -92,7 +75,7 @@ export class WslHookRelayManager {
     })
   }
 
-  private stateFor(distro: string | null): DistroState | undefined {
+  private stateFor(distro: string | null): WslHookRelayState | undefined {
     // Empty key never matches a real (non-empty) distro state.
     return this.states.get(wslHookRelayStateKey(distro ?? this.defaultDistro ?? ''))
   }
@@ -101,7 +84,15 @@ export class WslHookRelayManager {
     return this.stateFor(distro)?.guestEndpointFilePath ?? null
   }
 
-  getOpenCodeOverlayDir(distro: string | null, agent: 'opencode' | 'opencode2' = 'opencode'): string | null { const state = this.stateFor(distro); return agent === 'opencode2' ? (state?.opencode2OverlayDir ?? null) : (state?.opencodeOverlayDir ?? null) }
+  getOpenCodeOverlayDir(
+    distro: string | null,
+    agent: 'opencode' | 'opencode2' = 'opencode'
+  ): string | null {
+    const state = this.stateFor(distro)
+    return agent === 'opencode2'
+      ? (state?.opencode2OverlayDir ?? null)
+      : (state?.opencodeOverlayDir ?? null)
+  }
 
   /** Kills every live relay. Non-permanent (hooks switched off mid-session) leaves the
    *  manager reusable, so re-enabling hooks can start relays again without an app restart. */
@@ -184,13 +175,14 @@ export class WslHookRelayManager {
     if (existing) {
       this.recovery.clearTimers(existing)
     }
-    const state: DistroState = {
+    const state: WslHookRelayState = {
       distro,
       phase: 'starting',
       failures: existing?.failures ?? 0,
       // Why: instance-keyed and on the distro's persistent fs, so it outlives a relay
       // crash — dropping it would blank status on panes spawned mid-relaunch.
-      opencodeOverlayDir: existing?.opencodeOverlayDir, opencode2OverlayDir: existing?.opencode2OverlayDir,
+      opencodeOverlayDir: existing?.opencodeOverlayDir,
+      opencode2OverlayDir: existing?.opencode2OverlayDir,
       codexHomePath: requestedCodexHomePath ?? existing?.codexHomePath,
       cooldownUntil: 0
     }
@@ -237,7 +229,7 @@ export class WslHookRelayManager {
   }
 
   private async connect(
-    state: DistroState,
+    state: WslHookRelayState,
     transport: MultiplexerTransport,
     child: ChildProcessWithoutNullStreams,
     instanceKey: string
@@ -309,7 +301,7 @@ export class WslHookRelayManager {
    *  one failed relaunch must not end self-recovery; the timer's
    *  distro-running probe keeps this from booting stopped distros. */
   private markFailed(
-    state: DistroState,
+    state: WslHookRelayState,
     message: string,
     options: { cooldownBaseMs: number }
   ): void {
