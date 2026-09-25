@@ -228,7 +228,15 @@ describe('WorktreeCardAgents send targets', () => {
     expect(markup).toContain(`data-pane-key="${READY_PANE_KEY}"`)
   })
 
-  it('marks compact active-worktree rows as send targets in the default row UI', async () => {
+  it('shows all compact rows without a summary during send-target selection', async () => {
+    const extraPaneKeys = [
+      'tab-1:33333333-3333-4333-8333-333333333333',
+      'tab-1:44444444-4444-4444-8444-444444444444'
+    ]
+    mockAgents = [
+      ...mockAgents,
+      ...extraPaneKeys.map((paneKey) => agentRow(paneKey, 'working', Date.now()))
+    ]
     mockStoreState = {
       ...mockStoreState,
       agentActivityDisplayMode: 'compact'
@@ -237,8 +245,11 @@ describe('WorktreeCardAgents send targets', () => {
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
+    expect(markup.match(/class="compact-agent-row /g)).toHaveLength(4)
+    expect(markup).toContain('Ready')
+    expect(markup).toContain('Busy')
     expect(markup).toContain('data-agent-send-target="eligible"')
-    expect(markup).not.toContain('data-agent-send-target="disabled"')
+    expect(markup).not.toContain('compact-agent-summary-button')
     expect(markup).not.toContain('title="Agent is working"')
   })
 })

@@ -12,7 +12,7 @@
 - **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths.
 - **Implemented:** Refresh Cursor's chat metadata index on a cached miss so newly created chats are found even when workspace directory timestamps do not change; coalesce refreshes per scan and preserve WSL refusal recovery.
 - **Implemented:** Add session-scoped attention metadata, priority ordering, saved markers, and per-session sidebar/Activity treatments without changing execution-status authority or workspace-tree order.
-- **Implemented:** Agent alerts offer separate done, input, and blocked/failure sounds; desktop agent banners are reserved for P4/P5, while priority does not govern in-app attention or mobile fan-out. Runtime graph failure delivery loads notification dispatch only when needed to avoid a renderer store initialization cycle.
+- **Implemented:** Agent alerts offer separate done, input, and blocked/failure sounds; desktop agent banners are reserved for P4/P5, while priority does not govern in-app attention or mobile fan-out. Runtime graph publication loads notification dispatch only after a qualifying failure transition to avoid a store initialization cycle.
 - **Implemented:** Send Pi's Ctrl+Enter as CSI-u from trusted panes without enabling the protocol globally for Windows ConPTY shells.
 - **Implemented:** Preserve snapshot mouse encoding and negotiated Alt shortcuts, including across renderer-only agent-idle cleanup, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
 - **Implemented:** Windows desktop port discovery uses unfiltered `netstat` enumeration so IPv4 and IPv6 TCP listeners reach the existing scanner and workspace attribution. Parsing still requires the English `LISTENING` state.
@@ -23,9 +23,10 @@
 - **Implemented:** Source control starts “Committed on Branch” collapsed on panel mount and workspace switches; committed files and their header use muted styling on a secondary surface, separated from visible active changes by a gap and divider.
 - **Implemented:** `ORCA_LAB_ROOT` gives packaged builds a fail-closed separate Orca profile and storage while sharing the normal shell, development tools, and agent configuration. It retains a distinct Orca Lab identity and native window title without enabling E2E mode; see [`docs/reference/orca-lab-isolation.md`](docs/reference/orca-lab-isolation.md).
 
-Add or update a one-to-three-sentence entry here for every fork-only patch.
-
+- **Implemented:** Sidebar agent lists start expanded; compact lists offer a collapse row only above three top-level agents. Explicit collapse choices survive sidebar remounts within the renderer session.
 - **Implemented:** Terminal tab headers use launch-aware muted tints (Claude orange, Pi blue, named Piw purple, command launches teal), with manual swatches, Automatic, and No color choices; ordinary terminals remain neutral.
+
+Add or update a one-to-three-sentence entry here for every fork-only patch.
 
 ## Installation
 

@@ -3,18 +3,20 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
-const { existsSyncMock, spawnMock } = vi.hoisted(() => ({
+const { existsSyncMock, spawnMock, statSyncMock } = vi.hoisted(() => ({
   existsSyncMock: vi.fn(),
-  spawnMock: vi.fn()
+  spawnMock: vi.fn(),
+  statSyncMock: vi.fn()
 }))
 
-vi.mock('fs', async (importOriginal) => {
+vi.mock('node:fs', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>
   return {
     ...actual,
-    existsSync: existsSyncMock
+    existsSync: existsSyncMock,
+    statSync: statSyncMock
   }
 })
 
@@ -36,9 +38,10 @@ import { spawnSystemSshPortForward } from './system-ssh-forward-process'
 import { getRemoteHostPlatform } from './ssh-remote-platform'
 import type { SshTarget } from '../../shared/ssh-types'
 import type { SystemSshResolvedConfig } from './ssh-control-socket'
-
-const SYSTEM_SSH_PATH =
-  process.platform === 'win32' ? 'C:\\Windows\\System32\\OpenSSH\\ssh.exe' : '/usr/bin/ssh'
+import {
+  SYSTEM_SSH_PATH,
+  mockSystemSshExists as mockSystemSshBinaryExists
+} from './ssh-system-binary-test-fixture'
 
 function decodePowerShellCommand(command: string): string {
   const encoded = command.match(/-EncodedCommand\s+(\S+)/)?.[1]
@@ -46,8 +49,12 @@ function decodePowerShellCommand(command: string): string {
 }
 
 function mockSystemSshExists(): void {
-  existsSyncMock.mockImplementation((p: string) => p === SYSTEM_SSH_PATH)
+  mockSystemSshBinaryExists(existsSyncMock, statSyncMock)
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 function createTarget(overrides?: Partial<SshTarget>): SshTarget {
   return {
