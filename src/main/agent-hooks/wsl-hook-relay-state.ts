@@ -1,4 +1,4 @@
-import type { ChildProcessWithoutNullStreams } from 'node:child_process'
+import type { spawnWslRelayProcess } from './wsl-hook-relay-launch'
 
 import type { WslRelayRecoveryState } from './wsl-hook-relay-recovery'
 import type { SshChannelMultiplexer } from '../ssh/ssh-channel-multiplexer'
@@ -6,7 +6,7 @@ import type { SshChannelMultiplexer } from '../ssh/ssh-channel-multiplexer'
 /** Stores original distro casing for wsl.exe argv; manager map keys are lowercased. */
 export type WslHookRelayState = WslRelayRecoveryState & {
   phase: 'starting' | 'running' | 'failed'
-  child?: ChildProcessWithoutNullStreams
+  child?: ReturnType<typeof spawnWslRelayProcess>
   mux?: SshChannelMultiplexer
   guestHome?: string
   codexHomePath?: string
