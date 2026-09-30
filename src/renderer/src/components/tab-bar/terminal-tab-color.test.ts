@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { resolveTerminalTabColor } from './terminal-tab-color'
+import {
+  getTerminalTabTintBackground,
+  resolveTerminalTabIdentityTint,
+  resolveTerminalTabStateTintName
+} from './terminal-tab-color'
 
-const expectedColor = {
-  claude: '#f97316',
-  pi: '#3b82f6',
-  piw: '#a855f7',
-  command: '#14b8a6',
+const expectedTintColor = {
+  claude: 'var(--tab-tint-claude)',
+  pi: 'var(--tab-tint-pi)',
+  command: 'var(--tab-tint-command)',
   manual: '#22c55e'
 }
 
@@ -21,26 +24,51 @@ const tab: TerminalTab = {
   createdAt: 0
 }
 
-describe('terminal tab automatic color', () => {
-  it('leaves ordinary terminals neutral and colors command launches teal', () => {
-    expect(resolveTerminalTabColor(tab, null)).toBeNull()
-    expect(resolveTerminalTabColor({ ...tab, launchKind: 'command' }, null)).toBe(
-      expectedColor.command
-    )
+function identityColor(
+  tabOverrides: Partial<TerminalTab>,
+  agent: Parameters<typeof resolveTerminalTabIdentityTint>[1]
+): string | undefined {
+  return resolveTerminalTabIdentityTint({ ...tab, ...tabOverrides }, agent)?.color
+}
+
+describe('terminal tab identity tint', () => {
+  it('leaves ordinary terminals neutral and tints command launches', () => {
+    expect(identityColor({}, null)).toBeUndefined()
+    expect(identityColor({ launchKind: 'command' }, null)).toBe(expectedTintColor.command)
   })
-  it('uses agent identity before command provenance and distinguishes a named Piw launch', () => {
-    expect(resolveTerminalTabColor(tab, 'claude')).toBe(expectedColor.claude)
-    expect(resolveTerminalTabColor(tab, 'pi')).toBe(expectedColor.pi)
-    expect(resolveTerminalTabColor({ ...tab, launchKind: 'piw' }, 'pi')).toBe(expectedColor.piw)
-    expect(resolveTerminalTabColor({ ...tab, launchKind: 'piw' }, null)).toBe(expectedColor.piw)
-    expect(resolveTerminalTabColor({ ...tab, launchKind: 'command' }, 'pi')).toBe(expectedColor.pi)
-    expect(resolveTerminalTabColor({ ...tab, launchKind: 'command' }, 'codex')).toBeNull()
-    expect(resolveTerminalTabColor({ ...tab, quickCommandLabel: 'Agent prompt' }, null)).toBeNull()
+  it('uses agent identity before command provenance and shares one tint across Pi accounts', () => {
+    expect(identityColor({}, 'claude')).toBe(expectedTintColor.claude)
+    expect(identityColor({}, 'pi')).toBe(expectedTintColor.pi)
+    expect(identityColor({ launchKind: 'piw' }, 'pi')).toBe(expectedTintColor.pi)
+    expect(identityColor({ launchKind: 'piw' }, null)).toBe(expectedTintColor.pi)
+    expect(identityColor({ launchKind: 'command' }, 'pi')).toBe(expectedTintColor.pi)
+    expect(identityColor({ launchKind: 'command' }, 'codex')).toBeUndefined()
+    expect(identityColor({ quickCommandLabel: 'Agent prompt' }, null)).toBeUndefined()
   })
   it('keeps explicit manual color and explicit neutral over automatic identity', () => {
-    expect(resolveTerminalTabColor({ ...tab, color: expectedColor.manual }, 'claude')).toBe(
-      expectedColor.manual
+    expect(identityColor({ color: expectedTintColor.manual }, 'claude')).toBe(
+      expectedTintColor.manual
     )
-    expect(resolveTerminalTabColor({ ...tab, color: '' }, 'claude')).toBeNull()
+    expect(identityColor({ color: '' }, 'claude')).toBeUndefined()
+  })
+})
+
+describe('terminal tab state tint', () => {
+  it('gives attention priority over unread and ignores quiet or live working states', () => {
+    expect(resolveTerminalTabStateTintName('permission', false)).toBe('attention')
+    expect(resolveTerminalTabStateTintName('interrupted', true)).toBe('attention')
+    expect(resolveTerminalTabStateTintName('done', true)).toBe('unread')
+    expect(resolveTerminalTabStateTintName('inactive', true)).toBe('unread')
+    expect(resolveTerminalTabStateTintName('working', false)).toBeNull()
+    expect(resolveTerminalTabStateTintName('done', false)).toBeNull()
+  })
+  it('mixes a stronger tint into the card for the active tab', () => {
+    const tint = { color: '#123456', inactiveMixPercent: 20, activeMixPercent: 30 }
+    expect(getTerminalTabTintBackground(tint, false)).toBe(
+      'color-mix(in srgb, #123456 20%, var(--card))'
+    )
+    expect(getTerminalTabTintBackground(tint, true)).toBe(
+      'color-mix(in srgb, #123456 30%, var(--card))'
+    )
   })
 })
