@@ -199,6 +199,16 @@ describe('SortableTab update-depth probe', () => {
     expect(neutral?.classList.contains('text-foreground')).toBe(false)
   })
 
+  it('lets unread state own the background while keeping manual identity', () => {
+    probeStore.setState({ unreadTerminalTabs: { 'terminal-tab-1': true } })
+    const { container } = render(<Harness tab={makeTab({ color: '#3b82f6' })} isActive={false} />)
+    const tab = container.querySelector('[data-testid="sortable-tab"]')
+
+    expect(tab?.getAttribute('data-tab-state')).toBe('unread')
+    expect(tab?.getAttribute('data-tab-color')).toBe('#3b82f6')
+    expect(tab?.classList.contains('text-foreground')).toBe(true)
+  })
+
   it('settles when the rename shortcut targets this tab', () => {
     const { container } = render(<Harness tab={makeTab()} />)
     act(() => requestTerminalTabRename('terminal-tab-1'))

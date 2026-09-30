@@ -24,7 +24,7 @@
 - **Implemented:** `ORCA_LAB_ROOT` gives packaged builds a fail-closed separate Orca profile and storage while sharing the normal shell, development tools, and agent configuration. It retains a distinct Orca Lab identity and native window title without enabling E2E mode; see [`docs/reference/orca-lab-isolation.md`](docs/reference/orca-lab-isolation.md).
 
 - **Implemented:** Sidebar agent lists start expanded; compact lists offer a collapse row only above three top-level agents. Explicit collapse choices survive sidebar remounts within the renderer session.
-- **Implemented:** Terminal tab headers use launch-aware muted tints (Claude orange, Pi blue, named Piw purple, command launches teal), with manual swatches, Automatic, and No color choices; ordinary terminals remain neutral.
+- **Implemented:** Terminal tab headers use launch-aware cool tints (Pi violet for every account, Claude sky, command launches green), with manual swatches, Automatic, and No color choices; ordinary terminals remain neutral. Unread (orange) and attention (red) replace the identity background, while the active strip keeps the identity color.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 

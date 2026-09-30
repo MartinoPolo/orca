@@ -47,7 +47,7 @@ The `sidebar` family expands into `--sidebar`, `--sidebar-foreground`, `--sideba
 
 ### Terminal tab headers
 
-Terminal headers may use a subdued solid tint to distinguish launch identity: Claude orange, Pi blue, named Piw profile purple, and ordinary command launches teal. Active tabs have a stronger tint and a matching bottom strip; inactive tabs have a softer tint. Manual swatches override automatic identity; No color keeps a neutral header. Keep text contrast accessible in both themes, and do not apply these tints to other surfaces.
+Terminal headers may use a solid tint from the `--tab-tint-*` tokens. Cool hues mark launch identity: Pi (every account) violet, Claude sky, ordinary command launches green. Warm hues are reserved for state and replace the identity background: unread orange, attention (needs input or interrupted) red. Active tabs have a stronger tint and a bottom strip in the identity color. Manual swatches override automatic identity; No color keeps a neutral identity. Keep text contrast accessible in both themes, and do not apply these tints to other surfaces.
 
 ### Git decoration colors
 
