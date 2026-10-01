@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { SourceControlPanelFoundation } from '../panel/use-panel-foundation'
 import { useSourceControlCreatePrIntentCommitMessage } from '../review/use-create-pr-intent-commit-message'
 import { useSourceControlConflictAbort } from '../sync/use-conflict-abort'
+import { useSourceControlAmendAndForcePush } from '../sync/use-amend-and-force-push'
 import { useSourceControlRemoteActionRunner } from '../sync/use-remote-action-runner'
 import { useSourceControlCommitAction } from './use-commit-action'
 import { useSourceControlCommitMessageGeneration } from './use-commit-message-generation'
@@ -138,6 +139,12 @@ export function useSourceControlCommitFlows(foundation: SourceControlPanelFounda
     syncBranch,
     worktreePath
   })
+  const amendAndForcePush = useSourceControlAmendAndForcePush({
+    activeWorktreeId,
+    handleCommit: commitAction.handleCommit,
+    runRemoteAction: remoteActionRunner.runRemoteAction,
+    setRemoteActionErrors
+  })
   const conflictAbort = useSourceControlConflictAbort({
     activeRepoTarget,
     activeWorktreeId,
@@ -157,6 +164,7 @@ export function useSourceControlCommitFlows(foundation: SourceControlPanelFounda
     ...commitMessageGeneration,
     ...createPrIntentCommitMessage,
     ...remoteActionRunner,
+    ...amendAndForcePush,
     ...conflictAbort
   }
 }

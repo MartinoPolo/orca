@@ -2,6 +2,7 @@ import { defineMethod } from '../core'
 import { GIT_COMMIT_MESSAGE_GENERATION_METHODS } from './git-commit-message-generation-methods'
 import { GIT_DIFF_METHODS } from './git-diff-methods'
 import {
+  GitAmendCommit,
   GitBranchCompare,
   GitBulkPaths,
   GitBulkStage,
@@ -14,6 +15,7 @@ import {
   GitForkSync,
   GitHistory,
   GitPush,
+  GitPushWithLease,
   GitRebaseFromBase,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,
@@ -205,11 +207,27 @@ export const GIT_METHODS = [
       )
   }),
   defineMethod({
+    name: 'git.pushWithLease',
+    permission: 'workspace',
+    params: GitPushWithLease,
+    handler: async (params, { runtime }) =>
+      runtime.pushRuntimeGitWithLease(params.worktree, params.lease)
+  }),
+  defineMethod({
     name: 'git.commit',
     permission: 'workspace',
     params: GitCommit,
     handler: async (params, { runtime }) =>
       runtime.commitRuntimeGit(params.worktree, params.message)
+  }),
+  defineMethod({
+    name: 'git.amendCommit',
+    permission: 'workspace',
+    params: GitAmendCommit,
+    handler: async (params, { runtime }) =>
+      params.pushTarget === undefined
+        ? runtime.amendRuntimeGitCommit(params.worktree, params.message)
+        : runtime.amendRuntimeGitCommit(params.worktree, params.message, params.pushTarget)
   }),
   ...GIT_COMMIT_MESSAGE_GENERATION_METHODS,
   defineMethod({

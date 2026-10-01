@@ -4,6 +4,7 @@ import { toRuntimeWorktreeSelector } from '../../runtime/runtime-worktree-select
 import { translate } from '@/i18n/i18n'
 import { callRuntimeResult } from './web-runtime-calls'
 import { mutateGitPath, mutateGitPaths, resolveGitConflict } from './web-git-mutations'
+import { createWebGitAmendApi } from './web-git-amend-api'
 import { requireGitStageWorktreeScopeReceipt } from '../../../../shared/git-stage-worktree-scope'
 import { requireActiveEnvironment, updateEnvironmentFromResponse } from './web-runtime-session'
 import {
@@ -43,6 +44,7 @@ export async function callAbortableRuntimeStatus<TResult>(
 
 export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
   return {
+    ...createWebGitAmendApi(),
     status: async ({
       worktreePath,
       includeIgnored,

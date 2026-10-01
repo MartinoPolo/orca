@@ -1,3 +1,4 @@
+import type { GitCommitResult, GitPushLease } from '../../shared/git-commit-command'
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../shared/git-fork-sync'
 import type { GitUpstreamStatus } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
@@ -118,10 +119,16 @@ export class RuntimeGitSyncCommands {
     return { ok: true }
   }
 
-  async commitRuntimeGit(
+  async pushRuntimeGitWithLease(
     worktreeSelector: string,
-    message: string
-  ): Promise<{ success: boolean; error?: string }> {
+    lease: GitPushLease
+  ): Promise<{ ok: true }> {
+    const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
+    await requireRuntimeGitProvider(target).pushWithLease(target.worktree.path, lease)
+    return { ok: true }
+  }
+
+  async commitRuntimeGit(worktreeSelector: string, message: string): Promise<GitCommitResult> {
     if (message.trim().length === 0) {
       throw new Error('Commit message is required')
     }
@@ -134,5 +141,15 @@ export class RuntimeGitSyncCommands {
   ): Promise<{ success: boolean; error?: string }> {
     const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
     return requireRuntimeGitProvider(target).completeMerge(target.worktree.path)
+  }
+
+  async amendRuntimeGitCommit(
+    worktreeSelector: string,
+    message: string | undefined,
+    pushTarget?: GitPushTarget
+  ): Promise<GitCommitResult> {
+    const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
+    const sync = await this.prepareRemoteSync(target, pushTarget)
+    return sync.provider.amendCommit(target.worktree.path, message, sync.pushTarget)
   }
 }

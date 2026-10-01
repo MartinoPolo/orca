@@ -1,3 +1,4 @@
+import type { GitCommitResult, GitPushLease } from '../../shared/git-commit-command'
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../shared/git-fork-sync'
 import type { TuiAgent } from '../../shared/tui-agent'
 import type { GitPushTarget } from '../../shared/worktree/types'
@@ -29,6 +30,11 @@ export type GitOperationApi = {
     connectionId?: string
     pushTarget?: GitPushTarget
   }) => Promise<void>
+  pushWithLease: (args: {
+    worktreePath: string
+    connectionId?: string
+    lease: GitPushLease
+  }) => Promise<void>
   pull: (args: {
     worktreePath: string
     connectionId?: string
@@ -48,11 +54,19 @@ export type GitOperationApi = {
     worktreePath: string
     message: string
     connectionId?: string
-  }) => Promise<{ success: boolean; error?: string }>
+  }) => Promise<GitCommitResult>
   completeMerge: (args: {
     worktreePath: string
     connectionId?: string
   }) => Promise<{ success: boolean; error?: string }>
+  amendCommit: (args: {
+    worktreePath: string
+    worktreeId?: string
+    /** Empty or omitted keeps the amended commit's existing message. */
+    message?: string
+    connectionId?: string
+    pushTarget?: GitPushTarget
+  }) => Promise<GitCommitResult>
   generateCommitMessage: (args: {
     worktreePath: string
     /** Raw (unstripped) worktree meta key; validated against worktreePath in main. */

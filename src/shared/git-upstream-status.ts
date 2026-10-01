@@ -47,6 +47,11 @@ export function shouldForcePushWithLeaseForUpstream(
   )
 }
 
+// Why: ahead === 0 means every local commit, including HEAD, is already on the upstream.
+export function isHeadPublishedToUpstream(status: GitUpstreamStatus | undefined): boolean {
+  return status?.hasUpstream === true && status.ahead === 0
+}
+
 // Create PR auto-prepare can fast-forward only behind-only branches with no local unique commits; share eligibility with intent resolution.
 export function isBehindOnlyUpstream(status: GitUpstreamStatus | undefined): boolean {
   return status?.hasUpstream === true && status.ahead === 0 && status.behind > 0

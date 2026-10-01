@@ -11,11 +11,13 @@ import { SshHostNotServedError } from '../providers/ssh-host-not-served-error'
 const mocks = vi.hoisted(() => ({
   abortMerge: vi.fn(),
   abortRebase: vi.fn(),
+  amendCommit: vi.fn(),
   commitChanges: vi.fn(),
   gitSyncForkDefaultBranch: vi.fn(),
   gitFastForward: vi.fn(),
   gitFetch: vi.fn(),
-  gitPull: vi.fn()
+  gitPull: vi.fn(),
+  gitPushWithLease: vi.fn()
 }))
 
 vi.mock('../git/fork-sync', async () => ({
@@ -27,6 +29,7 @@ vi.mock('../git/status', async () => ({
   ...(await vi.importActual<typeof GitStatusModule>('../git/status')),
   abortMerge: mocks.abortMerge,
   abortRebase: mocks.abortRebase,
+  amendCommit: mocks.amendCommit,
   commitChanges: mocks.commitChanges
 }))
 
@@ -34,7 +37,8 @@ vi.mock('../git/remote', async () => ({
   ...(await vi.importActual<typeof GitRemoteModule>('../git/remote')),
   gitFastForward: mocks.gitFastForward,
   gitFetch: mocks.gitFetch,
-  gitPull: mocks.gitPull
+  gitPull: mocks.gitPull,
+  gitPushWithLease: mocks.gitPushWithLease
 }))
 
 const worktree = {
@@ -46,6 +50,7 @@ const pushTarget = {
   branchName: 'main'
 } satisfies GitPushTarget
 const expectedUpstream = { owner: 'stablyai', repo: 'orca' }
+const pushLease = { expectedHead: 'a'.repeat(40), pushTarget }
 
 describe('RuntimeGitSyncCommands admission', () => {
   beforeEach(() => {
@@ -71,6 +76,8 @@ describe('RuntimeGitSyncCommands admission', () => {
     await commands.pullRuntimeGit('id:wt-1', pushTarget)
     await commands.fastForwardRuntimeGit('id:wt-1', pushTarget)
     await commands.commitRuntimeGit('id:wt-1', 'feat: prioritize user action')
+    await commands.amendRuntimeGitCommit('id:wt-1', undefined, pushTarget)
+    await commands.pushRuntimeGitWithLease('id:wt-1', pushLease)
 
     const options = { admissionTier: 'interactive', wslDistro: 'Ubuntu' }
     expect(mocks.abortMerge).toHaveBeenCalledWith(worktree.path, options)
@@ -88,6 +95,8 @@ describe('RuntimeGitSyncCommands admission', () => {
       'feat: prioritize user action',
       options
     )
+    expect(mocks.amendCommit).toHaveBeenCalledWith(worktree.path, undefined, options, pushTarget)
+    expect(mocks.gitPushWithLease).toHaveBeenCalledWith(worktree.path, pushLease, options)
   })
 
   it('refuses every runtime git action on an SSH host without running git here', async () => {
@@ -109,9 +118,17 @@ describe('RuntimeGitSyncCommands admission', () => {
     await expect(commands.commitRuntimeGit('id:wt-1', 'feat: remote')).rejects.toThrow(
       SshHostNotServedError
     )
+    await expect(commands.amendRuntimeGitCommit('id:wt-1', 'fix: remote')).rejects.toThrow(
+      SshHostNotServedError
+    )
+    await expect(commands.pushRuntimeGitWithLease('id:wt-1', pushLease)).rejects.toThrow(
+      SshHostNotServedError
+    )
     expect(mocks.abortMerge).not.toHaveBeenCalled()
     expect(mocks.gitFetch).not.toHaveBeenCalled()
     expect(mocks.gitPull).not.toHaveBeenCalled()
     expect(mocks.commitChanges).not.toHaveBeenCalled()
+    expect(mocks.amendCommit).not.toHaveBeenCalled()
+    expect(mocks.gitPushWithLease).not.toHaveBeenCalled()
   })
 })

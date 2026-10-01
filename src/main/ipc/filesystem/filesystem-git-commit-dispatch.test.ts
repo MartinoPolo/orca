@@ -7,6 +7,7 @@ import {
   handlers,
   store,
   WORKTREE_FEATURE_PATH,
+  amendCommitMock,
   commitChangesMock,
   resolveCommitMessageSettingsMock,
   generatePullRequestFieldsFromContextMock,
@@ -114,6 +115,29 @@ describe('registerFilesystemHandlers', () => {
     )
 
     expect(commitChangesMock).not.toHaveBeenCalled()
+  })
+
+  it('amends locally with an empty message kept and refuses ssh amend as not served', async () => {
+    amendCommitMock.mockResolvedValue({ success: true })
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, { worktreePath: WORKTREE_FEATURE_PATH })
+    ).resolves.toEqual({ success: true })
+    expect(amendCommitMock).toHaveBeenCalledWith(
+      WORKTREE_FEATURE_PATH,
+      undefined,
+      { admissionTier: 'interactive' },
+      undefined
+    )
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, {
+        worktreePath: '/remote/repo',
+        connectionId: 'conn-1'
+      })
+    ).rejects.toThrow(SSH_HOST_NOT_SERVED_MESSAGE)
+    expect(amendCommitMock).toHaveBeenCalledTimes(1)
   })
 
   it('rejects git:remoteCommitUrl with a short hash before SSH dispatch', async () => {

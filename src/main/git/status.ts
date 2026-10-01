@@ -39,7 +39,7 @@ export {
   unstageFile
 } from './source-control/staging'
 export { getStagedCommitContext } from './source-control/staged-commit-context'
-export { commitChanges, completeMerge } from './source-control/commit-changes'
+export { amendCommit, commitChanges, completeMerge } from './source-control/commit-changes'
 export {
   bulkDiscardChanges,
   discardChanges,

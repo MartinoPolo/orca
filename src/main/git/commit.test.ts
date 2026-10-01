@@ -9,7 +9,7 @@ vi.mock('./runner', () => ({
   gitExecFileAsyncBuffer: vi.fn()
 }))
 
-import { commitChanges } from './status'
+import { amendCommit, commitChanges } from './status'
 
 describe('commitChanges', () => {
   beforeEach(() => {
@@ -76,6 +76,62 @@ describe('commitChanges', () => {
     expect(result).toEqual({
       success: false,
       error: 'spawn git ENOENT'
+    })
+  })
+})
+
+describe('amendCommit', () => {
+  beforeEach(() => {
+    gitExecFileAsyncMock.mockReset()
+  })
+
+  it('captures HEAD and the published target before the amend command, on the execution host', async () => {
+    const expectedHead = 'a'.repeat(40)
+    gitExecFileAsyncMock.mockImplementation(async (args: string[]) => ({
+      stdout: args[0] === 'rev-parse' ? expectedHead : '',
+      stderr: ''
+    }))
+    const pushTarget = { remoteName: 'fork', branchName: 'review/topic' }
+    const result = await amendCommit('/repo', undefined, { wslDistro: 'Ubuntu' }, pushTarget)
+    expect(result).toEqual({ success: true, pushLease: { expectedHead, pushTarget } })
+    expect(gitExecFileAsyncMock.mock.calls.map(([args]) => args)).toEqual([
+      ['rev-parse', '--verify', 'HEAD'],
+      ['check-ref-format', '--branch', 'review/topic'],
+      ['rev-parse', '--verify', 'refs/remotes/fork/review/topic'],
+      ['commit', '--amend', '--no-edit']
+    ])
+    for (const [, options] of gitExecFileAsyncMock.mock.calls) {
+      expect(options).toEqual({ cwd: '/repo', wslDistro: 'Ubuntu' })
+    }
+  })
+
+  it('keeps the existing message when none is given', async () => {
+    gitExecFileAsyncMock.mockResolvedValue({ stdout: '', stderr: '' })
+
+    await expect(amendCommit('/repo', '   ')).resolves.toEqual({ success: true })
+
+    expect(gitExecFileAsyncMock).toHaveBeenCalledWith(['commit', '--amend', '--no-edit'], {
+      cwd: '/repo'
+    })
+  })
+
+  it('replaces the message with the trimmed new one', async () => {
+    gitExecFileAsyncMock.mockResolvedValue({ stdout: '', stderr: '' })
+
+    await amendCommit('/repo', '  fix: reworded  ')
+
+    expect(gitExecFileAsyncMock).toHaveBeenCalledWith(
+      ['commit', '--amend', '-m', 'fix: reworded'],
+      { cwd: '/repo' }
+    )
+  })
+
+  it('returns git output when the amend fails', async () => {
+    gitExecFileAsyncMock.mockRejectedValue({ stderr: 'fatal: You have nothing to amend.\n' })
+
+    await expect(amendCommit('/repo', undefined)).resolves.toEqual({
+      success: false,
+      error: 'fatal: You have nothing to amend.\n'
     })
   })
 })

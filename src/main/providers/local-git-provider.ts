@@ -3,12 +3,20 @@ import type { GitRuntimeOptions } from '../git/git-runtime-options'
 import { checkIgnoredPaths } from '../git/check-ignored-paths'
 import { checkoutBranch, listLocalBranches } from '../git/checkout'
 import { getHistory } from '../git/history'
-import { gitFastForward, gitFetch, gitPull, gitPullRebaseFromBase, gitPush } from '../git/remote'
+import {
+  gitFastForward,
+  gitFetch,
+  gitPull,
+  gitPullRebaseFromBase,
+  gitPush,
+  gitPushWithLease
+} from '../git/remote'
 import { getRemoteCommitUrl, getRemoteFileUrl, isGitRepo } from '../git/repo'
 import { awaitWindowsHostGitEnvironmentReady, gitExecFileAsync } from '../git/runner'
 import {
   abortMerge,
   abortRebase,
+  amendCommit,
   bulkDiscardChanges,
   bulkStageFiles,
   bulkUnstageFiles,
@@ -74,6 +82,8 @@ export function createLocalGitProvider(options: LocalGitProviderOptions = {}): L
     getHistory: (worktreePath, historyOptions = {}) =>
       getHistory(worktreePath, { ...historyOptions, ...interactive }),
     commit: (worktreePath, message) => commitChanges(worktreePath, message, interactive),
+    amendCommit: (worktreePath, message, pushTarget) =>
+      amendCommit(worktreePath, message, interactive, pushTarget),
     completeMerge: (worktreePath) => completeMerge(worktreePath, interactive),
     getStagedCommitContext: (worktreePath) => getStagedCommitContext(worktreePath, interactive),
     getDiff: (worktreePath, filePath, staged, compareAgainstHead) =>
@@ -116,6 +126,7 @@ export function createLocalGitProvider(options: LocalGitProviderOptions = {}): L
         forceWithLease: pushOptions?.forceWithLease === true,
         ...interactive
       }),
+    pushWithLease: (worktreePath, lease) => gitPushWithLease(worktreePath, lease, interactive),
     pullBranch: (worktreePath, pushTarget) => gitPull(worktreePath, pushTarget, interactive),
     fastForwardBranch: (worktreePath, pushTarget) =>
       gitFastForward(worktreePath, pushTarget, interactive),

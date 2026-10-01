@@ -1,3 +1,4 @@
+import type { GitPushLease } from '../../../../../../shared/git-commit-command'
 import type { RemoteOpKind } from '@/components/right-sidebar/source-control-primary-action'
 import type { WorkspaceSessionHydrationOptions } from '@/lib/workspace-session-hydration-keys'
 import type {
@@ -59,7 +60,7 @@ export type EditorGitSlice = {
     publish?: boolean,
     connectionId?: string,
     pushTarget?: GitPushTarget,
-    options?: GitRuntimeOperationOptions & { forceWithLease?: boolean }
+    options?: GitRuntimeOperationOptions & { forceWithLease?: boolean; pushLease?: GitPushLease }
   ) => Promise<void>
   pullBranch: (
     worktreeId: string,

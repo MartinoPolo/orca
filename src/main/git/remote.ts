@@ -4,6 +4,11 @@ import {
 } from '../../shared/git-remote-error'
 import { resolveEffectiveGitUpstream } from '../../shared/git-effective-upstream'
 import { resolveConfiguredGitPushTarget } from '../../shared/git-push-target-resolution'
+import {
+  buildGitLeasePushArgs,
+  requireGitPushLease,
+  type GitPushLease
+} from '../../shared/git-push-lease'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitRuntimeOptions } from './git-runtime-options'
 import { gitOptionsForWorktree } from './git-runtime-options'
@@ -23,15 +28,40 @@ function explicitPushTarget(target: GitPushTarget): { remote: string; refspec: s
   return { remote: target.remoteName, refspec: `HEAD:${target.branchName}` }
 }
 
+export async function gitPushWithLease(
+  worktreePath: string,
+  pushLease: GitPushLease,
+  options: GitRuntimeOptions = {}
+): Promise<void> {
+  const lease = requireGitPushLease(pushLease)
+  return runGitPush(worktreePath, lease.pushTarget, options, lease)
+}
+
 export async function gitPush(
   worktreePath: string,
   _publish = false,
   pushTarget?: GitPushTarget,
   options: { forceWithLease?: boolean } & GitRuntimeOptions = {}
 ): Promise<void> {
+  return runGitPush(worktreePath, pushTarget, options)
+}
+
+async function runGitPush(
+  worktreePath: string,
+  pushTarget: GitPushTarget | undefined,
+  options: { forceWithLease?: boolean } & GitRuntimeOptions,
+  pushLease?: GitPushLease
+): Promise<void> {
   try {
     if (pushTarget) {
       await validateGitPushTarget(worktreePath, pushTarget, options)
+    }
+    if (pushLease) {
+      await gitExecFileAsync(
+        buildGitLeasePushArgs(pushLease),
+        gitOptionsForWorktree(worktreePath, options)
+      )
+      return
     }
     // Honor configured fork push targets; use origin/HEAD only for first publication.
     const target = pushTarget

@@ -1,3 +1,11 @@
+import {
+  buildGitAmendCommitArgs,
+  buildGitCommitArgs,
+  readGitCommitFailureMessage,
+  type GitCommitResult
+} from '../../../shared/git-commit-command'
+import { captureGitAmendPushLease } from '../../../shared/git-push-lease'
+import type { GitPushTarget } from '../../../shared/worktree/types'
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitOptionsForWorktree } from '../git-runtime-options'
 import { gitExecFileAsync } from '../runner'
@@ -8,47 +16,58 @@ export function commitChanges(
   worktreePath: string,
   message: string,
   options: GitRuntimeOptions = {}
-): Promise<{ success: boolean; error?: string }> {
-  return runCommit(worktreePath, ['commit', '-m', message], options)
+): Promise<GitCommitResult> {
+  return runCommit(worktreePath, buildGitCommitArgs(message), 'Commit failed', options)
 }
 
 /** Concludes a paused merge with Git's MERGE_MSG; strip drops its "# Conflicts:" comments like an editor commit would. */
 export async function completeMerge(
   worktreePath: string,
   options: GitRuntimeOptions = {}
-): Promise<{ success: boolean; error?: string }> {
+): Promise<GitCommitResult> {
   // Without MERGE_HEAD, --no-edit would commit staged changes under commit.template text.
   if ((await detectConflictOperation(worktreePath, options)) !== 'merge') {
     return { success: false, error: 'There is no merge in progress.' }
   }
-  return runCommit(worktreePath, ['commit', '--no-edit', '--cleanup=strip'], options)
+  return runCommit(
+    worktreePath,
+    ['commit', '--no-edit', '--cleanup=strip'],
+    'Commit failed',
+    options
+  )
+}
+
+export async function amendCommit(
+  worktreePath: string,
+  message: string | undefined,
+  options: GitRuntimeOptions = {},
+  pushTarget?: GitPushTarget
+): Promise<GitCommitResult> {
+  const pushLease = await captureGitAmendPushLease(
+    (args) => gitExecFileAsync(args, gitOptionsForWorktree(worktreePath, options)),
+    pushTarget
+  )
+  const result = await runCommit(
+    worktreePath,
+    buildGitAmendCommitArgs(message),
+    'Amend failed',
+    options
+  )
+  return result.success && pushLease ? { ...result, pushLease } : result
 }
 
 async function runCommit(
   worktreePath: string,
   args: string[],
+  fallbackError: string,
   options: GitRuntimeOptions
-): Promise<{ success: boolean; error?: string }> {
+): Promise<GitCommitResult> {
   invalidateGitReadCaches()
   try {
     await gitExecFileAsync(args, gitOptionsForWorktree(worktreePath, options))
     return { success: true }
   } catch (error) {
-    // Hook/GPG failures use stderr; nothing-to-commit output can be on stdout.
-    const readStringField = (field: string): string | null => {
-      if (typeof error === 'object' && error && field in error) {
-        const v = (error as Record<string, unknown>)[field]
-        if (typeof v === 'string' && v.length > 0) {
-          return v
-        }
-      }
-      return null
-    }
-    const errorMessage =
-      readStringField('stderr') ??
-      readStringField('stdout') ??
-      (error instanceof Error ? error.message : 'Commit failed')
-    return { success: false, error: errorMessage }
+    return { success: false, error: readGitCommitFailureMessage(error, fallbackError) }
   } finally {
     invalidateGitReadCaches()
   }
