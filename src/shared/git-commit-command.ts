@@ -17,27 +17,25 @@ export function parseGitCommitResult(value: unknown): GitCommitResult {
   if (typeof value !== 'object' || value === null) {
     return { success: false, error: 'Unexpected commit response from the remote host' }
   }
-  const error: unknown = Reflect.get(value, 'error')
+  const error = 'error' in value ? value.error : undefined
   return {
-    success: Reflect.get(value, 'success') === true,
+    success: 'success' in value && value.success === true,
     ...(typeof error === 'string' ? { error } : {})
   }
 }
 
+function nonEmptyStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 // Why: hook/GPG failures write to stderr while "nothing to commit" writes to stdout, so try both before the generic message.
 export function readGitCommitFailureMessage(error: unknown, fallback: string): string {
-  const readStringField = (field: string): string | null => {
-    if (typeof error === 'object' && error !== null && field in error) {
-      const value: unknown = Reflect.get(error, field)
-      if (typeof value === 'string' && value.length > 0) {
-        return value
-      }
-    }
-    return null
+  if (typeof error !== 'object' || error === null) {
+    return fallback
   }
   return (
-    readStringField('stderr') ??
-    readStringField('stdout') ??
+    nonEmptyStringOrNull('stderr' in error ? error.stderr : undefined) ??
+    nonEmptyStringOrNull('stdout' in error ? error.stdout : undefined) ??
     (error instanceof Error ? error.message : fallback)
   )
 }
