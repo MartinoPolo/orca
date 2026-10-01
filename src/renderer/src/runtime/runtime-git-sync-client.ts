@@ -227,3 +227,26 @@ export async function commitRuntimeGit(
     { timeoutMs: 30_000 }
   )
 }
+
+export async function amendRuntimeGitCommit(
+  context: RuntimeGitContext,
+  message: string | undefined
+): Promise<{ success: boolean; error?: string }> {
+  const target = getActiveRuntimeTarget(context.settings)
+  if (target.kind === 'local' || !context.worktreeId) {
+    return window.api.git.amendCommit({
+      worktreePath: resolveLocalWorktreePath(context),
+      ...(message !== undefined ? { message } : {}),
+      connectionId: context.connectionId
+    })
+  }
+  return callRuntimeRpc<{ success: boolean; error?: string }>(
+    target,
+    'git.amendCommit',
+    {
+      worktree: toRuntimeWorktreeSelector(context.worktreeId),
+      ...(message !== undefined ? { message } : {})
+    },
+    { timeoutMs: 30_000 }
+  )
+}

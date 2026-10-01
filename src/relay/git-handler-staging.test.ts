@@ -103,6 +103,64 @@ describe('GitHandler — commit & staging', () => {
     })
   })
 
+  describe('amendCommit', () => {
+    function readHead(format: string): string {
+      return execFileSync('git', ['log', '-1', `--format=${format}`], {
+        cwd: tmpDir,
+        encoding: 'utf-8'
+      }).trim()
+    }
+
+    it('folds staged changes into HEAD and keeps its message when none is given', async () => {
+      gitInit(tmpDir)
+      writeFileSync(path.join(tmpDir, 'file.txt'), 'content')
+      gitCommit(tmpDir, 'feat: original')
+      const originalHead = readHead('%H')
+      writeFileSync(path.join(tmpDir, 'file.txt'), 'changed')
+      execFileSync('git', ['add', 'file.txt'], { cwd: tmpDir, stdio: 'pipe' })
+
+      const result = await dispatcher.callRequest('git.amendCommit', { worktreePath: tmpDir })
+
+      expect(result).toEqual({ success: true })
+      expect(readHead('%s')).toBe('feat: original')
+      expect(readHead('%H')).not.toBe(originalHead)
+      expect(
+        execFileSync('git', ['show', 'HEAD:file.txt'], { cwd: tmpDir, encoding: 'utf-8' })
+      ).toBe('changed')
+    })
+
+    it('replaces the HEAD message when one is given', async () => {
+      gitInit(tmpDir)
+      writeFileSync(path.join(tmpDir, 'file.txt'), 'content')
+      gitCommit(tmpDir, 'feat: typo')
+
+      const result = await dispatcher.callRequest('git.amendCommit', {
+        worktreePath: tmpDir,
+        message: '  feat: fixed  '
+      })
+
+      expect(result).toEqual({ success: true })
+      expect(readHead('%s')).toBe('feat: fixed')
+      expect(
+        execFileSync('git', ['rev-list', '--count', 'HEAD'], {
+          cwd: tmpDir,
+          encoding: 'utf-8'
+        }).trim()
+      ).toBe('1')
+    })
+
+    it('reports a failure when there is no commit to amend', async () => {
+      gitInit(tmpDir)
+      writeFileSync(path.join(tmpDir, 'file.txt'), 'content')
+      execFileSync('git', ['add', 'file.txt'], { cwd: tmpDir, stdio: 'pipe' })
+
+      const result = await dispatcher.callRequest('git.amendCommit', { worktreePath: tmpDir })
+
+      expect(result).toEqual({ success: false, error: expect.any(String) })
+      expect(result).toHaveProperty('error', expect.stringMatching(/\S/))
+    })
+  })
+
   describe('stage and unstage', () => {
     it.each(PATHSPEC_MUTATION_CASES)(
       'treats $mode stage paths with Git glob characters as literals',

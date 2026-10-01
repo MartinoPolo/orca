@@ -121,6 +121,11 @@ export const gitApi = {
     message: string
     connectionId?: string
   }): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('git:commit', args),
+  amendCommit: (args: {
+    worktreePath: string
+    message?: string
+    connectionId?: string
+  }): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('git:amendCommit', args),
   generateCommitMessage: (args: {
     worktreePath: string
     worktreeId?: string

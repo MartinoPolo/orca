@@ -3,7 +3,7 @@ import type { GitUpstreamStatus } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import { gitSyncForkDefaultBranch } from '../git/fork-sync'
 import { gitFastForward, gitFetch, gitPull, gitPullRebaseFromBase, gitPush } from '../git/remote'
-import { abortMerge, abortRebase, commitChanges } from '../git/status'
+import { abortMerge, abortRebase, amendCommit, commitChanges } from '../git/status'
 import { getUpstreamStatus } from '../git/upstream'
 import {
   materializeWorktreePushTargetRemote,
@@ -243,6 +243,21 @@ export class RuntimeGitSyncCommands {
       return provider.commit(target.worktree.path, message)
     }
     return commitChanges(target.worktree.path, message, {
+      ...localGitOptionsForTarget(target),
+      admissionTier: 'interactive'
+    })
+  }
+
+  async amendRuntimeGitCommit(
+    worktreeSelector: string,
+    message: string | undefined
+  ): Promise<{ success: boolean; error?: string }> {
+    const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
+    const provider = requireRuntimeGitProvider(target)
+    if (provider) {
+      return provider.amendCommit(target.worktree.path, message)
+    }
+    return amendCommit(target.worktree.path, message, {
       ...localGitOptionsForTarget(target),
       admissionTier: 'interactive'
     })

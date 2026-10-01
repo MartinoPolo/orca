@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { commitChanges } from '../../git/status'
+import { amendCommit, commitChanges } from '../../git/status'
 import {
   getSshGitProvider,
   SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
@@ -34,6 +34,32 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
         worktreePath
       )
       return commitChanges(worktreePath, args.message, {
+        ...gitOptions,
+        admissionTier: 'interactive'
+      })
+    }
+  )
+  ipcMain.handle(
+    'git:amendCommit',
+    async (
+      _event,
+      args: { worktreePath: string; message?: string; connectionId?: string }
+    ): Promise<{ success: boolean; error?: string }> => {
+      const message = typeof args.message === 'string' ? args.message : undefined
+      if (args.connectionId) {
+        const provider = getSshGitProvider(args.connectionId)
+        if (!provider) {
+          throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
+        }
+        return provider.amendCommit(args.worktreePath, message)
+      }
+      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
+        store,
+        args.worktreePath,
+        worktreePath
+      )
+      return amendCommit(worktreePath, message, {
         ...gitOptions,
         admissionTier: 'interactive'
       })

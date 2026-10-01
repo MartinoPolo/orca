@@ -3,6 +3,7 @@ import {
   handlers,
   store,
   WORKTREE_FEATURE_PATH,
+  amendCommitMock,
   commitChangesMock,
   bulkDiscardChangesMock,
   getSshGitProviderMock,
@@ -114,6 +115,39 @@ describe('registerFilesystemHandlers', () => {
 
     expect(sshCommitMock).toHaveBeenCalledWith('/remote/repo', 'feat: remote commit')
     expect(commitChangesMock).not.toHaveBeenCalled()
+  })
+
+  it('routes local git:amendCommit through amendCommit, keeping the message optional', async () => {
+    amendCommitMock.mockResolvedValue({ success: true })
+
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, { worktreePath: WORKTREE_FEATURE_PATH })
+    ).resolves.toEqual({ success: true })
+
+    expect(amendCommitMock).toHaveBeenCalledWith(WORKTREE_FEATURE_PATH, undefined, {
+      admissionTier: 'interactive'
+    })
+    expect(commitChangesMock).not.toHaveBeenCalled()
+  })
+
+  it('routes ssh git:amendCommit through the SSH provider', async () => {
+    const sshAmendCommitMock = vi.fn().mockResolvedValue({ success: true })
+    getSshGitProviderMock.mockReturnValue({ amendCommit: sshAmendCommitMock })
+
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, {
+        worktreePath: '/remote/repo',
+        message: 'fix: reworded',
+        connectionId: 'conn-1'
+      })
+    ).resolves.toEqual({ success: true })
+
+    expect(sshAmendCommitMock).toHaveBeenCalledWith('/remote/repo', 'fix: reworded')
+    expect(amendCommitMock).not.toHaveBeenCalled()
   })
 
   it('routes ssh git:remoteCommitUrl through the SSH provider', async () => {

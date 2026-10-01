@@ -2,6 +2,7 @@ import { defineMethod } from '../core'
 import { GIT_COMMIT_MESSAGE_GENERATION_METHODS } from './git-commit-message-generation-methods'
 import { GIT_DIFF_METHODS } from './git-diff-methods'
 import {
+  GitAmendCommit,
   GitBranchCompare,
   GitBulkPaths,
   GitCheckIgnored,
@@ -177,6 +178,12 @@ export const GIT_METHODS = [
     params: GitCommit,
     handler: async (params, { runtime }) =>
       runtime.commitRuntimeGit(params.worktree, params.message)
+  }),
+  defineMethod({
+    name: 'git.amendCommit',
+    params: GitAmendCommit,
+    handler: async (params, { runtime }) =>
+      runtime.amendRuntimeGitCommit(params.worktree, params.message)
   }),
   ...GIT_COMMIT_MESSAGE_GENERATION_METHODS,
   defineMethod({

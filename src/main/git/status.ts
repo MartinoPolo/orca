@@ -34,7 +34,7 @@ export { getCommitCompare } from './source-control/commit-compare'
 export { getCommitDiff } from './source-control/commit-diff'
 export { bulkStageFiles, bulkUnstageFiles, stageFile, unstageFile } from './source-control/staging'
 export { getStagedCommitContext } from './source-control/staged-commit-context'
-export { commitChanges } from './source-control/commit-changes'
+export { amendCommit, commitChanges } from './source-control/commit-changes'
 export {
   bulkDiscardChanges,
   discardChanges,

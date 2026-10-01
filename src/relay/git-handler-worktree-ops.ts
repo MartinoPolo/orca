@@ -1,6 +1,12 @@
 import * as path from 'node:path'
 import { resolveWorktreeAddBaseRef } from '../shared/worktree/base-ref'
 import { windowsLongPathGitArgs } from '../shared/windows-long-path-git-args'
+import {
+  buildGitAmendCommitArgs,
+  buildGitCommitArgs,
+  readGitCommitFailureMessage,
+  type GitCommitResult
+} from '../shared/git-commit-command'
 import type { GitExec } from './git-handler-ops'
 export { removeWorktreeOp } from './git-handler-worktree-remove'
 export { readRelayWorktreeList } from './git-handler-worktree-list'
@@ -163,36 +169,37 @@ export async function commitChangesRelay(
   git: GitExec,
   worktreePath: string,
   message: string
-): Promise<{ success: boolean; error?: string }> {
-  // Why: defense-in-depth. The IPC handler at src/main/ipc/filesystem.ts validates
-  // the message, but a relay caller (future automation, or an SSH client connecting
-  // to the relay directly) could bypass that path. Reject empty/whitespace messages
-  // here so we surface a clear error instead of git's opaque failure.
+): Promise<GitCommitResult> {
+  // Why: defense-in-depth — relay callers can bypass the IPC/RPC message validation.
   if (typeof message !== 'string' || message.trim().length === 0) {
     return { success: false, error: 'Commit message is required' }
   }
+  return runRelayGitCommit(git, worktreePath, buildGitCommitArgs(message), 'Commit failed')
+}
 
+export async function amendCommitRelay(
+  git: GitExec,
+  worktreePath: string,
+  message: unknown
+): Promise<GitCommitResult> {
+  return runRelayGitCommit(
+    git,
+    worktreePath,
+    buildGitAmendCommitArgs(typeof message === 'string' ? message : undefined),
+    'Amend failed'
+  )
+}
+
+async function runRelayGitCommit(
+  git: GitExec,
+  worktreePath: string,
+  args: string[],
+  fallbackError: string
+): Promise<GitCommitResult> {
   try {
-    await git(['commit', '-m', message], worktreePath)
+    await git(args, worktreePath)
     return { success: true }
   } catch (error) {
-    // Why: surface whichever channel carries the useful message. Pre-commit/GPG
-    // hook failures write to stderr; "nothing to commit, working tree clean"
-    // writes to stdout. Try stderr first, fall back to stdout, then error.message.
-    // Mirrors commitChanges in src/main/git/status.ts — keep the two paths in sync.
-    const readStringField = (field: string): string | null => {
-      if (typeof error === 'object' && error && field in error) {
-        const v = (error as Record<string, unknown>)[field]
-        if (typeof v === 'string' && v.length > 0) {
-          return v
-        }
-      }
-      return null
-    }
-    const errorMessage =
-      readStringField('stderr') ??
-      readStringField('stdout') ??
-      (error instanceof Error ? error.message : 'Commit failed')
-    return { success: false, error: errorMessage }
+    return { success: false, error: readGitCommitFailureMessage(error, fallbackError) }
   }
 }

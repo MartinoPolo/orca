@@ -24,6 +24,7 @@ import {
 import {
   abortRuntimeGitMerge as abortRuntimeGitMergeImplementation,
   abortRuntimeGitRebase as abortRuntimeGitRebaseImplementation,
+  amendRuntimeGitCommit as amendRuntimeGitCommitImplementation,
   commitRuntimeGit as commitRuntimeGitImplementation,
   fastForwardRuntimeGit as fastForwardRuntimeGitImplementation,
   fetchRuntimeGit as fetchRuntimeGitImplementation,
@@ -75,6 +76,7 @@ export const pushRuntimeGit = pushRuntimeGitImplementation
 export const getRuntimeGitBranchDiff = getRuntimeGitBranchDiffImplementation
 export const getRuntimeGitCommitDiff = getRuntimeGitCommitDiffImplementation
 export const commitRuntimeGit = commitRuntimeGitImplementation
+export const amendRuntimeGitCommit = amendRuntimeGitCommitImplementation
 export const generateRuntimeCommitMessage = generateRuntimeCommitMessageImplementation
 export const discoverRuntimeCommitMessageModels = discoverRuntimeCommitMessageModelsImplementation
 export const cancelRuntimeGenerateCommitMessage = cancelRuntimeGenerateCommitMessageImplementation

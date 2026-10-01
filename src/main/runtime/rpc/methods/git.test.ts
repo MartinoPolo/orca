@@ -291,6 +291,24 @@ describe('git RPC methods', () => {
     expect(runtime.bulkDiscardRuntimeGitPaths).not.toHaveBeenCalled()
   })
 
+  it('routes git.amendCommit to the runtime and keeps the message optional', async () => {
+    const amendRuntimeGitCommit = vi.fn().mockResolvedValue({ success: true })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: git.amendCommit reaches only these two runtime members; any other would throw on call.
+    const runtime = {
+      getRuntimeId: () => 'test-runtime',
+      amendRuntimeGitCommit
+    } as unknown as OrcaRuntimeService
+    const dispatcher = new RpcDispatcher({ runtime, methods: GIT_METHODS })
+
+    await dispatcher.dispatch(makeRequest('git.amendCommit', { worktree: 'id:wt-1' }))
+    await dispatcher.dispatch(
+      makeRequest('git.amendCommit', { worktree: 'id:wt-1', message: 'fix: reworded' })
+    )
+
+    expect(amendRuntimeGitCommit).toHaveBeenNthCalledWith(1, 'id:wt-1', undefined)
+    expect(amendRuntimeGitCommit).toHaveBeenNthCalledWith(2, 'id:wt-1', 'fix: reworded')
+  })
+
   it('routes remote operations to the runtime', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',

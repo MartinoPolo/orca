@@ -1,4 +1,5 @@
 export {
+  GitAmendCommit,
   GitBranchCompare,
   GitBranchDiff,
   GitBulkPaths,

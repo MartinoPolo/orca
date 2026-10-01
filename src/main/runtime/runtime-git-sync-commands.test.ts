@@ -10,6 +10,7 @@ import { RuntimeGitSyncCommands } from './runtime-git-sync-commands'
 const mocks = vi.hoisted(() => ({
   abortMerge: vi.fn(),
   abortRebase: vi.fn(),
+  amendCommit: vi.fn(),
   commitChanges: vi.fn(),
   getSshGitProvider: vi.fn(),
   gitSyncForkDefaultBranch: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('../git/status', async () => ({
   ...(await vi.importActual<typeof GitStatusModule>('../git/status')),
   abortMerge: mocks.abortMerge,
   abortRebase: mocks.abortRebase,
+  amendCommit: mocks.amendCommit,
   commitChanges: mocks.commitChanges
 }))
 
@@ -75,6 +77,7 @@ describe('RuntimeGitSyncCommands admission', () => {
     await commands.pullRuntimeGit('id:wt-1', pushTarget)
     await commands.fastForwardRuntimeGit('id:wt-1', pushTarget)
     await commands.commitRuntimeGit('id:wt-1', 'feat: prioritize user action')
+    await commands.amendRuntimeGitCommit('id:wt-1', undefined)
 
     const options = { admissionTier: 'interactive', wslDistro: 'Ubuntu' }
     expect(mocks.abortMerge).toHaveBeenCalledWith(worktree.path, options)
@@ -92,12 +95,14 @@ describe('RuntimeGitSyncCommands admission', () => {
       'feat: prioritize user action',
       options
     )
+    expect(mocks.amendCommit).toHaveBeenCalledWith(worktree.path, undefined, options)
   })
 
   it('keeps remote runtime git actions owned by the SSH provider', async () => {
     const provider = {
       abortMerge: vi.fn(),
       abortRebase: vi.fn(),
+      amendCommit: vi.fn().mockResolvedValue({ success: true }),
       commit: vi.fn().mockResolvedValue({ success: true }),
       fastForwardBranch: vi.fn(),
       fetchRemote: vi.fn(),
@@ -120,6 +125,7 @@ describe('RuntimeGitSyncCommands admission', () => {
     await commands.pullRuntimeGit('id:wt-1', pushTarget)
     await commands.fastForwardRuntimeGit('id:wt-1', pushTarget)
     await commands.commitRuntimeGit('id:wt-1', 'feat: keep execution remote')
+    await commands.amendRuntimeGitCommit('id:wt-1', 'fix: reworded remotely')
 
     expect(provider.abortMerge).toHaveBeenCalledWith(worktree.path)
     expect(provider.abortRebase).toHaveBeenCalledWith(worktree.path)
@@ -128,6 +134,7 @@ describe('RuntimeGitSyncCommands admission', () => {
     expect(provider.pullBranch).toHaveBeenCalledWith(worktree.path, pushTarget)
     expect(provider.fastForwardBranch).toHaveBeenCalledWith(worktree.path, pushTarget)
     expect(provider.commit).toHaveBeenCalledWith(worktree.path, 'feat: keep execution remote')
+    expect(provider.amendCommit).toHaveBeenCalledWith(worktree.path, 'fix: reworded remotely')
     expect(mocks.abortMerge).not.toHaveBeenCalled()
     expect(mocks.abortRebase).not.toHaveBeenCalled()
     expect(mocks.gitFetch).not.toHaveBeenCalled()
@@ -135,5 +142,6 @@ describe('RuntimeGitSyncCommands admission', () => {
     expect(mocks.gitPull).not.toHaveBeenCalled()
     expect(mocks.gitFastForward).not.toHaveBeenCalled()
     expect(mocks.commitChanges).not.toHaveBeenCalled()
+    expect(mocks.amendCommit).not.toHaveBeenCalled()
   })
 })

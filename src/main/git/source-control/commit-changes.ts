@@ -1,3 +1,9 @@
+import {
+  buildGitAmendCommitArgs,
+  buildGitCommitArgs,
+  readGitCommitFailureMessage,
+  type GitCommitResult
+} from '../../../shared/git-commit-command'
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitOptionsForWorktree } from '../git-runtime-options'
 import { gitExecFileAsync } from '../runner'
@@ -7,27 +13,30 @@ export async function commitChanges(
   worktreePath: string,
   message: string,
   options: GitRuntimeOptions = {}
-): Promise<{ success: boolean; error?: string }> {
+): Promise<GitCommitResult> {
+  return runGitCommit(worktreePath, buildGitCommitArgs(message), 'Commit failed', options)
+}
+
+export async function amendCommit(
+  worktreePath: string,
+  message: string | undefined,
+  options: GitRuntimeOptions = {}
+): Promise<GitCommitResult> {
+  return runGitCommit(worktreePath, buildGitAmendCommitArgs(message), 'Amend failed', options)
+}
+
+async function runGitCommit(
+  worktreePath: string,
+  args: string[],
+  fallbackError: string,
+  options: GitRuntimeOptions
+): Promise<GitCommitResult> {
   invalidateGitReadCaches()
   try {
-    await gitExecFileAsync(['commit', '-m', message], gitOptionsForWorktree(worktreePath, options))
+    await gitExecFileAsync(args, gitOptionsForWorktree(worktreePath, options))
     return { success: true }
   } catch (error) {
-    // Why: useful message may be on stderr (hook/GPG failures) or stdout ("nothing to commit"), so try both then message.
-    const readStringField = (field: string): string | null => {
-      if (typeof error === 'object' && error && field in error) {
-        const v = (error as Record<string, unknown>)[field]
-        if (typeof v === 'string' && v.length > 0) {
-          return v
-        }
-      }
-      return null
-    }
-    const errorMessage =
-      readStringField('stderr') ??
-      readStringField('stdout') ??
-      (error instanceof Error ? error.message : 'Commit failed')
-    return { success: false, error: errorMessage }
+    return { success: false, error: readGitCommitFailureMessage(error, fallbackError) }
   } finally {
     invalidateGitReadCaches()
   }

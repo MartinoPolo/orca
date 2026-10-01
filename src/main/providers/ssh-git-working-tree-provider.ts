@@ -2,6 +2,7 @@ import type {
   GitBranchCompareResult,
   GitCommitCompareResult
 } from '../../shared/git-diff-compare-types'
+import { parseGitCommitResult } from '../../shared/git-commit-command'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
 import type { GitConflictOperation } from '../../shared/git-status-types'
 import type { GitAdmissionTier } from '../git/command-runner/git-exec-options'
@@ -35,6 +36,20 @@ export class SshGitWorkingTreeProvider extends SshGitNoninteractiveProvider {
           worktreePath,
           message
         })) as { success: boolean; error?: string }
+    )
+  }
+
+  async amendCommit(
+    worktreePath: string,
+    message: string | undefined
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.runWithGitReadInvalidation(async () =>
+      parseGitCommitResult(
+        await this.mux.request('git.amendCommit', {
+          worktreePath,
+          ...(message !== undefined ? { message } : {})
+        })
+      )
     )
   }
 

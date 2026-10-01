@@ -276,9 +276,9 @@ describe('CommitArea', () => {
     expect(hasDisabledAttribute(textarea(markup))).toBe(true)
   })
 
-  it('disables the textarea when no files are staged', () => {
+  it('keeps the textarea enabled with nothing staged so the last commit can be reworded', () => {
     expect(hasDisabledAttribute(textarea(renderCommitArea(baseProps({ stagedCount: 0 }))))).toBe(
-      true
+      false
     )
   })
 

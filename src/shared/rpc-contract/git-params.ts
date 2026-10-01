@@ -102,6 +102,11 @@ export const GitCommit = WorktreeSelector.extend({
     .pipe(z.string().min(1, 'Missing commit message'))
 })
 
+// Why: a separate method (not a flag on git.commit) makes an older host reject amend instead of silently creating a new commit.
+export const GitAmendCommit = WorktreeSelector.extend({
+  message: z.string().optional()
+})
+
 export const CommitMessageModelCapability = z.object({
   id: z.string(),
   label: z.string(),

@@ -1,5 +1,5 @@
 import { GitHandlerOperationContext, GIT_BULK_CHUNK_SIZE } from './git-handler-operation-context'
-import { commitChangesRelay } from './git-handler-worktree-ops'
+import { amendCommitRelay, commitChangesRelay } from './git-handler-worktree-ops'
 
 const BULK_CHUNK_SIZE = GIT_BULK_CHUNK_SIZE
 
@@ -21,6 +21,18 @@ export class GitHandlerWorktreeChangeOperations extends GitHandlerOperationConte
     const message = params.message as string
     try {
       return await commitChangesRelay(this.git.bind(this), worktreePath, message)
+    } finally {
+      this.clearGitMutationReadCaches()
+    }
+  }
+
+  async amendCommit(
+    params: Record<string, unknown>
+  ): Promise<{ success: boolean; error?: string }> {
+    this.clearGitMutationReadCaches()
+    const worktreePath = params.worktreePath as string
+    try {
+      return await amendCommitRelay(this.git.bind(this), worktreePath, params.message)
     } finally {
       this.clearGitMutationReadCaches()
     }

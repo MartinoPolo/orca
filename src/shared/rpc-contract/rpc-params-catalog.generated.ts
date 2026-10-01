@@ -189,6 +189,7 @@ import {
   FolderWorkspaceUpdate
 } from './folder-workspace-params'
 import {
+  GitAmendCommit,
   GitBranchCompare,
   GitBranchDiff,
   GitBulkPaths,
@@ -779,6 +780,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'folderWorkspace.update': FolderWorkspaceUpdate,
   'git.abortMerge': WorktreeSelectorOfGitParams,
   'git.abortRebase': WorktreeSelectorOfGitParams,
+  'git.amendCommit': GitAmendCommit,
   'git.branchCompare': GitBranchCompare,
   'git.branchDiff': GitBranchDiff,
   'git.bulkDiscard': GitBulkPaths,

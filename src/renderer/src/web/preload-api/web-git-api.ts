@@ -217,6 +217,13 @@ export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
         message
       })
     },
+    amendCommit: async ({ worktreePath, message }) => {
+      const worktree = await resolveRuntimeWorktreeByPath(worktreePath)
+      return callRuntimeResult('git.amendCommit', {
+        worktree: toRuntimeWorktreeSelector(worktree.id),
+        ...(message !== undefined ? { message } : {})
+      })
+    },
     generateCommitMessage: async () => ({
       success: false,
       error: translate(

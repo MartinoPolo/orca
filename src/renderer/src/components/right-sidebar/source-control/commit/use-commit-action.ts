@@ -1,11 +1,12 @@
 import { useCallback } from 'react'
 import { getConnectionId } from '@/lib/connection-context'
-import { commitRuntimeGit } from '@/runtime/runtime-git-client'
+import { amendRuntimeGitCommit, commitRuntimeGit } from '@/runtime/runtime-git-client'
 import type { SourceControlOperationTarget } from '../listing/operation-target'
 import type { SourceControlStoreActions } from '../listing/use-store-actions'
 import type { SourceControlWorktreeContext } from '../listing/use-worktree-context'
 import type { SourceControlWorktreeOperationState } from '../panel/use-worktree-operation-state'
 import type { SourceControlStatusRefresh } from '../sync/use-status-refresh'
+import { hasSubmittableCommitContent } from '../../source-control-commit-eligibility'
 import { writeCommitDraftForWorktree } from './commit-drafts'
 
 /**
@@ -54,6 +55,8 @@ export function useSourceControlCommitAction({
         skipStagedSnapshotCheck?: boolean
         skipActiveConflictCheck?: boolean
         target?: SourceControlOperationTarget
+        /** Amends HEAD instead; an empty message keeps the existing one. */
+        amend?: boolean
       }
     ): Promise<boolean> => {
       const target =
@@ -71,9 +74,14 @@ export function useSourceControlCommitAction({
         return false
       }
       const message = (messageOverride ?? commitMessage).trim()
+      const amend = options?.amend === true
       if (
-        !message ||
-        (!options?.skipStagedSnapshotCheck && stagedCount === 0) ||
+        !hasSubmittableCommitContent({
+          amend,
+          message,
+          stagedCount,
+          skipStagedSnapshotCheck: options?.skipStagedSnapshotCheck === true
+        }) ||
         (!options?.skipActiveConflictCheck && unresolvedConflictCount > 0)
       ) {
         return false
@@ -83,22 +91,23 @@ export function useSourceControlCommitAction({
         return false
       }
       commitInFlightRef.current[target.worktreeId] = true
+      const failureFallback = amend ? 'Amend failed' : 'Commit failed'
 
       setCommitInFlightByWorktree((prev) => ({ ...prev, [target.worktreeId]: true }))
       setCommitErrorForWorktree(target.worktreeId, null)
       try {
-        const commitResult = await commitRuntimeGit(
-          {
-            // Why: route the commit by the repo OWNER host, not the focused runtime.
-            settings: target.settings,
-            worktreeId: target.worktreeId,
-            worktreePath: target.worktreePath,
-            connectionId: target.connectionId
-          },
-          message
-        )
+        const commitContext = {
+          // Why: route the commit by the repo OWNER host, not the focused runtime.
+          settings: target.settings,
+          worktreeId: target.worktreeId,
+          worktreePath: target.worktreePath,
+          connectionId: target.connectionId
+        }
+        const commitResult = amend
+          ? await amendRuntimeGitCommit(commitContext, message || undefined)
+          : await commitRuntimeGit(commitContext, message)
         if (!commitResult.success) {
-          setCommitErrorForWorktree(target.worktreeId, commitResult.error ?? 'Commit failed')
+          setCommitErrorForWorktree(target.worktreeId, commitResult.error ?? failureFallback)
           return false
         }
 
@@ -131,7 +140,7 @@ export function useSourceControlCommitAction({
       } catch (error) {
         setCommitErrorForWorktree(
           target.worktreeId,
-          error instanceof Error ? error.message : 'Commit failed'
+          error instanceof Error ? error.message : failureFallback
         )
         return false
       } finally {
