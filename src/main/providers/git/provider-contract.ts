@@ -11,6 +11,7 @@ import type {
   GitForkSyncExpectedUpstream,
   GitForkSyncResult
 } from '../../../shared/git/remotes/git-fork-sync'
+import type { GitCommitResult, GitPushLease } from '../../../shared/git/commands/git-commit-command'
 import type {
   GitConflictOperation,
   GitStagingArea,
@@ -42,7 +43,7 @@ export type IGitProvider = {
   checkIgnoredPaths(worktreePath: string, relativePaths: string[]): Promise<string[]>
   getHistoryRefs(worktreePath: string, query?: string): Promise<GitHistoryItemRef[]>
   getHistory(worktreePath: string, options?: GitHistoryOptions): Promise<GitHistoryResult>
-  commit(worktreePath: string, message: string): Promise<{ success: boolean; error?: string }>
+  commit(worktreePath: string, message: string): Promise<GitCommitResult>
   createBranch(
     worktreePath: string,
     name: string,
@@ -59,6 +60,11 @@ export type IGitProvider = {
     action: 'abort' | 'continue'
   ): Promise<GitCommitActionResult | void>
   completeMerge(worktreePath: string): Promise<{ success: boolean; error?: string }>
+  amendCommit(
+    worktreePath: string,
+    message: string | undefined,
+    pushTarget?: GitPushTarget
+  ): Promise<GitCommitResult>
   getStagedCommitContext(worktreePath: string): Promise<CommitMessageDraftContext | null>
   getDiff(
     worktreePath: string,
@@ -106,6 +112,7 @@ export type IGitProvider = {
     pushTarget?: GitPushTarget,
     options?: { forceWithLease?: boolean }
   ): Promise<void>
+  pushWithLease(worktreePath: string, lease: GitPushLease): Promise<void>
   pullBranch(worktreePath: string, pushTarget?: GitPushTarget): Promise<void>
   fastForwardBranch(worktreePath: string, pushTarget?: GitPushTarget): Promise<void>
   rebaseFromBase(worktreePath: string, baseRef: string): Promise<void>

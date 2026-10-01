@@ -24,6 +24,7 @@ type RuntimeGitCommandName =
   | 'fastForwardRuntimeGit'
   | 'rebaseRuntimeGitFromBase'
   | 'pushRuntimeGit'
+  | 'pushRuntimeGitWithLease'
   | 'getRuntimeGitBranchDiff'
   | 'getRuntimeGitCommitDiff'
   | 'commitRuntimeGit'
@@ -33,6 +34,7 @@ type RuntimeGitCommandName =
   | 'sequencerAbortRuntimeGit'
   | 'sequencerContinueRuntimeGit'
   | 'completeRuntimeGitMerge'
+  | 'amendRuntimeGitCommit'
   | 'generateRuntimeCommitMessage'
   | 'discoverRuntimeCommitMessageModels'
   | 'cancelRuntimeGenerateCommitMessage'
@@ -79,6 +81,7 @@ export function installRuntimeGitCommandSurface(
     fastForwardRuntimeGit: commands.fastForwardRuntimeGit.bind(commands),
     rebaseRuntimeGitFromBase: commands.rebaseRuntimeGitFromBase.bind(commands),
     pushRuntimeGit: commands.pushRuntimeGit.bind(commands),
+    pushRuntimeGitWithLease: commands.pushRuntimeGitWithLease.bind(commands),
     getRuntimeGitBranchDiff: commands.getRuntimeGitBranchDiff.bind(commands),
     getRuntimeGitCommitDiff: commands.getRuntimeGitCommitDiff.bind(commands),
     commitRuntimeGit: commands.commitRuntimeGit.bind(commands),
@@ -88,6 +91,7 @@ export function installRuntimeGitCommandSurface(
     sequencerAbortRuntimeGit: commands.sequencerAbortRuntimeGit.bind(commands),
     sequencerContinueRuntimeGit: commands.sequencerContinueRuntimeGit.bind(commands),
     completeRuntimeGitMerge: commands.completeRuntimeGitMerge.bind(commands),
+    amendRuntimeGitCommit: commands.amendRuntimeGitCommit.bind(commands),
     generateRuntimeCommitMessage: commands.generateRuntimeCommitMessage.bind(commands),
     discoverRuntimeCommitMessageModels: commands.discoverRuntimeCommitMessageModels.bind(commands),
     cancelRuntimeGenerateCommitMessage: commands.cancelRuntimeGenerateCommitMessage.bind(commands),

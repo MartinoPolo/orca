@@ -1,6 +1,13 @@
 import { ipcMain } from 'electron'
+import type { GitPushLease } from '../../../../shared/git/commands/git-commit-command'
+import { requireGitPushLease } from '../../../../shared/git/remotes/git-push-lease'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
-import { gitFastForward, gitPull, gitPush } from '../../../git/remotes/remote'
+import {
+  gitFastForward,
+  gitPull,
+  gitPush,
+  gitPushWithLease
+} from '../../../git/remotes/remote'
 import { gitPullRebaseFromBase } from '../../../git/remotes/remote-rebase'
 import { validateGitPushTarget } from '../../../git/remotes/push-target-validation'
 import { resolveRegisteredWorktreePath } from '../../worktrees/removal/registered-worktree-roots-cache'
@@ -53,6 +60,27 @@ export function registerGitRemoteBranchMutationHandlers(context: FilesystemHandl
       }
       await gitPush(worktreePath, publish, materializedPushTarget, {
         forceWithLease: args.forceWithLease === true,
+        ...gitOptions,
+        admissionTier: 'interactive'
+      })
+    }
+  )
+
+  ipcMain.handle(
+    'git:pushWithLease',
+    async (
+      _event,
+      args: { worktreePath: string; connectionId?: string; lease: GitPushLease }
+    ): Promise<void> => {
+      const lease = requireGitPushLease(args.lease)
+      requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
+      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
+        store,
+        args.worktreePath,
+        worktreePath
+      )
+      await gitPushWithLease(worktreePath, lease, {
         ...gitOptions,
         admissionTier: 'interactive'
       })

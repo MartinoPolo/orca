@@ -18,6 +18,7 @@ import type {
   GitHistoryResult
 } from '../../../shared/git/history/git-history-types'
 import type { PreloadApi } from '../../api-types'
+import type { GitCommitResult, GitPushLease } from '../../../shared/git/commands/git-commit-command'
 
 export const gitApi = {
   status: (args: {
@@ -119,6 +120,11 @@ export const gitApi = {
     connectionId?: string
     pushTarget?: unknown
   }): Promise<void> => ipcRenderer.invoke('git:push', args),
+  pushWithLease: (args: {
+    worktreePath: string
+    connectionId?: string
+    lease: GitPushLease
+  }): Promise<void> => ipcRenderer.invoke('git:pushWithLease', args),
   pull: (args: {
     worktreePath: string
     worktreeId?: string
@@ -157,7 +163,7 @@ export const gitApi = {
     worktreePath: string
     message: string
     connectionId?: string
-  }): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('git:commit', args),
+  }): Promise<GitCommitResult> => ipcRenderer.invoke('git:commit', args),
   createBranch: (args: {
     worktreePath: string
     name: string
@@ -189,6 +195,13 @@ export const gitApi = {
     connectionId?: string
   }): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('git:completeMerge', args),
+  amendCommit: (args: {
+    worktreePath: string
+    worktreeId?: string
+    message?: string
+    connectionId?: string
+    pushTarget?: GitPushTarget
+  }): Promise<GitCommitResult> => ipcRenderer.invoke('git:amendCommit', args),
   generateCommitMessage: (args: {
     worktreePath: string
     worktreeId?: string

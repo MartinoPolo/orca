@@ -1172,6 +1172,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.mutationInFlight': WorktreeSelectorOfGitParams,
   'git.pull': GitTargetedRemote,
   'git.push': GitPush,
+  'git.pushWithLease': GitPushWithLease,
   'git.rebaseFromBase': GitRebaseFromBase,
   'git.refs': GitRefs,
   'git.remoteCommitUrl': GitRemoteCommitUrl,

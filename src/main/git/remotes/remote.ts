@@ -11,6 +11,11 @@ import {
   gitOptionsForWorktree
 } from '../command-runner/git-runtime-options'
 import {
+  buildGitLeasePushArgs,
+  requireGitPushLease,
+  type GitPushLease
+} from '../../../shared/git/remotes/git-push-lease'
+import {
   postponeRepoRefMaintenance,
   withRepoRefMaintenancePaused
 } from '../refs/maintenance/local-repo-ref-maintenance'
@@ -24,15 +29,40 @@ function explicitPushTarget(target: GitPushTarget): { remote: string; refspec: s
   return { remote: target.remoteName, refspec: `HEAD:${target.branchName}` }
 }
 
+export async function gitPushWithLease(
+  worktreePath: string,
+  pushLease: GitPushLease,
+  options: GitRuntimeOptions = {}
+): Promise<void> {
+  const lease = requireGitPushLease(pushLease)
+  return runGitPush(worktreePath, lease.pushTarget, options, lease)
+}
+
 export async function gitPush(
   worktreePath: string,
   _publish = false,
   pushTarget?: GitPushTarget,
   options: { forceWithLease?: boolean } & GitRuntimeOptions = {}
 ): Promise<void> {
+  return runGitPush(worktreePath, pushTarget, options)
+}
+
+async function runGitPush(
+  worktreePath: string,
+  pushTarget: GitPushTarget | undefined,
+  options: { forceWithLease?: boolean } & GitRuntimeOptions,
+  pushLease?: GitPushLease
+): Promise<void> {
   try {
     if (pushTarget) {
       await validateGitPushTarget(worktreePath, pushTarget, options)
+    }
+    if (pushLease) {
+      await gitExecFileAsync(
+        buildGitLeasePushArgs(pushLease),
+        gitOptionsForWorktree(worktreePath, options)
+      )
+      return
     }
     // Honor configured fork push targets; use origin/HEAD only for first publication.
     const target = pushTarget

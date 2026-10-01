@@ -3,10 +3,14 @@
 import type { SourceControlPrimaryActionDecisionInputs } from '../decisions/source-control-primary-action-decision-types'
 import {
   canSubmitCommit,
+  resolveAmendDisabledReason,
   resolveCommitDisabledReason
 } from '../decisions/source-control-commit-eligibility'
 import type { GitConflictOperation } from '../../git/status/git-status-types'
-import { shouldForcePushWithLeaseForUpstream } from '../../git/remotes/git-upstream-status'
+import {
+  isHeadPublishedToUpstream,
+  shouldForcePushWithLeaseForUpstream
+} from '../../git/remotes/git-upstream-status'
 import type { DropdownActionInputs } from './source-control-dropdown-item-types'
 
 export type DropdownActionContext = {
@@ -34,6 +38,8 @@ export type DropdownActionContext = {
   globalBusy: boolean
   commitDisabledReason: ReturnType<typeof resolveCommitDisabledReason>
   canCommit: boolean
+  amendDisabledReason: ReturnType<typeof resolveAmendDisabledReason>
+  headIsPublished: boolean
 }
 
 export function deriveDropdownActionContext(inputs: DropdownActionInputs): DropdownActionContext {
@@ -107,6 +113,13 @@ export function deriveDropdownActionContext(inputs: DropdownActionInputs): Dropd
       isPullRequestOperationActive
     })
 
+  const amendDisabledReason = resolveAmendDisabledReason({
+    stagedCount,
+    hasMessage,
+    hasUnresolvedConflicts
+  })
+  const headIsPublished = isHeadPublishedToUpstream(upstreamStatus)
+
   return {
     upstreamStatus,
     hostedReviewCreation,
@@ -131,6 +144,8 @@ export function deriveDropdownActionContext(inputs: DropdownActionInputs): Dropd
     pushLabelCount,
     globalBusy,
     commitDisabledReason,
-    canCommit
+    canCommit,
+    amendDisabledReason,
+    headIsPublished
   }
 }

@@ -17,6 +17,7 @@ import {
 } from '../../../../../../shared/source-control/dropdown/source-control-dropdown-commit-items'
 import { buildRemoteDropdownItems } from '../../../../../../shared/source-control/dropdown/source-control-dropdown-remote-items'
 import { localizedRemoteCopy } from './source-control-dropdown-remote-localized-copy'
+import { buildAmendDropdownItems } from './source-control-dropdown-amend-items'
 import { buildHostedReviewDropdownItems } from '../review/source-control-dropdown-review-items'
 
 function localizedCommitDisabledReason(reason: CommitDisabledReason): string {
@@ -150,6 +151,10 @@ export function resolveDropdownItems(
 ): DropdownEntry[] {
   const ctx = deriveDropdownActionContext(inputs)
   const { commit, commitPush, commitSync } = buildCommitDropdownItems(ctx, localizedCommitCopy(t))
+  const { amend, amendForcePush } = buildAmendDropdownItems(ctx, {
+    stagedCount: inputs.stagedCount,
+    hasMessage: inputs.hasMessage
+  })
   const { push, forcePush, pull, fastForward, sync, rebase, fetch, publish } =
     buildRemoteDropdownItems(ctx, localizedRemoteCopy(t))
   const { createPR, pushCreatePR } = buildHostedReviewDropdownItems(ctx, t)
@@ -159,6 +164,9 @@ export function resolveDropdownItems(
     commit,
     commitPush,
     commitSync,
+    { kind: 'separator', id: 'before-amend' },
+    amend,
+    amendForcePush,
     { kind: 'separator', id: 'before-remote' },
     push,
     forcePush,

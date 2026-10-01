@@ -9,6 +9,9 @@ import {
   commitRuntimeGit,
   completeRuntimeGitMerge
 } from '@/runtime/source-control/git/runtime-git-sync-client'
+import { amendRuntimeGitCommit } from '@/runtime/source-control/git/runtime-git-amend-client'
+import type { GitCommitResult } from '../../../../../../shared/git/commands/git-commit-command'
+import { hasSubmittableCommitContent } from '../../../../../../shared/source-control/decisions/source-control-commit-eligibility'
 import type { SourceControlOperationTarget } from '../listing/operation-target'
 import type { SourceControlStoreActions } from '../listing/use-store-actions'
 import type { SourceControlWorktreeContext } from '../listing/use-worktree-context'
@@ -55,6 +58,10 @@ export function useSourceControlCommitAction({
         skipStagedSnapshotCheck?: boolean
         skipActiveConflictCheck?: boolean
         target?: SourceControlOperationTarget
+        /** Amends HEAD instead; an empty message keeps the existing one. */
+        amend?: boolean
+        capturePushLease?: boolean
+        onCommitted?: (result: GitCommitResult) => void
       }
     ): Promise<boolean> => {
       const target =
@@ -72,9 +79,14 @@ export function useSourceControlCommitAction({
         return false
       }
       const message = (messageOverride ?? commitMessage).trim()
+      const amend = options?.amend === true
       if (
-        !message ||
-        (!options?.skipStagedSnapshotCheck && stagedCount === 0) ||
+        !hasSubmittableCommitContent({
+          amend,
+          message,
+          stagedCount,
+          skipStagedSnapshotCheck: options?.skipStagedSnapshotCheck === true
+        }) ||
         (!options?.skipActiveConflictCheck && unresolvedConflictCount > 0)
       ) {
         return false
@@ -85,21 +97,33 @@ export function useSourceControlCommitAction({
         return false
       }
       operationStore.setState({ isCommitting: true, commitError: null })
+      const failureFallback = amend
+        ? translate(
+            'auto.components.right.sidebar.source.control.commit.use.commit.action.amendFailed',
+            'Amend failed'
+          )
+        : 'Commit failed'
       try {
-        const commitResult = await commitRuntimeGit(
-          {
-            // Route commits through workspace ownership rather than focused runtime.
-            target: requireGitOwnerTarget(target.target),
-            worktreeId: target.worktreeId,
-            worktreePath: target.worktreePath,
-            connectionId: target.connectionId
-          },
-          message
-        )
+        const commitContext = {
+          // Route commits through workspace ownership rather than focused runtime.
+          target: requireGitOwnerTarget(target.target),
+          worktreeId: target.worktreeId,
+          worktreePath: target.worktreePath,
+          connectionId: target.connectionId
+        }
+        const commitResult = amend
+          ? await amendRuntimeGitCommit(
+              commitContext,
+              message || undefined,
+              options?.capturePushLease ? target.pushTarget : undefined
+            )
+          : await commitRuntimeGit(commitContext, message)
         if (!commitResult.success) {
-          operationStore.setState({ commitError: commitResult.error ?? 'Commit failed' })
+          operationStore.setState({ commitError: commitResult.error ?? failureFallback })
           return false
         }
+
+        options?.onCommitted?.(commitResult)
 
         // Clear only an unchanged submitted draft so typing during commit cannot lose new edits.
         updateCommitDraft((current) => (current.trim() !== message ? current : ''))
@@ -125,7 +149,7 @@ export function useSourceControlCommitAction({
         return true
       } catch (error) {
         operationStore.setState({
-          commitError: error instanceof Error ? error.message : 'Commit failed'
+          commitError: error instanceof Error ? error.message : failureFallback
         })
         return false
       } finally {

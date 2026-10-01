@@ -1,3 +1,5 @@
+import type { GitPushLease } from '../../../../../../shared/git/commands/git-commit-command'
+import { translate } from '@/i18n/i18n'
 import { useCallback } from 'react'
 import { sourceControlConnectionId, useSourceControlScope } from '../panel/worktree-scope'
 import { isSyncPushStageError } from '@/lib/source-control/remote/source-control-remote-error'
@@ -84,6 +86,8 @@ export function useSourceControlRemoteActionRunner({
       options?: {
         target?: SourceControlOperationTarget
         baseRef?: string | null
+        /** Null means the amend host did not supply a safe lease. */
+        amendPushLease?: GitPushLease | null
       }
     ): Promise<RunRemoteActionResult> => {
       const target =
@@ -138,13 +142,25 @@ export function useSourceControlRemoteActionRunner({
           return { status: 'ok' }
         }
         if (kind === 'force_push') {
+          if (options?.amendPushLease === null) {
+            throw new Error(
+              translate(
+                'auto.components.right.sidebar.source.control.sync.use.remote.action.runner.missingAmendLease',
+                'Automatic push stopped because the host did not provide a pre-amend lease. Update the host, or review the remote branch and use Force Push from the menu to retry.'
+              )
+            )
+          }
           await pushBranch(
             target.worktreeId,
             target.worktreePath,
             false,
             target.connectionId,
             target.pushTarget,
-            { forceWithLease: true, runtimeTarget: target.target }
+            {
+              forceWithLease: true,
+              runtimeTarget: target.target,
+              ...(options?.amendPushLease ? { pushLease: options.amendPushLease } : {})
+            }
           )
           return { status: 'ok' }
         }
@@ -217,7 +233,10 @@ export function useSourceControlRemoteActionRunner({
         }
         const actionError: SourceControlActionError = {
           kind,
-          message: resolveRemoteActionError(kind, error),
+          message:
+            options?.amendPushLease === null && error instanceof Error
+              ? error.message
+              : resolveRemoteActionError(kind, error),
           rawError: error instanceof Error ? error.message : String(error),
           syncPushStage: kind === 'sync' ? isSyncPushStageError(error) : false,
           branchName: failureBranchName,

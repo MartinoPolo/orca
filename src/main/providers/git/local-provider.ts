@@ -5,7 +5,13 @@ import type { GitRuntimeOptions } from '../../git/command-runner/git-runtime-opt
 import { checkIgnoredPaths } from '../../git/source-control/ignores/check-ignored-paths'
 import { checkoutBranch, listLocalBranches } from '../../git/worktrees/checkout/checkout'
 import { getHistory, getHistoryRefs } from '../../git/source-control/history'
-import { gitFastForward, gitFetch, gitPull, gitPush } from '../../git/remotes/remote'
+import {
+  gitFastForward,
+  gitFetch,
+  gitPull,
+  gitPush,
+  gitPushWithLease
+} from '../../git/remotes/remote'
 import { gitPullRebaseFromBase } from '../../git/remotes/remote-rebase'
 import { getRemoteCommitUrl, getRemoteFileUrl } from '../../git/remotes/repo-remote-queries'
 import { isGitRepo } from '../../git/repositories/discovery/repo-detection'
@@ -28,7 +34,11 @@ import {
   stageWorktreeChanges,
   unstageFile
 } from '../../git/source-control/mutations/staging'
-import { commitChanges, completeMerge } from '../../git/source-control/mutations/commit-changes'
+import {
+  amendCommit,
+  commitChanges,
+  completeMerge
+} from '../../git/source-control/mutations/commit-changes'
 import { getBranchCompare } from '../../git/source-control/comparisons/branch-compare'
 import { getCommitCompare } from '../../git/source-control/comparisons/commit-compare'
 import { getCommitDiff } from '../../git/source-control/comparisons/commit-diff'
@@ -89,6 +99,8 @@ export function createLocalGitProvider(options: LocalGitProviderOptions = {}): L
       applyCommit(worktreePath, operation, commitId, interactive),
     recoverSequencer: (worktreePath, operation, action) =>
       recoverSequencer(worktreePath, operation, action, interactive),
+    amendCommit: (worktreePath, message, pushTarget) =>
+      amendCommit(worktreePath, message, interactive, pushTarget),
     completeMerge: (worktreePath) => completeMerge(worktreePath, interactive),
     getStagedCommitContext: (worktreePath) => getStagedCommitContext(worktreePath, interactive),
     getDiff: (worktreePath, filePath, staged, compareAgainstHead, oldPath) =>
@@ -140,6 +152,7 @@ export function createLocalGitProvider(options: LocalGitProviderOptions = {}): L
         forceWithLease: pushOptions?.forceWithLease === true,
         ...interactive
       }),
+    pushWithLease: (worktreePath, lease) => gitPushWithLease(worktreePath, lease, interactive),
     pullBranch: (worktreePath, pushTarget) => gitPull(worktreePath, pushTarget, interactive),
     fastForwardBranch: (worktreePath, pushTarget) =>
       gitFastForward(worktreePath, pushTarget, interactive),

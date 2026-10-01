@@ -8,6 +8,7 @@ import { callRuntimeResult } from './web-runtime-calls'
 import { createWebGitAtRiskLocalFilesApi } from './web-git-at-risk-local-files-api'
 import { mutateGitPath, mutateGitPaths, resolveGitConflict } from './web-git-mutations'
 import { requireGitStageWorktreeScopeReceipt } from '../../../../shared/git/paths/git-stage-worktree-scope'
+import { createWebGitAmendApi } from './web-git-amend-api'
 import { requireActiveEnvironment, updateEnvironmentFromResponse } from './web-runtime-session'
 import {
   resolveRuntimeFilePath,
@@ -46,6 +47,7 @@ export async function callAbortableRuntimeStatus<TResult>(
 
 export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
   return {
+    ...createWebGitAmendApi(),
     status: async ({
       worktreePath,
       includeIgnored,

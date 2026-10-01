@@ -71,6 +71,7 @@ export function useSourceControlPanelModel() {
     handleAbortMerge,
     handleAbortRebase,
     handleCommit,
+    runAmendAndForcePush,
     runCompoundCommitAction,
     runRemoteAction
   } = commitFlows
@@ -128,6 +129,7 @@ export function useSourceControlPanelModel() {
     prGenerating,
     remoteStatus,
     remoteStatusForActions,
+    runAmendAndForcePush,
     runCompoundCommitAction,
     runCreatePrIntent: createPrIntentFlows.runCreatePrIntent,
     runRemoteAction

@@ -14,6 +14,7 @@ import type { HostedReviewProvider } from '../../../shared/source-control/hosted
 import type { ResolvedSourceControlAiGenerationParams } from '../../../shared/source-control/ai/source-control-ai-operation-resolution'
 import type { SourceControlAiSettings } from '../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import type { TextGenerationFailureFields } from '../../../shared/text-generation-failure-copy'
+import type { GitCommitResult, GitPushLease } from '../../../shared/git/commands/git-commit-command'
 
 export type GitOperationApi = {
   appendGitignore: (args: { worktreePath: string; folderName: string }) => Promise<boolean>
@@ -36,6 +37,11 @@ export type GitOperationApi = {
     connectionId?: string
     pushTarget?: GitPushTarget
   }) => Promise<void>
+  pushWithLease: (args: {
+    worktreePath: string
+    connectionId?: string
+    lease: GitPushLease
+  }) => Promise<void>
   pull: (args: {
     worktreePath: string
     connectionId?: string
@@ -55,7 +61,7 @@ export type GitOperationApi = {
     worktreePath: string
     message: string
     connectionId?: string
-  }) => Promise<{ success: boolean; error?: string }>
+  }) => Promise<GitCommitResult>
   createBranch: (args: {
     worktreePath: string
     name: string
@@ -86,6 +92,14 @@ export type GitOperationApi = {
     worktreePath: string
     connectionId?: string
   }) => Promise<{ success: boolean; error?: string }>
+  amendCommit: (args: {
+    worktreePath: string
+    worktreeId?: string
+    /** Empty or omitted keeps the amended commit's existing message. */
+    message?: string
+    connectionId?: string
+    pushTarget?: GitPushTarget
+  }) => Promise<GitCommitResult>
   generateCommitMessage: (args: {
     worktreePath: string
     /** Raw (unstripped) worktree meta key; validated against worktreePath in main. */
