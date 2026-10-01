@@ -3,6 +3,7 @@
 import { translate } from '@/i18n/i18n'
 import type { DropdownActionInputs, DropdownEntry } from './source-control-dropdown-item-types'
 import { deriveDropdownActionContext } from './source-control-dropdown-action-context'
+import { buildAmendDropdownItems } from './source-control-dropdown-amend-items'
 import { buildCommitDropdownItems } from './source-control-dropdown-commit-items'
 import { buildRemoteDropdownItems } from './source-control-dropdown-remote-items'
 import { buildHostedReviewDropdownItems } from './source-control-dropdown-review-items'
@@ -14,6 +15,10 @@ import { buildHostedReviewDropdownItems } from './source-control-dropdown-review
 export function resolveDropdownItems(inputs: DropdownActionInputs): DropdownEntry[] {
   const ctx = deriveDropdownActionContext(inputs)
   const { commit, commitPush, commitSync } = buildCommitDropdownItems(ctx)
+  const { amend, amendForcePush } = buildAmendDropdownItems(ctx, {
+    stagedCount: inputs.stagedCount,
+    hasMessage: inputs.hasMessage
+  })
   const { push, forcePush, pull, fastForward, sync, rebase, fetch, publish } =
     buildRemoteDropdownItems(ctx)
   const { createPR, pushCreatePR } = buildHostedReviewDropdownItems(ctx)
@@ -23,6 +28,9 @@ export function resolveDropdownItems(inputs: DropdownActionInputs): DropdownEntr
     commit,
     commitPush,
     commitSync,
+    { kind: 'separator', id: 'before-amend' },
+    amend,
+    amendForcePush,
     { kind: 'separator', id: 'before-remote' },
     push,
     forcePush,

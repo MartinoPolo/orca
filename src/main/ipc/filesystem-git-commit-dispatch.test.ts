@@ -1,13 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type * as GitRemoteModule from '../git/remote'
 import {
   handlers,
   store,
   WORKTREE_FEATURE_PATH,
+  amendCommitMock,
   commitChangesMock,
   bulkDiscardChangesMock,
   getSshGitProviderMock,
   resetFilesystemIpcMocks
 } from './filesystem-test-harness'
+
+const remoteMocks = vi.hoisted(() => ({ gitPushWithLease: vi.fn() }))
+vi.mock('../git/remote', async () => ({
+  ...(await vi.importActual<typeof GitRemoteModule>('../git/remote')),
+  gitPushWithLease: remoteMocks.gitPushWithLease
+}))
 
 vi.mock('electron', async () => (await import('./filesystem-test-harness')).electronMock)
 vi.mock('fs/promises', async () => (await import('./filesystem-test-harness')).fsPromisesMock)
@@ -63,6 +71,7 @@ import { invalidateAuthorizedRootsCache } from './registered-worktree-roots-cach
 describe('registerFilesystemHandlers', () => {
   beforeEach(() => {
     resetFilesystemIpcMocks()
+    remoteMocks.gitPushWithLease.mockReset()
     // Reset module-level auth cache so each test starts with a fresh dirty
     // flag — prevents stale worktree data from a prior test's cache rebuild.
     invalidateAuthorizedRootsCache()
@@ -114,6 +123,109 @@ describe('registerFilesystemHandlers', () => {
 
     expect(sshCommitMock).toHaveBeenCalledWith('/remote/repo', 'feat: remote commit')
     expect(commitChangesMock).not.toHaveBeenCalled()
+  })
+
+  it('routes local git:amendCommit through amendCommit, keeping the message optional', async () => {
+    amendCommitMock.mockResolvedValue({ success: true })
+
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, { worktreePath: WORKTREE_FEATURE_PATH })
+    ).resolves.toEqual({ success: true })
+
+    expect(amendCommitMock).toHaveBeenCalledWith(
+      WORKTREE_FEATURE_PATH,
+      undefined,
+      {
+        admissionTier: 'interactive'
+      },
+      undefined
+    )
+    expect(commitChangesMock).not.toHaveBeenCalled()
+  })
+
+  it('routes ssh git:amendCommit through the SSH provider', async () => {
+    const sshAmendCommitMock = vi.fn().mockResolvedValue({ success: true })
+    getSshGitProviderMock.mockReturnValue({ amendCommit: sshAmendCommitMock })
+
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:amendCommit')!(null, {
+        worktreePath: '/remote/repo',
+        message: 'fix: reworded',
+        connectionId: 'conn-1'
+      })
+    ).resolves.toEqual({ success: true })
+
+    expect(sshAmendCommitMock).toHaveBeenCalledWith('/remote/repo', 'fix: reworded', undefined)
+    expect(amendCommitMock).not.toHaveBeenCalled()
+  })
+
+  it('routes a captured lease push through the registered local worktree', async () => {
+    const lease = {
+      expectedHead: 'a'.repeat(40),
+      pushTarget: { remoteName: 'fork', branchName: 'feature' }
+    }
+    registerFilesystemHandlers(store as never)
+
+    await handlers.get('git:pushWithLease')!(null, {
+      worktreePath: WORKTREE_FEATURE_PATH,
+      lease
+    })
+
+    expect(remoteMocks.gitPushWithLease).toHaveBeenCalledWith(WORKTREE_FEATURE_PATH, lease, {
+      admissionTier: 'interactive'
+    })
+  })
+
+  it('refuses a lease push when its SSH provider is unavailable', async () => {
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:pushWithLease')!(null, {
+        worktreePath: '/remote/repo',
+        connectionId: 'conn-1',
+        lease: {
+          expectedHead: 'a'.repeat(40),
+          pushTarget: { remoteName: 'fork', branchName: 'feature' }
+        }
+      })
+    ).rejects.toThrow('Remote connection dropped')
+    expect(remoteMocks.gitPushWithLease).not.toHaveBeenCalled()
+  })
+
+  it('routes a captured lease push only through the SSH provider', async () => {
+    const pushWithLease = vi.fn()
+    const lease = {
+      expectedHead: 'a'.repeat(40),
+      pushTarget: { remoteName: 'fork', branchName: 'feature' }
+    }
+    getSshGitProviderMock.mockReturnValue({ pushWithLease })
+    registerFilesystemHandlers(store as never)
+
+    await handlers.get('git:pushWithLease')!(null, {
+      worktreePath: '/remote/repo',
+      connectionId: 'conn-1',
+      lease
+    })
+
+    expect(pushWithLease).toHaveBeenCalledWith('/remote/repo', lease)
+  })
+
+  it('rejects an absent lease before SSH dispatch', async () => {
+    const pushWithLease = vi.fn()
+    getSshGitProviderMock.mockReturnValue({ pushWithLease })
+    registerFilesystemHandlers(store as never)
+
+    await expect(
+      handlers.get('git:pushWithLease')!(null, {
+        worktreePath: '/remote/repo',
+        connectionId: 'conn-1'
+      })
+    ).rejects.toThrow('A valid pre-amend push lease is required')
+    expect(pushWithLease).not.toHaveBeenCalled()
   })
 
   it('routes ssh git:remoteCommitUrl through the SSH provider', async () => {

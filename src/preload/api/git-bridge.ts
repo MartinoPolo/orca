@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron'
+import type { GitCommitResult, GitPushLease } from '../../shared/git-commit-command'
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../shared/git-fork-sync'
 import type { GitStagingArea, GitUpstreamStatus } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
@@ -84,6 +85,11 @@ export const gitApi = {
     connectionId?: string
     pushTarget?: unknown
   }): Promise<void> => ipcRenderer.invoke('git:push', args),
+  pushWithLease: (args: {
+    worktreePath: string
+    connectionId?: string
+    lease: GitPushLease
+  }): Promise<void> => ipcRenderer.invoke('git:pushWithLease', args),
   pull: (args: {
     worktreePath: string
     worktreeId?: string
@@ -120,7 +126,14 @@ export const gitApi = {
     worktreePath: string
     message: string
     connectionId?: string
-  }): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('git:commit', args),
+  }): Promise<GitCommitResult> => ipcRenderer.invoke('git:commit', args),
+  amendCommit: (args: {
+    worktreePath: string
+    worktreeId?: string
+    message?: string
+    connectionId?: string
+    pushTarget?: GitPushTarget
+  }): Promise<GitCommitResult> => ipcRenderer.invoke('git:amendCommit', args),
   generateCommitMessage: (args: {
     worktreePath: string
     worktreeId?: string

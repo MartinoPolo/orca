@@ -1,4 +1,5 @@
 export {
+  GitAmendCommit,
   GitBranchCompare,
   GitBranchDiff,
   GitBulkPaths,
@@ -15,6 +16,7 @@ export {
   GitGeneratePullRequestFields,
   GitHistory,
   GitPush,
+  GitPushWithLease,
   GitRebaseFromBase,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,

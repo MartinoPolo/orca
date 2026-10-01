@@ -1,3 +1,8 @@
+import {
+  buildGitLeasePushArgs,
+  requireGitPushLease,
+  type GitPushLease
+} from '../shared/git-push-lease'
 import { randomUUID } from 'node:crypto'
 import type { RequestContext } from './dispatcher'
 import { GitHandlerOperationContext } from './git-handler-operation-context'
@@ -16,7 +21,15 @@ import {
 import { isNoWriteFetchHeadUnsupportedError } from '../shared/git-fetch-head-capability'
 
 export class GitHandlerSyncOperations extends GitHandlerOperationContext {
+  async pushWithLease(params: Record<string, unknown>) {
+    return this.runPush(params, requireGitPushLease(params.lease))
+  }
+
   async push(params: Record<string, unknown>) {
+    return this.runPush(params)
+  }
+
+  private async runPush(params: Record<string, unknown>, pushLease?: GitPushLease) {
     this.clearGitMutationReadCaches()
     const worktreePath = params.worktreePath as string
     // Why: mirror src/main/git/remote.ts — push to a configured upstream when present so SSH worktrees with non-origin targets aren't repointed.
@@ -26,14 +39,16 @@ export class GitHandlerSyncOperations extends GitHandlerOperationContext {
         const target = await resolveRelayPushTarget(
           this.git.bind(this),
           worktreePath,
-          params.pushTarget
+          pushLease?.pushTarget ?? params.pushTarget
         )
-        const args = [
-          'push',
-          ...(params.forceWithLease === true ? ['--force-with-lease'] : []),
-          '--set-upstream',
-          ...(target ? [target.remote, target.refspec] : ['origin', 'HEAD'])
-        ]
+        const args = pushLease
+          ? buildGitLeasePushArgs(pushLease)
+          : [
+              'push',
+              ...(params.forceWithLease === true ? ['--force-with-lease'] : []),
+              '--set-upstream',
+              ...(target ? [target.remote, target.refspec] : ['origin', 'HEAD'])
+            ]
         await this.git(args, worktreePath)
       } catch (error) {
         // Why: mirror local gitPush normalization so SSH users get "non-fast-forward / pull first" guidance instead of raw git stderr.

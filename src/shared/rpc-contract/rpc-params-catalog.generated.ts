@@ -189,6 +189,7 @@ import {
   FolderWorkspaceUpdate
 } from './folder-workspace-params'
 import {
+  GitAmendCommit,
   GitBranchCompare,
   GitBranchDiff,
   GitBulkPaths,
@@ -205,6 +206,7 @@ import {
   GitGeneratePullRequestFields,
   GitHistory,
   GitPush,
+  GitPushWithLease,
   GitRebaseFromBase,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,
@@ -779,6 +781,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'folderWorkspace.update': FolderWorkspaceUpdate,
   'git.abortMerge': WorktreeSelectorOfGitParams,
   'git.abortRebase': WorktreeSelectorOfGitParams,
+  'git.amendCommit': GitAmendCommit,
   'git.branchCompare': GitBranchCompare,
   'git.branchDiff': GitBranchDiff,
   'git.bulkDiscard': GitBulkPaths,
@@ -804,6 +807,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.localBranches': WorktreeSelectorOfGitParams,
   'git.pull': GitTargetedRemote,
   'git.push': GitPush,
+  'git.pushWithLease': GitPushWithLease,
   'git.rebaseFromBase': GitRebaseFromBase,
   'git.remoteCommitUrl': GitRemoteCommitUrl,
   'git.remoteFileUrl': GitRemoteFileUrl,

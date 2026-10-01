@@ -4,6 +4,7 @@ import * as runtimeGitClient from './runtime-git-client'
 const PUBLIC_RUNTIME_GIT_CLIENT_FUNCTIONS = [
   'abortRuntimeGitMerge',
   'abortRuntimeGitRebase',
+  'amendRuntimeGitCommit',
   'bulkDiscardRuntimeGitPaths',
   'bulkStageRuntimeGitPaths',
   'bulkUnstageRuntimeGitPaths',
@@ -32,6 +33,7 @@ const PUBLIC_RUNTIME_GIT_CLIENT_FUNCTIONS = [
   'getRuntimeGitUpstreamStatus',
   'pullRuntimeGit',
   'pushRuntimeGit',
+  'pushRuntimeGitWithLease',
   'rebaseRuntimeGitFromBase',
   'setRuntimeGitStatusUpstreamRefWatch',
   'stageRuntimeGitPath',

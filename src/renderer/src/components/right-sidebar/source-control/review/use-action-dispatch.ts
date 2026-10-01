@@ -7,6 +7,7 @@ import { handleSourceControlCommitShortcut } from '../commit/commit-shortcut'
 import type { SourceControlFileListing } from '../listing/use-file-listing'
 import type { SourceControlWorktreeContext } from '../listing/use-worktree-context'
 import type { SourceControlConflictAbort } from '../sync/use-conflict-abort'
+import type { SourceControlAmendAndForcePush } from '../sync/use-amend-and-force-push'
 import type { SourceControlRemoteActionRunner } from '../sync/use-remote-action-runner'
 import type { SourceControlActionModel } from './use-action-model'
 import type { SourceControlHostedReviewCreation } from './use-hosted-review-creation'
@@ -28,6 +29,7 @@ export function useSourceControlActionDispatch({
   prGenerating,
   remoteStatus,
   remoteStatusForActions,
+  runAmendAndForcePush,
   runCompoundCommitAction,
   runCreatePrIntent,
   runRemoteAction
@@ -44,6 +46,7 @@ export function useSourceControlActionDispatch({
   prGenerating: boolean
   remoteStatus: SourceControlWorktreeContext['remoteStatus']
   remoteStatusForActions: SourceControlWorktreeContext['remoteStatus']
+  runAmendAndForcePush: SourceControlAmendAndForcePush['runAmendAndForcePush']
   runCompoundCommitAction: SourceControlRemoteActionRunner['runCompoundCommitAction']
   runCreatePrIntent: () => Promise<void>
   runRemoteAction: SourceControlRemoteActionRunner['runRemoteAction']
@@ -63,6 +66,12 @@ export function useSourceControlActionDispatch({
           return
         case 'commit_sync':
           void runCompoundCommitAction('sync')
+          return
+        case 'amend':
+          void handleCommit(undefined, { amend: true })
+          return
+        case 'amend_force_push':
+          void runAmendAndForcePush()
           return
         case 'abort_merge':
           void handleAbortMerge()
@@ -95,6 +104,7 @@ export function useSourceControlActionDispatch({
       isCreatingPr,
       isCreatePrIntentInFlight,
       prGenerating,
+      runAmendAndForcePush,
       runCreatePrIntent,
       runCompoundCommitAction,
       runRemoteAction

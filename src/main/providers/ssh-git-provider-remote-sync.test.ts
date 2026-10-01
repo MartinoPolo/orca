@@ -63,6 +63,36 @@ describe('SshGitProvider', () => {
     })
   })
 
+  it('pushWithLease forwards the captured lease through a dedicated method', async () => {
+    const lease = {
+      expectedHead: 'a'.repeat(40),
+      pushTarget: { remoteName: 'fork', branchName: 'feature' }
+    }
+
+    await provider.pushWithLease('/home/user/repo', lease)
+
+    expect(mux.request).toHaveBeenCalledWith('git.pushWithLease', {
+      worktreePath: '/home/user/repo',
+      lease
+    })
+  })
+
+  it('refuses an older relay without falling back to git.push', async () => {
+    const lease = {
+      expectedHead: 'a'.repeat(40),
+      pushTarget: { remoteName: 'origin', branchName: 'main' }
+    }
+    const error = Object.assign(new Error('Method not found: git.pushWithLease'), { code: -32601 })
+    mux.request.mockRejectedValueOnce(error)
+
+    await expect(provider.pushWithLease('/home/user/repo', lease)).rejects.toBe(error)
+    expect(mux.request).toHaveBeenCalledTimes(1)
+    expect(mux.request).toHaveBeenCalledWith('git.pushWithLease', {
+      worktreePath: '/home/user/repo',
+      lease
+    })
+  })
+
   it('pullBranch sends git.pull request', async () => {
     await provider.pullBranch('/home/user/repo')
     expect(mux.request).toHaveBeenCalledWith('git.pull', {

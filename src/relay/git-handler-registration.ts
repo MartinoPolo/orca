@@ -14,6 +14,7 @@ export function registerGitHandlers(
   dispatcher.onRequest('git.checkIgnored', (p) => handlers.read.checkIgnored(p))
   dispatcher.onRequest('git.history', (p) => handlers.read.history(p))
   dispatcher.onRequest('git.commit', (p) => handlers.changes.commit(p))
+  dispatcher.onRequest('git.amendCommit', (p) => handlers.changes.amendCommit(p))
   dispatcher.onRequest('git.diff', (p, context) => handlers.read.getDiff(p, context))
   dispatcher.onRequest('git.stage', (p) => handlers.changes.stage(p))
   dispatcher.onRequest('git.unstage', (p) => handlers.changes.unstage(p))
@@ -49,6 +50,7 @@ export function registerGitHandlers(
     handlers.fetch.fetchGitLabMergeRequestHead(p)
   )
   dispatcher.onRequest('git.push', (p) => handlers.sync.push(p))
+  dispatcher.onRequest('git.pushWithLease', (p) => handlers.sync.pushWithLease(p))
   dispatcher.onRequest('git.pull', (p, context) => handlers.sync.pull(p, context))
   dispatcher.onRequest('git.fastForward', (p, context) => handlers.sync.fastForward(p, context))
   dispatcher.onRequest('git.rebaseFromBase', (p, context) =>

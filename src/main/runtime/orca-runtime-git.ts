@@ -34,7 +34,9 @@ export class RuntimeGitCommands {
   readonly fastForwardRuntimeGit: RuntimeGitSyncCommands['fastForwardRuntimeGit']
   readonly rebaseRuntimeGitFromBase: RuntimeGitSyncCommands['rebaseRuntimeGitFromBase']
   readonly pushRuntimeGit: RuntimeGitSyncCommands['pushRuntimeGit']
+  readonly pushRuntimeGitWithLease: RuntimeGitSyncCommands['pushRuntimeGitWithLease']
   readonly commitRuntimeGit: RuntimeGitSyncCommands['commitRuntimeGit']
+  readonly amendRuntimeGitCommit: RuntimeGitSyncCommands['amendRuntimeGitCommit']
   readonly generateRuntimeCommitMessage: RuntimeGitGenerationCommands['generateRuntimeCommitMessage']
   readonly cancelRuntimeGenerateCommitMessage: RuntimeGitGenerationCommands['cancelRuntimeGenerateCommitMessage']
   readonly generateRuntimePullRequestFields: RuntimeGitGenerationCommands['generateRuntimePullRequestFields']
@@ -77,7 +79,9 @@ export class RuntimeGitCommands {
     this.fastForwardRuntimeGit = sync.fastForwardRuntimeGit.bind(sync)
     this.rebaseRuntimeGitFromBase = sync.rebaseRuntimeGitFromBase.bind(sync)
     this.pushRuntimeGit = sync.pushRuntimeGit.bind(sync)
+    this.pushRuntimeGitWithLease = sync.pushRuntimeGitWithLease.bind(sync)
     this.commitRuntimeGit = sync.commitRuntimeGit.bind(sync)
+    this.amendRuntimeGitCommit = sync.amendRuntimeGitCommit.bind(sync)
     this.generateRuntimeCommitMessage = generation.generateRuntimeCommitMessage.bind(generation)
     this.cancelRuntimeGenerateCommitMessage =
       generation.cancelRuntimeGenerateCommitMessage.bind(generation)

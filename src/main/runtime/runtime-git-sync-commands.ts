@@ -1,9 +1,17 @@
+import type { GitCommitResult, GitPushLease } from '../../shared/git-commit-command'
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../shared/git-fork-sync'
 import type { GitUpstreamStatus } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import { gitSyncForkDefaultBranch } from '../git/fork-sync'
-import { gitFastForward, gitFetch, gitPull, gitPullRebaseFromBase, gitPush } from '../git/remote'
-import { abortMerge, abortRebase, commitChanges } from '../git/status'
+import {
+  gitFastForward,
+  gitFetch,
+  gitPull,
+  gitPullRebaseFromBase,
+  gitPush,
+  gitPushWithLease
+} from '../git/remote'
+import { abortMerge, abortRebase, amendCommit, commitChanges } from '../git/status'
 import { getUpstreamStatus } from '../git/upstream'
 import {
   materializeWorktreePushTargetRemote,
@@ -230,10 +238,24 @@ export class RuntimeGitSyncCommands {
     return { ok: true }
   }
 
-  async commitRuntimeGit(
+  async pushRuntimeGitWithLease(
     worktreeSelector: string,
-    message: string
-  ): Promise<{ success: boolean; error?: string }> {
+    lease: GitPushLease
+  ): Promise<{ ok: true }> {
+    const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
+    const provider = requireRuntimeGitProvider(target)
+    if (provider) {
+      await provider.pushWithLease(target.worktree.path, lease)
+      return { ok: true }
+    }
+    await gitPushWithLease(target.worktree.path, lease, {
+      ...localGitOptionsForTarget(target),
+      admissionTier: 'interactive'
+    })
+    return { ok: true }
+  }
+
+  async commitRuntimeGit(worktreeSelector: string, message: string): Promise<GitCommitResult> {
     if (message.trim().length === 0) {
       throw new Error('Commit message is required')
     }
@@ -246,5 +268,40 @@ export class RuntimeGitSyncCommands {
       ...localGitOptionsForTarget(target),
       admissionTier: 'interactive'
     })
+  }
+
+  async amendRuntimeGitCommit(
+    worktreeSelector: string,
+    message: string | undefined,
+    pushTarget?: GitPushTarget
+  ): Promise<GitCommitResult> {
+    const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
+    const provider = requireRuntimeGitProvider(target)
+    if (provider) {
+      const materializedPushTarget = pushTarget
+        ? await materializeWorktreePushTargetRemoteSsh(provider, target.worktree.path, pushTarget)
+        : undefined
+      this.persistMaterializedPushTargetIfCreated(target, materializedPushTarget)
+      return provider.amendCommit(target.worktree.path, message, materializedPushTarget)
+    }
+    const materializedPushTarget = pushTarget
+      ? await materializeWorktreePushTargetRemote(
+          target.worktree.path,
+          pushTarget,
+          undefined,
+          target.repo?.id,
+          localGitOptionsForTarget(target)
+        )
+      : undefined
+    this.persistMaterializedPushTargetIfCreated(target, materializedPushTarget)
+    return amendCommit(
+      target.worktree.path,
+      message,
+      {
+        ...localGitOptionsForTarget(target),
+        admissionTier: 'interactive'
+      },
+      materializedPushTarget
+    )
   }
 }

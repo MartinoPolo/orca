@@ -213,6 +213,19 @@ export const GitPushTargetParam = z.object({
   remoteCreated: z.boolean().optional()
 })
 
+// Why: a separate method makes an older host reject amend instead of silently creating a new commit.
+export const GitAmendCommit = WorktreeSelector.extend({
+  message: z.string().optional(),
+  pushTarget: GitPushTargetParam.optional()
+})
+
+export const GitPushWithLease = WorktreeSelector.extend({
+  lease: z.object({
+    expectedHead: FullGitObjectId,
+    pushTarget: GitPushTargetParam
+  })
+})
+
 export const GitPush = WorktreeSelector.extend({
   publish: z.boolean().optional(),
   forceWithLease: z.boolean().optional(),

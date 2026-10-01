@@ -47,6 +47,11 @@ export function shouldForcePushWithLeaseForUpstream(
   )
 }
 
+// Why: ahead === 0 means every local commit, including HEAD, is already on the upstream.
+export function isHeadPublishedToUpstream(status: GitUpstreamStatus | undefined): boolean {
+  return status?.hasUpstream === true && status.ahead === 0
+}
+
 // Why: behind-only is the only auto-prepare case Create PR can safely handle
 // with a pure fast-forward (no local unique commits to reconcile). Eligibility
 // and the intent remote-step resolver must share this predicate so the button

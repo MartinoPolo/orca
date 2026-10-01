@@ -2,6 +2,8 @@ import type {
   GitBranchCompareResult,
   GitCommitCompareResult
 } from '../../shared/git-diff-compare-types'
+import { parseGitCommitResult, type GitCommitResult } from '../../shared/git-commit-command'
+import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
 import type { GitConflictOperation } from '../../shared/git-status-types'
 import type { GitAdmissionTier } from '../git/command-runner/git-exec-options'
@@ -25,16 +27,29 @@ export class SshGitWorkingTreeProvider extends SshGitNoninteractiveProvider {
     })) as GitHistoryResult
   }
 
-  async commit(
-    worktreePath: string,
-    message: string
-  ): Promise<{ success: boolean; error?: string }> {
+  async commit(worktreePath: string, message: string): Promise<GitCommitResult> {
     return this.runWithGitReadInvalidation(
       async () =>
         (await this.mux.request('git.commit', {
           worktreePath,
           message
         })) as { success: boolean; error?: string }
+    )
+  }
+
+  async amendCommit(
+    worktreePath: string,
+    message: string | undefined,
+    pushTarget?: GitPushTarget
+  ): Promise<GitCommitResult> {
+    return this.runWithGitReadInvalidation(async () =>
+      parseGitCommitResult(
+        await this.mux.request('git.amendCommit', {
+          worktreePath,
+          ...(message !== undefined ? { message } : {}),
+          ...(pushTarget ? { pushTarget } : {})
+        })
+      )
     )
   }
 
