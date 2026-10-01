@@ -13,6 +13,7 @@ import {
   GitForkSync,
   GitHistory,
   GitPush,
+  GitPushWithLease,
   GitRebaseFromBase,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,
@@ -174,6 +175,12 @@ export const GIT_METHODS = [
       )
   }),
   defineMethod({
+    name: 'git.pushWithLease',
+    params: GitPushWithLease,
+    handler: async (params, { runtime }) =>
+      runtime.pushRuntimeGitWithLease(params.worktree, params.lease)
+  }),
+  defineMethod({
     name: 'git.commit',
     params: GitCommit,
     handler: async (params, { runtime }) =>
@@ -183,7 +190,9 @@ export const GIT_METHODS = [
     name: 'git.amendCommit',
     params: GitAmendCommit,
     handler: async (params, { runtime }) =>
-      runtime.amendRuntimeGitCommit(params.worktree, params.message)
+      params.pushTarget === undefined
+        ? runtime.amendRuntimeGitCommit(params.worktree, params.message)
+        : runtime.amendRuntimeGitCommit(params.worktree, params.message, params.pushTarget)
   }),
   ...GIT_COMMIT_MESSAGE_GENERATION_METHODS,
   defineMethod({

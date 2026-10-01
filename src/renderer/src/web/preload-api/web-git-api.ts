@@ -170,6 +170,11 @@ export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
         pushTarget
       })
     },
+    pushWithLease: async ({ worktreePath, lease }) => {
+      const { id } = await resolveRuntimeWorktreeByPath(worktreePath)
+      const params = { worktree: toRuntimeWorktreeSelector(id), lease }
+      await callRuntimeResult('git.pushWithLease', params)
+    },
     pull: async ({ worktreePath, pushTarget }) => {
       const worktree = await resolveRuntimeWorktreeByPath(worktreePath)
       await callRuntimeResult('git.pull', {
@@ -217,11 +222,12 @@ export function createGitApi(): NonNullable<Partial<PreloadApi>['git']> {
         message
       })
     },
-    amendCommit: async ({ worktreePath, message }) => {
+    amendCommit: async ({ worktreePath, message, pushTarget }) => {
       const worktree = await resolveRuntimeWorktreeByPath(worktreePath)
       return callRuntimeResult('git.amendCommit', {
         worktree: toRuntimeWorktreeSelector(worktree.id),
-        ...(message !== undefined ? { message } : {})
+        ...(message !== undefined ? { message } : {}),
+        ...(pushTarget ? { pushTarget } : {})
       })
     },
     generateCommitMessage: async () => ({

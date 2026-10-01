@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { i18n } from '@/i18n/i18n'
 import { resolveDropdownItems } from './source-control-dropdown-items'
 import type { DropdownActionInputs, DropdownItem } from './source-control-dropdown-item-types'
 import type { GitUpstreamStatus } from '../../../../shared/git-status-types'
@@ -35,6 +36,133 @@ function amendRows(overrides: Partial<DropdownActionInputs>): {
 
 const UNPUSHED_HEAD: GitUpstreamStatus = { hasUpstream: true, ahead: 1, behind: 0 }
 const PUBLISHED_HEAD: GitUpstreamStatus = { hasUpstream: true, ahead: 0, behind: 0 }
+
+describe('amend row localization', () => {
+  beforeEach(async () => {
+    i18n.addResourceBundle('amendtest', 'translation', {
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.label': 'Amend translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.forcePushLabel':
+        'Force amend translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.changesAndMessage':
+        'Changes and message translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.changesOnly':
+        'Changes only translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.messageOnly':
+        'Message only translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.forcePushChangesAndMessage':
+        'Force changes and message translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.forcePushChangesOnly':
+        'Force changes only translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.forcePushMessageOnly':
+        'Force message only translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.checkingBranchStatus':
+        'Checking translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.alreadyPushed':
+        'Already pushed translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.notPushed':
+        'Not pushed translated',
+      'auto.components.right.sidebar.source.control.dropdown.amend.items.pullFirst':
+        'Pull first translated',
+      'auto.components.right.sidebar.source.control.commit.eligibility.amendConflicts':
+        'Conflicts translated',
+      'auto.components.right.sidebar.source.control.commit.eligibility.amendChangesRequired':
+        'Changes required translated'
+    })
+    await i18n.changeLanguage('amendtest')
+  })
+
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('amendtest', 'translation')
+  })
+
+  it('translates labels after switching language at runtime', async () => {
+    const localized = amendRows({ stagedCount: 1, upstreamStatus: UNPUSHED_HEAD })
+    expect(localized.amend.label).toBe('Amend translated')
+    expect(localized.amendForcePush.label).toBe('Force amend translated')
+    await i18n.changeLanguage('en')
+    const english = amendRows({ stagedCount: 1, upstreamStatus: UNPUSHED_HEAD })
+    expect(english.amend.label).toBe('Amend Last Commit')
+    expect(english.amendForcePush.label).toBe('Amend & Force Push')
+  })
+
+  it.each([
+    {
+      stagedCount: 1,
+      hasMessage: true,
+      description: 'Changes and message translated',
+      forceDescription: 'Force changes and message translated'
+    },
+    {
+      stagedCount: 1,
+      hasMessage: false,
+      description: 'Changes only translated',
+      forceDescription: 'Force changes only translated'
+    },
+    {
+      stagedCount: 0,
+      hasMessage: true,
+      description: 'Message only translated',
+      forceDescription: 'Force message only translated'
+    }
+  ])(
+    'translates complete descriptions with staged=$stagedCount message=$hasMessage',
+    ({ stagedCount, hasMessage, description, forceDescription }) => {
+      expect(
+        amendRows({ stagedCount, hasMessage, upstreamStatus: UNPUSHED_HEAD }).amend.title
+      ).toBe(description)
+      expect(
+        amendRows({ stagedCount, hasMessage, upstreamStatus: PUBLISHED_HEAD }).amendForcePush.title
+      ).toBe(forceDescription)
+    }
+  )
+
+  it.each<{ overrides: Partial<DropdownActionInputs>; amendTitle: string; forceTitle: string }>([
+    { overrides: {}, amendTitle: 'Checking translated', forceTitle: 'Checking translated' },
+    {
+      overrides: { stagedCount: 1, upstreamStatus: UNPUSHED_HEAD },
+      amendTitle: 'Changes only translated',
+      forceTitle: 'Not pushed translated'
+    },
+    {
+      overrides: { stagedCount: 1, upstreamStatus: PUBLISHED_HEAD },
+      amendTitle: 'Already pushed translated',
+      forceTitle: 'Force changes only translated'
+    },
+    {
+      overrides: { stagedCount: 1, upstreamStatus: { ...PUBLISHED_HEAD, behind: 1 } },
+      amendTitle: 'Already pushed translated',
+      forceTitle: 'Pull first translated'
+    },
+    {
+      overrides: { hasUnresolvedConflicts: true, upstreamStatus: UNPUSHED_HEAD },
+      amendTitle: 'Conflicts translated',
+      forceTitle: 'Not pushed translated'
+    },
+    {
+      overrides: { upstreamStatus: UNPUSHED_HEAD },
+      amendTitle: 'Changes required translated',
+      forceTitle: 'Not pushed translated'
+    },
+    {
+      overrides: { hasUnresolvedConflicts: true, upstreamStatus: PUBLISHED_HEAD },
+      amendTitle: 'Already pushed translated',
+      forceTitle: 'Conflicts translated'
+    },
+    {
+      overrides: { upstreamStatus: PUBLISHED_HEAD },
+      amendTitle: 'Already pushed translated',
+      forceTitle: 'Changes required translated'
+    }
+  ])(
+    'translates blocking reasons: $amendTitle / $forceTitle',
+    ({ overrides, amendTitle, forceTitle }) => {
+      const rows = amendRows(overrides)
+      expect(rows.amend.title).toBe(amendTitle)
+      expect(rows.amendForcePush.title).toBe(forceTitle)
+    }
+  )
+})
 
 describe('amend rows', () => {
   it('offers only Amend Last Commit while HEAD is unpushed', () => {

@@ -1,3 +1,5 @@
+import { translate } from '@/i18n/i18n'
+
 export const COMMIT_MESSAGE_REQUIRED_REASON = 'Enter a commit message to commit' as const
 
 export type CommitEligibilityInputs = {
@@ -33,10 +35,16 @@ export function resolveAmendDisabledReason(
   inputs: Pick<CommitEligibilityInputs, 'stagedCount' | 'hasMessage' | 'hasUnresolvedConflicts'>
 ): string | null {
   if (inputs.hasUnresolvedConflicts) {
-    return 'Resolve conflicts before amending'
+    return translate(
+      'auto.components.right.sidebar.source.control.commit.eligibility.amendConflicts',
+      'Resolve conflicts before amending'
+    )
   }
   if (inputs.stagedCount === 0 && !inputs.hasMessage) {
-    return 'Stage changes or enter a new message to amend the last commit'
+    return translate(
+      'auto.components.right.sidebar.source.control.commit.eligibility.amendChangesRequired',
+      'Stage changes or enter a new message to amend the last commit'
+    )
   }
   return null
 }

@@ -1,4 +1,11 @@
 import { ipcMain } from 'electron'
+import type { GitCommitResult } from '../../../shared/git-commit-command'
+import type { GitPushTarget } from '../../../shared/worktree/types'
+import { assertValidGitPushTarget } from '../../../shared/git-push-target-validation'
+import {
+  materializeWorktreePushTargetRemote,
+  materializeWorktreePushTargetRemoteSsh
+} from '../worktree-remote'
 import { amendCommit, commitChanges } from '../../git/status'
 import {
   getSshGitProvider,
@@ -15,7 +22,7 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
     async (
       _event,
       args: { worktreePath: string; message: string; connectionId?: string }
-    ): Promise<{ success: boolean; error?: string }> => {
+    ): Promise<GitCommitResult> => {
       // Why: validate at the IPC boundary so the renderer gets a clear error instead of an opaque execFile failure.
       if (typeof args.message !== 'string' || args.message.trim().length === 0) {
         throw new Error('Commit message is required')
@@ -43,15 +50,34 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
     'git:amendCommit',
     async (
       _event,
-      args: { worktreePath: string; message?: string; connectionId?: string }
-    ): Promise<{ success: boolean; error?: string }> => {
+      args: {
+        worktreePath: string
+        worktreeId?: string
+        message?: string
+        connectionId?: string
+        pushTarget?: GitPushTarget
+      }
+    ): Promise<GitCommitResult> => {
       const message = typeof args.message === 'string' ? args.message : undefined
+      if (args.pushTarget) {
+        assertValidGitPushTarget(args.pushTarget)
+      }
       if (args.connectionId) {
         const provider = getSshGitProvider(args.connectionId)
         if (!provider) {
           throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
         }
-        return provider.amendCommit(args.worktreePath, message)
+        const materializedPushTarget = args.pushTarget
+          ? await materializeWorktreePushTargetRemoteSsh(
+              provider,
+              args.worktreePath,
+              args.pushTarget,
+              store,
+              undefined,
+              args.worktreeId
+            )
+          : undefined
+        return provider.amendCommit(args.worktreePath, message, materializedPushTarget)
       }
       const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
       const gitOptions = getLocalGitOptionsForRegisteredWorktree(
@@ -59,10 +85,25 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
         args.worktreePath,
         worktreePath
       )
-      return amendCommit(worktreePath, message, {
-        ...gitOptions,
-        admissionTier: 'interactive'
-      })
+      const materializedPushTarget = args.pushTarget
+        ? await materializeWorktreePushTargetRemote(
+            worktreePath,
+            args.pushTarget,
+            store,
+            undefined,
+            gitOptions,
+            args.worktreeId
+          )
+        : undefined
+      return amendCommit(
+        worktreePath,
+        message,
+        {
+          ...gitOptions,
+          admissionTier: 'interactive'
+        },
+        materializedPushTarget
+      )
     }
   )
 }

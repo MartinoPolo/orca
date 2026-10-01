@@ -85,6 +85,26 @@ describe('amendCommit', () => {
     gitExecFileAsyncMock.mockReset()
   })
 
+  it('captures HEAD and the published target before the amend command, on the execution host', async () => {
+    const expectedHead = 'a'.repeat(40)
+    gitExecFileAsyncMock.mockImplementation(async (args: string[]) => ({
+      stdout: args[0] === 'rev-parse' ? expectedHead : '',
+      stderr: ''
+    }))
+    const pushTarget = { remoteName: 'fork', branchName: 'review/topic' }
+    const result = await amendCommit('/repo', undefined, { wslDistro: 'Ubuntu' }, pushTarget)
+    expect(result).toEqual({ success: true, pushLease: { expectedHead, pushTarget } })
+    expect(gitExecFileAsyncMock.mock.calls.map(([args]) => args)).toEqual([
+      ['rev-parse', '--verify', 'HEAD'],
+      ['check-ref-format', '--branch', 'review/topic'],
+      ['rev-parse', '--verify', 'refs/remotes/fork/review/topic'],
+      ['commit', '--amend', '--no-edit']
+    ])
+    for (const [, options] of gitExecFileAsyncMock.mock.calls) {
+      expect(options).toEqual({ cwd: '/repo', wslDistro: 'Ubuntu' })
+    }
+  })
+
   it('keeps the existing message when none is given', async () => {
     gitExecFileAsyncMock.mockResolvedValue({ stdout: '', stderr: '' })
 

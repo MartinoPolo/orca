@@ -5,6 +5,7 @@ import {
   fetchRuntimeGit,
   pullRuntimeGit,
   pushRuntimeGit,
+  pushRuntimeGitWithLease,
   fastForwardRuntimeGit
 } from '@/runtime/runtime-git-client'
 import {
@@ -32,10 +33,14 @@ export function createGitRemotePushPull(
       let shouldRefreshAfterRejectedPush = false
       const runtimeSettings = options.runtimeTargetSettings ?? get().settings
       try {
-        await pushRuntimeGit(
-          { settings: runtimeSettings, worktreeId, worktreePath, connectionId },
-          { publish, pushTarget, forceWithLease: options.forceWithLease }
-        )
+        const context = { settings: runtimeSettings, worktreeId, worktreePath, connectionId }
+        await (options.pushLease
+          ? pushRuntimeGitWithLease(context, options.pushLease)
+          : pushRuntimeGit(context, {
+              publish,
+              pushTarget,
+              forceWithLease: options.forceWithLease
+            }))
       } catch (error) {
         shouldRefreshAfterRejectedPush = isNonFastForwardRemoteError(error)
         toast.error(

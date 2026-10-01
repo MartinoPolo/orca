@@ -13028,6 +13028,22 @@
                   "323bb614aa": "Commit & Sync",
                   "2b8e6595fd": "Commit",
                   "04d709801d": "Fetch from remote without merging"
+                },
+                "amend": {
+                  "items": {
+                    "checkingBranchStatus": "Checking branch status…",
+                    "label": "Amend Last Commit",
+                    "forcePushLabel": "Amend & Force Push",
+                    "alreadyPushed": "Last commit is already pushed — use Amend & Force Push",
+                    "notPushed": "Last commit is not pushed yet — use Amend Last Commit",
+                    "pullFirst": "Pull first — the remote has commits newer than your last commit",
+                    "forcePushChangesAndMessage": "Add staged changes to the last commit and replace its message, then force push with lease",
+                    "changesAndMessage": "Add staged changes to the last commit and replace its message",
+                    "forcePushChangesOnly": "Add staged changes to the last commit, keeping its message, then force push with lease",
+                    "changesOnly": "Add staged changes to the last commit, keeping its message",
+                    "forcePushMessageOnly": "Replace the last commit message, then force push with lease",
+                    "messageOnly": "Replace the last commit message"
+                  }
                 }
               },
               "primary": {
@@ -13141,6 +13157,39 @@
                   "e7876a2bde": "Stage at least one file to generate a message.",
                   "0904be2505": "Clear the message to regenerate.",
                   "1ea9ba37aa": "Pick an agent in Settings -> Git -> Source Control AI."
+                },
+                "use": {
+                  "commit": {
+                    "action": {
+                      "amendFailed": "Amend failed"
+                    }
+                  }
+                },
+                "eligibility": {
+                  "amendConflicts": "Resolve conflicts before amending",
+                  "amendChangesRequired": "Stage changes or enter a new message to amend the last commit"
+                }
+              },
+              "sync": {
+                "amend": {
+                  "and": {
+                    "force": {
+                      "push": {
+                        "flow": {
+                          "pushFailed": "Commit amended locally. {{error}} Use Force Push from the menu to retry."
+                        }
+                      }
+                    }
+                  }
+                },
+                "use": {
+                  "remote": {
+                    "action": {
+                      "runner": {
+                        "missingAmendLease": "Automatic push stopped because the host did not provide a pre-amend lease. Update the host, or review the remote branch and use Force Push from the menu to retry."
+                      }
+                    }
+                  }
                 }
               }
             }

@@ -39,6 +39,20 @@ describe('SshGitProvider', () => {
     })
   })
 
+  it('amendCommit forwards the target and preserves the captured lease', async () => {
+    const pushTarget = { remoteName: 'fork', branchName: 'feature' }
+    const result = { success: true, pushLease: { expectedHead: 'a'.repeat(40), pushTarget } }
+    mux.request.mockResolvedValue(result)
+
+    await expect(provider.amendCommit('/home/user/repo', undefined, pushTarget)).resolves.toEqual(
+      result
+    )
+    expect(mux.request).toHaveBeenCalledWith('git.amendCommit', {
+      worktreePath: '/home/user/repo',
+      pushTarget
+    })
+  })
+
   it('stageFile sends git.stage request', async () => {
     await provider.stageFile('/home/user/repo', 'src/file.ts')
     expect(mux.request).toHaveBeenCalledWith('git.stage', {

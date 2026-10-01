@@ -50,6 +50,7 @@ export function registerGitHandlers(
     handlers.fetch.fetchGitLabMergeRequestHead(p)
   )
   dispatcher.onRequest('git.push', (p) => handlers.sync.push(p))
+  dispatcher.onRequest('git.pushWithLease', (p) => handlers.sync.pushWithLease(p))
   dispatcher.onRequest('git.pull', (p, context) => handlers.sync.pull(p, context))
   dispatcher.onRequest('git.fastForward', (p, context) => handlers.sync.fastForward(p, context))
   dispatcher.onRequest('git.rebaseFromBase', (p, context) =>

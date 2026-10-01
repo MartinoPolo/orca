@@ -1,4 +1,5 @@
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../shared/git-fork-sync'
+import type { GitPushLease } from '../../shared/git-commit-command'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import { REBASE_FROM_BASE_RPC_TIMEOUT_MS } from '../../shared/git-rebase-source'
 import { SshGitWorkingTreeProvider } from './ssh-git-working-tree-provider'
@@ -17,6 +18,12 @@ export class SshGitRemoteSyncProvider extends SshGitWorkingTreeProvider {
         pushTarget,
         ...(options.forceWithLease === true ? { forceWithLease: true } : {})
       })
+    })
+  }
+
+  async pushWithLease(worktreePath: string, lease: GitPushLease): Promise<void> {
+    await this.runWithGitReadInvalidation(async () => {
+      await this.mux.request('git.pushWithLease', { worktreePath, lease })
     })
   }
 

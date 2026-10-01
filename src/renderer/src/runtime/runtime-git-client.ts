@@ -31,6 +31,7 @@ import {
   getRuntimeGitUpstreamStatus as getRuntimeGitUpstreamStatusImplementation,
   pullRuntimeGit as pullRuntimeGitImplementation,
   pushRuntimeGit as pushRuntimeGitImplementation,
+  pushRuntimeGitWithLease as pushRuntimeGitWithLeaseImplementation,
   rebaseRuntimeGitFromBase as rebaseRuntimeGitFromBaseImplementation,
   syncRuntimeGitForkDefaultBranch as syncRuntimeGitForkDefaultBranchImplementation
 } from './runtime-git-sync-client'
@@ -73,6 +74,7 @@ export const pullRuntimeGit = pullRuntimeGitImplementation
 export const fastForwardRuntimeGit = fastForwardRuntimeGitImplementation
 export const rebaseRuntimeGitFromBase = rebaseRuntimeGitFromBaseImplementation
 export const pushRuntimeGit = pushRuntimeGitImplementation
+export const pushRuntimeGitWithLease = pushRuntimeGitWithLeaseImplementation
 export const getRuntimeGitBranchDiff = getRuntimeGitBranchDiffImplementation
 export const getRuntimeGitCommitDiff = getRuntimeGitCommitDiffImplementation
 export const commitRuntimeGit = commitRuntimeGitImplementation

@@ -1,3 +1,5 @@
+import type { GitPushLease } from '../../../../../../shared/git-commit-command'
+import { translate } from '@/i18n/i18n'
 import type { SourceControlCommitAction } from '../commit/use-commit-action'
 import type { SourceControlWorktreeOperationState } from '../panel/use-worktree-operation-state'
 import type { SourceControlRemoteActionRunner } from './use-remote-action-runner'
@@ -19,11 +21,18 @@ export async function runAmendAndForcePushFlow({
   runRemoteAction,
   setRemoteActionErrors
 }: AmendAndForcePushDependencies): Promise<void> {
-  const amended = await handleCommit(undefined, { amend: true })
+  let pushLease: GitPushLease | undefined
+  const amended = await handleCommit(undefined, {
+    amend: true,
+    capturePushLease: true,
+    onCommitted: (result) => {
+      pushLease = result.pushLease
+    }
+  })
   if (!amended) {
     return
   }
-  const result = await runRemoteAction('force_push')
+  const result = await runRemoteAction('force_push', { amendPushLease: pushLease ?? null })
   if (result.status !== 'failed' || !activeWorktreeId) {
     return
   }
@@ -38,7 +47,11 @@ export async function runAmendAndForcePushFlow({
       ...previousErrors,
       [activeWorktreeId]: {
         ...currentError,
-        message: `Commit amended locally. ${failedError.message} Use Force Push from the menu to retry.`
+        message: translate(
+          'auto.components.right.sidebar.source.control.sync.amend.and.force.push.flow.pushFailed',
+          'Commit amended locally. {{error}} Use Force Push from the menu to retry.',
+          { error: failedError.message }
+        )
       }
     }
   })

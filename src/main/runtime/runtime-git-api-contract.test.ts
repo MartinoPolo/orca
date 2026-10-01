@@ -25,6 +25,7 @@ const RPC_TO_RUNTIME_COMMAND = {
   'git.fastForward': 'fastForwardRuntimeGit',
   'git.rebaseFromBase': 'rebaseRuntimeGitFromBase',
   'git.push': 'pushRuntimeGit',
+  'git.pushWithLease': 'pushRuntimeGitWithLease',
   'git.commit': 'commitRuntimeGit',
   'git.amendCommit': 'amendRuntimeGitCommit',
   'git.generateCommitMessage': 'generateRuntimeCommitMessage',

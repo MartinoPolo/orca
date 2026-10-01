@@ -7,6 +7,8 @@ import {
   readGitCommitFailureMessage,
   type GitCommitResult
 } from '../shared/git-commit-command'
+import { captureGitAmendPushLease } from '../shared/git-push-lease'
+import type { GitPushTarget } from '../shared/worktree/types'
 import type { GitExec } from './git-handler-ops'
 export { removeWorktreeOp } from './git-handler-worktree-remove'
 export { readRelayWorktreeList } from './git-handler-worktree-list'
@@ -180,14 +182,17 @@ export async function commitChangesRelay(
 export async function amendCommitRelay(
   git: GitExec,
   worktreePath: string,
-  message: unknown
+  message: unknown,
+  pushTarget?: GitPushTarget
 ): Promise<GitCommitResult> {
-  return runRelayGitCommit(
+  const pushLease = await captureGitAmendPushLease((args) => git(args, worktreePath), pushTarget)
+  const result = await runRelayGitCommit(
     git,
     worktreePath,
     buildGitAmendCommitArgs(typeof message === 'string' ? message : undefined),
     'Amend failed'
   )
+  return result.success && pushLease ? { ...result, pushLease } : result
 }
 
 async function runRelayGitCommit(

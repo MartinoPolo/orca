@@ -1,4 +1,6 @@
 import { GitHandlerOperationContext, GIT_BULK_CHUNK_SIZE } from './git-handler-operation-context'
+import type { GitCommitResult } from '../shared/git-commit-command'
+import { assertValidGitPushTarget } from '../shared/git-push-target-validation'
 import { amendCommitRelay, commitChangesRelay } from './git-handler-worktree-ops'
 
 const BULK_CHUNK_SIZE = GIT_BULK_CHUNK_SIZE
@@ -26,13 +28,15 @@ export class GitHandlerWorktreeChangeOperations extends GitHandlerOperationConte
     }
   }
 
-  async amendCommit(
-    params: Record<string, unknown>
-  ): Promise<{ success: boolean; error?: string }> {
+  async amendCommit(params: Record<string, unknown>): Promise<GitCommitResult> {
     this.clearGitMutationReadCaches()
     const worktreePath = params.worktreePath as string
     try {
-      return await amendCommitRelay(this.git.bind(this), worktreePath, params.message)
+      const pushTarget = params.pushTarget
+      if (pushTarget !== undefined) {
+        assertValidGitPushTarget(pushTarget)
+      }
+      return await amendCommitRelay(this.git.bind(this), worktreePath, params.message, pushTarget)
     } finally {
       this.clearGitMutationReadCaches()
     }

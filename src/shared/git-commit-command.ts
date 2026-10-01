@@ -1,4 +1,7 @@
-export type GitCommitResult = { success: boolean; error?: string }
+import { parseGitPushLease, type GitPushLease } from './git-push-lease'
+export type { GitPushLease } from './git-push-lease'
+
+export type GitCommitResult = { success: boolean; error?: string; pushLease?: GitPushLease }
 
 export function buildGitCommitArgs(message: string): string[] {
   return ['commit', '-m', message]
@@ -18,9 +21,11 @@ export function parseGitCommitResult(value: unknown): GitCommitResult {
     return { success: false, error: 'Unexpected commit response from the remote host' }
   }
   const error = 'error' in value ? value.error : undefined
+  const pushLease = parseGitPushLease('pushLease' in value ? value.pushLease : undefined)
   return {
     success: 'success' in value && value.success === true,
-    ...(typeof error === 'string' ? { error } : {})
+    ...(typeof error === 'string' ? { error } : {}),
+    ...(pushLease ? { pushLease } : {})
   }
 }
 

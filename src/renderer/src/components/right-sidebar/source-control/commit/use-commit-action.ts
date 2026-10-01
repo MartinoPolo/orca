@@ -1,4 +1,6 @@
+import type { GitCommitResult } from '../../../../../../shared/git-commit-command'
 import { useCallback } from 'react'
+import { translate } from '@/i18n/i18n'
 import { getConnectionId } from '@/lib/connection-context'
 import { amendRuntimeGitCommit, commitRuntimeGit } from '@/runtime/runtime-git-client'
 import type { SourceControlOperationTarget } from '../listing/operation-target'
@@ -57,6 +59,8 @@ export function useSourceControlCommitAction({
         target?: SourceControlOperationTarget
         /** Amends HEAD instead; an empty message keeps the existing one. */
         amend?: boolean
+        capturePushLease?: boolean
+        onCommitted?: (result: GitCommitResult) => void
       }
     ): Promise<boolean> => {
       const target =
@@ -91,7 +95,12 @@ export function useSourceControlCommitAction({
         return false
       }
       commitInFlightRef.current[target.worktreeId] = true
-      const failureFallback = amend ? 'Amend failed' : 'Commit failed'
+      const failureFallback = amend
+        ? translate(
+            'auto.components.right.sidebar.source.control.commit.use.commit.action.amendFailed',
+            'Amend failed'
+          )
+        : 'Commit failed'
 
       setCommitInFlightByWorktree((prev) => ({ ...prev, [target.worktreeId]: true }))
       setCommitErrorForWorktree(target.worktreeId, null)
@@ -104,12 +113,18 @@ export function useSourceControlCommitAction({
           connectionId: target.connectionId
         }
         const commitResult = amend
-          ? await amendRuntimeGitCommit(commitContext, message || undefined)
+          ? await amendRuntimeGitCommit(
+              commitContext,
+              message || undefined,
+              options?.capturePushLease ? target.pushTarget : undefined
+            )
           : await commitRuntimeGit(commitContext, message)
         if (!commitResult.success) {
           setCommitErrorForWorktree(target.worktreeId, commitResult.error ?? failureFallback)
           return false
         }
+
+        options?.onCommitted?.(commitResult)
 
         // Why: textarea stays editable during commit, so only clear the draft when it still matches what we committed — else we'd discard edits typed after Commit.
         updateCommitDrafts((prev) => {

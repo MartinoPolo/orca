@@ -87,6 +87,18 @@ describe('parseGitCommitResult', () => {
     })
   })
 
+  it('preserves the pre-amend lease and omits absent or malformed leases from older hosts', () => {
+    const pushLease = {
+      expectedHead: 'a'.repeat(40),
+      pushTarget: { remoteName: 'fork', branchName: 'review/topic' }
+    }
+    expect(parseGitCommitResult({ success: true, pushLease })).toEqual({ success: true, pushLease })
+    expect(parseGitCommitResult({ success: true, pushLease: { expectedHead: 'HEAD' } })).toEqual({
+      success: true
+    })
+    expect(parseGitCommitResult({ success: true })).toEqual({ success: true })
+  })
+
   it('treats a malformed reply as a failure instead of trusting it', () => {
     expect(parseGitCommitResult(null).success).toBe(false)
     expect(parseGitCommitResult({ success: 'yes', error: 42 })).toEqual({ success: false })

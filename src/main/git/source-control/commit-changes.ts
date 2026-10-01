@@ -4,6 +4,8 @@ import {
   readGitCommitFailureMessage,
   type GitCommitResult
 } from '../../../shared/git-commit-command'
+import { captureGitAmendPushLease } from '../../../shared/git-push-lease'
+import type { GitPushTarget } from '../../../shared/worktree/types'
 import type { GitRuntimeOptions } from '../git-runtime-options'
 import { gitOptionsForWorktree } from '../git-runtime-options'
 import { gitExecFileAsync } from '../runner'
@@ -20,9 +22,20 @@ export async function commitChanges(
 export async function amendCommit(
   worktreePath: string,
   message: string | undefined,
-  options: GitRuntimeOptions = {}
+  options: GitRuntimeOptions = {},
+  pushTarget?: GitPushTarget
 ): Promise<GitCommitResult> {
-  return runGitCommit(worktreePath, buildGitAmendCommitArgs(message), 'Amend failed', options)
+  const pushLease = await captureGitAmendPushLease(
+    (args) => gitExecFileAsync(args, gitOptionsForWorktree(worktreePath, options)),
+    pushTarget
+  )
+  const result = await runGitCommit(
+    worktreePath,
+    buildGitAmendCommitArgs(message),
+    'Amend failed',
+    options
+  )
+  return result.success && pushLease ? { ...result, pushLease } : result
 }
 
 async function runGitCommit(

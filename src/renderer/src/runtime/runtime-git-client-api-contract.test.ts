@@ -33,6 +33,7 @@ const PUBLIC_RUNTIME_GIT_CLIENT_FUNCTIONS = [
   'getRuntimeGitUpstreamStatus',
   'pullRuntimeGit',
   'pushRuntimeGit',
+  'pushRuntimeGitWithLease',
   'rebaseRuntimeGitFromBase',
   'setRuntimeGitStatusUpstreamRefWatch',
   'stageRuntimeGitPath',

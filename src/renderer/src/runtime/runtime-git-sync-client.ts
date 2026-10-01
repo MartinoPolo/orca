@@ -1,3 +1,4 @@
+import type { GitCommitResult, GitPushLease } from '../../../shared/git-commit-command'
 import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../../shared/git-fork-sync'
 import type { GitUpstreamStatus } from '../../../shared/git-status-types'
 import { REBASE_FROM_BASE_RPC_TIMEOUT_MS } from '../../../shared/git-rebase-source'
@@ -208,10 +209,31 @@ export async function pushRuntimeGit(
   )
 }
 
+export async function pushRuntimeGitWithLease(
+  context: RuntimeGitContext,
+  lease: GitPushLease
+): Promise<void> {
+  const target = getActiveRuntimeTarget(context.settings)
+  if (target.kind === 'local' || !context.worktreeId) {
+    await window.api.git.pushWithLease({
+      worktreePath: resolveLocalWorktreePath(context),
+      connectionId: context.connectionId,
+      lease
+    })
+    return
+  }
+  await callRuntimeRpc(
+    target,
+    'git.pushWithLease',
+    { worktree: toRuntimeWorktreeSelector(context.worktreeId), lease },
+    { timeoutMs: 30_000 }
+  )
+}
+
 export async function commitRuntimeGit(
   context: RuntimeGitContext,
   message: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<GitCommitResult> {
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     return window.api.git.commit({
@@ -220,7 +242,7 @@ export async function commitRuntimeGit(
       connectionId: context.connectionId
     })
   }
-  return callRuntimeRpc<{ success: boolean; error?: string }>(
+  return callRuntimeRpc<GitCommitResult>(
     target,
     'git.commit',
     { worktree: toRuntimeWorktreeSelector(context.worktreeId), message },
@@ -230,22 +252,26 @@ export async function commitRuntimeGit(
 
 export async function amendRuntimeGitCommit(
   context: RuntimeGitContext,
-  message: string | undefined
-): Promise<{ success: boolean; error?: string }> {
+  message: string | undefined,
+  pushTarget?: GitPushTarget
+): Promise<GitCommitResult> {
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     return window.api.git.amendCommit({
       worktreePath: resolveLocalWorktreePath(context),
       ...(message !== undefined ? { message } : {}),
+      ...(pushTarget ? { pushTarget } : {}),
+      ...(pushTarget && context.worktreeId ? { worktreeId: context.worktreeId } : {}),
       connectionId: context.connectionId
     })
   }
-  return callRuntimeRpc<{ success: boolean; error?: string }>(
+  return callRuntimeRpc<GitCommitResult>(
     target,
     'git.amendCommit',
     {
       worktree: toRuntimeWorktreeSelector(context.worktreeId),
-      ...(message !== undefined ? { message } : {})
+      ...(message !== undefined ? { message } : {}),
+      ...(pushTarget ? { pushTarget } : {})
     },
     { timeoutMs: 30_000 }
   )

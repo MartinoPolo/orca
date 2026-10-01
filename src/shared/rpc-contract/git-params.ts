@@ -102,11 +102,6 @@ export const GitCommit = WorktreeSelector.extend({
     .pipe(z.string().min(1, 'Missing commit message'))
 })
 
-// Why: a separate method (not a flag on git.commit) makes an older host reject amend instead of silently creating a new commit.
-export const GitAmendCommit = WorktreeSelector.extend({
-  message: z.string().optional()
-})
-
 export const CommitMessageModelCapability = z.object({
   id: z.string(),
   label: z.string(),
@@ -216,6 +211,19 @@ export const GitPushTargetParam = z.object({
   branchName: z.string(),
   remoteUrl: z.string().optional(),
   remoteCreated: z.boolean().optional()
+})
+
+// Why: a separate method makes an older host reject amend instead of silently creating a new commit.
+export const GitAmendCommit = WorktreeSelector.extend({
+  message: z.string().optional(),
+  pushTarget: GitPushTargetParam.optional()
+})
+
+export const GitPushWithLease = WorktreeSelector.extend({
+  lease: z.object({
+    expectedHead: FullGitObjectId,
+    pushTarget: GitPushTargetParam
+  })
 })
 
 export const GitPush = WorktreeSelector.extend({
