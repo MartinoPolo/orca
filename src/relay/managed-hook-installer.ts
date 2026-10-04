@@ -6,6 +6,7 @@ import {
 import type { RelayDispatcher, RequestContext } from './dispatcher'
 import type { AgentHookTarget } from '../shared/agent-hook-types'
 import { isManagedAgentHookTarget } from '../shared/managed-agent-hook-targets'
+import { normalizeRemoteAgentDirectory } from '../shared/agent-launch-profiles'
 import { parseClaudeCliVersion } from '../main/claude/claude-session-end-hook-capability'
 
 export type ManagedHookInstallSummary = {
@@ -19,6 +20,7 @@ export type ManagedHookRuntime = {
     hostKeyFingerprint?: string
     agents?: readonly AgentHookTarget[]
     claudeVersion?: string
+    claudeConfigDirectories?: readonly string[]
   }) => Promise<ManagedHookInstallSummary>
 }
 
@@ -51,6 +53,30 @@ function readClaudeVersion(params: unknown): string | undefined {
   return parseClaudeCliVersion(typeof raw === 'string' ? raw : null) ?? undefined
 }
 
+const DEFAULT_CLAUDE_CONFIG_DIRECTORY = '~/.claude'
+
+function readClaudeConfigDirectories(params: unknown): string[] {
+  const raw =
+    params !== null && typeof params === 'object' && 'claudeConfigDirectories' in params
+      ? params.claudeConfigDirectories
+      : undefined
+  if (raw === undefined) {
+    return []
+  }
+  if (!Array.isArray(raw)) {
+    throw new Error('invalid_claude_config_directories')
+  }
+  const directories = raw.map((value: unknown) =>
+    typeof value === 'string' ? normalizeRemoteAgentDirectory(value) : null
+  )
+  if (!directories.every((directory): directory is string => directory !== null)) {
+    throw new Error('invalid_claude_config_directories')
+  }
+  return [...new Set(directories)].filter(
+    (directory) => directory !== DEFAULT_CLAUDE_CONFIG_DIRECTORY
+  )
+}
+
 let managedHookRuntime: ManagedHookRuntime | null = null
 
 function loadManagedHookRuntime(): ManagedHookRuntime {
@@ -73,11 +99,13 @@ export function registerManagedHookInstaller(
       const hostKeyFingerprint = readHostKeyFingerprint(params)
       const agents = readAgents(params)
       const claudeVersion = readClaudeVersion(params)
+      const claudeConfigDirectories = readClaudeConfigDirectories(params)
       return await loadRuntime().installManagedHooks({
         signal: context.signal,
         ...(hostKeyFingerprint ? { hostKeyFingerprint } : {}),
         agents,
-        ...(claudeVersion ? { claudeVersion } : {})
+        ...(claudeVersion ? { claudeVersion } : {}),
+        ...(claudeConfigDirectories.length > 0 ? { claudeConfigDirectories } : {})
       })
     }
   )

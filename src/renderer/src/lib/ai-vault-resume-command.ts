@@ -29,7 +29,8 @@ import {
   resolveAiVaultResumeStartupShell
 } from '@/lib/ai-vault-resume-shell'
 import { PiResumeProfileError } from '@/lib/pi-profile-resume-provenance'
-import { resolveAiVaultPiLaunchInputs } from '@/lib/ai-vault-pi-profile-resume'
+import { resolveAiVaultAccountLaunchInputs } from '@/lib/ai-vault-account-launch-inputs'
+import { AgentAccountResumeError } from '@/lib/agent-account-resume'
 import { getAiVaultAgentProviderSession } from '@/lib/ai-vault-provider-session'
 
 export { getAiVaultAgentProviderSession } from '@/lib/ai-vault-provider-session'
@@ -88,7 +89,7 @@ export function buildAiVaultResumeStartupForWorktree(
   try {
     return buildAiVaultResumeForWorktree(args, false)
   } catch (error) {
-    if (error instanceof PiResumeProfileError) {
+    if (error instanceof PiResumeProfileError || error instanceof AgentAccountResumeError) {
       return { command: '', blockedReason: error.message }
     }
     throw error
@@ -140,13 +141,38 @@ function buildAiVaultResumeForWorktree(
   clearEnvNames?: readonly string[]
 ): AiVaultResumeStartup {
   const providerSession = getAiVaultAgentProviderSession(args.session)
+  const defaultAgentArgs = resolveTuiAgentLaunchArgs(
+    args.session.agent,
+    args.state.settings?.agentDefaultArgs
+  )
+  const defaultAgentEnv = resolveTuiAgentLaunchEnv(
+    args.session.agent,
+    args.state.settings?.agentDefaultEnv
+  )
+  const {
+    launchConfig: accountLaunchConfig,
+    agentArgs: effectiveAgentArgs,
+    agentEnv: effectiveAgentEnv,
+    accountEnvironment,
+    commandOverride: effectiveCommandOverride
+  } = resolveAiVaultAccountLaunchInputs({
+    agent: args.session.agent,
+    transcriptPath: args.session.filePath,
+    sessionExecutionHostId: args.session.executionHostId,
+    worktreeId: args.worktreeId,
+    state: args.state,
+    commandOverride: args.commandOverride,
+    agentArgs: defaultAgentArgs,
+    agentEnv: defaultAgentEnv
+  })
   if (
     args.session.executionHostId &&
     args.session.executionHostId !== LOCAL_EXECUTION_HOST_ID &&
     args.session.resumeCommand &&
     args.session.agent !== 'omp' &&
     !(args.session.agent === 'codex' && args.session.codexHome === null) &&
-    !args.commandOverride?.trim()
+    !args.commandOverride?.trim() &&
+    !accountLaunchConfig
   ) {
     return {
       command: args.session.resumeCommand,
@@ -174,30 +200,6 @@ function buildAiVaultResumeForWorktree(
       : undefined
   const cwd = embedCwd ? args.session.cwd : null
   const startupCwd = !embedCwd && args.session.cwd ? { cwd: args.session.cwd } : {}
-  const defaultAgentArgs = resolveTuiAgentLaunchArgs(
-    args.session.agent,
-    args.state.settings?.agentDefaultArgs
-  )
-  const defaultAgentEnv = resolveTuiAgentLaunchEnv(
-    args.session.agent,
-    args.state.settings?.agentDefaultEnv
-  )
-  const {
-    launchConfig: piLaunchConfig,
-    agentArgs: effectiveAgentArgs,
-    agentEnv: effectiveAgentEnv,
-    accountEnvironment: piAccountEnvironment,
-    commandOverride: effectiveCommandOverride
-  } = resolveAiVaultPiLaunchInputs({
-    agent: args.session.agent,
-    transcriptPath: args.session.filePath,
-    sessionExecutionHostId: args.session.executionHostId,
-    worktreeId: args.worktreeId,
-    state: args.state,
-    commandOverride: args.commandOverride,
-    agentArgs: defaultAgentArgs,
-    agentEnv: defaultAgentEnv
-  })
   if (providerSession && isResumableTuiAgent(args.session.agent)) {
     const startupPlan = buildAgentResumeStartupPlan({
       agent: args.session.agent,
@@ -230,7 +232,7 @@ function buildAiVaultResumeForWorktree(
                 codexHome,
                 shell: liveShell,
                 clearEnvNames,
-                ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
+                ...(embedCwd && accountEnvironment ? { environment: accountEnvironment } : {})
               })
             : buildAiVaultResumeShellCommand({
                 resumeCommand: startupPlan.launchCommand,
@@ -239,7 +241,7 @@ function buildAiVaultResumeForWorktree(
                 codexHome,
                 shell: liveShell,
                 clearEnvNames,
-                ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
+                ...(embedCwd && accountEnvironment ? { environment: accountEnvironment } : {})
               }),
         ...(startupPlan.env ? { env: startupPlan.env } : {}),
         ...realHomeCodexResumeEnvDeletion(args.session),
@@ -266,14 +268,14 @@ function buildAiVaultResumeForWorktree(
       // quote for the live Windows shell like the startup-plan branch above.
       shell: liveShell,
       clearEnvNames,
-      ...(embedCwd && piAccountEnvironment ? { environment: piAccountEnvironment } : {})
+      ...(embedCwd && accountEnvironment ? { environment: accountEnvironment } : {})
     }),
     ...startupCwd,
     ...realHomeCodexResumeEnvDeletion(args.session),
-    ...(piLaunchConfig
+    ...(accountLaunchConfig
       ? {
-          env: { ...piLaunchConfig.agentEnv },
-          launchConfig: piLaunchConfig,
+          env: { ...accountLaunchConfig.agentEnv },
+          launchConfig: accountLaunchConfig,
           ...(providerSession ? { providerSession } : {})
         }
       : {})

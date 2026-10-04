@@ -159,4 +159,128 @@ describe('SshRelaySession managed hooks', () => {
       })
     )
   })
+
+  it('reconciles changed Claude profiles through the live mux without reconnecting or replacing providers', async () => {
+    muxRequestMock.mockImplementation(async (method: string) =>
+      method === 'preflight.detectAgents'
+        ? { agents: ['claude', 'codex'] }
+        : { installers: 1, errors: 0 }
+    )
+    const { mockStore, mockPortForward, getMainWindow } = createMockDeps()
+    const settings = {
+      agentStatusHooksEnabled: true,
+      disabledTuiAgents: [],
+      claudeLaunchProfiles: [
+        {
+          id: 'work',
+          name: 'Work',
+          command: 'claude',
+          agentDirectory: '/accounts/work',
+          remoteAgentDirectory: '~/.claude-old'
+        }
+      ]
+    }
+    Object.assign(mockStore, { getSettings: () => settings })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: establish only reads the connection members mocked by this harness.
+    const connection = { sftp: vi.fn() } as unknown as SshConnection
+    const session = new SshRelaySession('target-1', getMainWindow, mockStore, mockPortForward)
+    await session.establish(connection)
+    await vi.waitFor(() =>
+      expect(muxRequestMock).toHaveBeenCalledWith(
+        AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD,
+        expect.any(Object)
+      )
+    )
+    const mux = session.getMux()
+    const registrations = vi.mocked(registerSshPtyProvider).mock.calls.length
+    settings.claudeLaunchProfiles[0].remoteAgentDirectory = '~/.claude-new'
+    muxRequestMock.mockClear()
+    await session.reconcileClaudeLaunchProfileHooks()
+    expect(muxRequestMock).toHaveBeenCalledWith(AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD, {
+      agents: ['claude'],
+      claudeConfigDirectories: ['~/.claude-new']
+    })
+    expect(session.getMux()).toBe(mux)
+    expect(session.getState()).toBe('ready')
+    expect(mux?.dispose).not.toHaveBeenCalled()
+    expect(vi.mocked(registerSshPtyProvider).mock.calls).toHaveLength(registrations)
+    expect(connection.sftp).not.toHaveBeenCalled()
+  })
+
+  it('does not connect an idle session just to reconcile Claude profiles', async () => {
+    const { mockStore, mockPortForward, getMainWindow } = createMockDeps()
+    const session = new SshRelaySession('target-1', getMainWindow, mockStore, mockPortForward)
+    await session.reconcileClaudeLaunchProfileHooks()
+    expect(muxRequestMock).not.toHaveBeenCalled()
+    expect(session.getMux()).toBeNull()
+  })
+
+  it.each(['disabled', 'detached'])(
+    'abandons reconciliation if the session becomes %s during the remote probe',
+    async (reason) => {
+      muxRequestMock.mockImplementation(async (method: string) =>
+        method === 'preflight.detectAgents' ? { agents: ['claude'] } : { installers: 1, errors: 0 }
+      )
+      const { mockStore, mockPortForward, getMainWindow } = createMockDeps()
+      const settings = { agentStatusHooksEnabled: true }
+      Object.assign(mockStore, { getSettings: () => settings })
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: establish only reads the connection members mocked by this harness.
+      const connection = { sftp: vi.fn() } as unknown as SshConnection
+      const session = new SshRelaySession('target-1', getMainWindow, mockStore, mockPortForward)
+      await session.establish(connection)
+      await vi.waitFor(() =>
+        expect(muxRequestMock).toHaveBeenCalledWith(
+          AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD,
+          expect.any(Object)
+        )
+      )
+      muxRequestMock.mockClear()
+      muxRequestMock.mockImplementation(async () => {
+        if (reason === 'disabled') {
+          settings.agentStatusHooksEnabled = false
+        } else {
+          session.detach()
+        }
+        return { agents: ['claude'] }
+      })
+      await session.reconcileClaudeLaunchProfileHooks()
+      expect(muxRequestMock).not.toHaveBeenCalledWith(
+        AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD,
+        expect.anything()
+      )
+    }
+  )
+
+  it('asks the relay to hook remote Claude profile config roots', async () => {
+    muxRequestMock.mockImplementation(async (method: string) => {
+      if (method === 'preflight.detectAgents') {
+        return { agents: ['claude'] }
+      }
+      return method === AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD
+        ? { installers: 1, errors: 0 }
+        : { ok: true }
+    })
+    const { mockStore, mockPortForward, getMainWindow } = createMockDeps()
+    const profile = { id: 'work', name: 'ccw', command: 'ccw', agentDirectory: '/accounts/work' }
+    Object.assign(mockStore, {
+      getSettings: () => ({
+        claudeLaunchProfiles: [
+          { ...profile, remoteAgentDirectory: '~/.claude-work' },
+          { ...profile, id: 'copy', remoteAgentDirectory: '~/.claude-work/' },
+          { ...profile, id: 'local-only', agentDirectory: '/accounts/local' }
+        ]
+      })
+    })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: establish only reads these mocked connection members in this harness.
+    const connection = { sftp: vi.fn() } as unknown as SshConnection
+    const session = new SshRelaySession('target-1', getMainWindow, mockStore, mockPortForward)
+
+    await session.establish(connection)
+    await vi.waitFor(() =>
+      expect(muxRequestMock).toHaveBeenCalledWith(AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD, {
+        agents: ['claude'],
+        claudeConfigDirectories: ['~/.claude-work']
+      })
+    )
+  })
 })

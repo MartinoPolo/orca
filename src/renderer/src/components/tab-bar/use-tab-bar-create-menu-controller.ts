@@ -223,7 +223,7 @@ export function useTabBarCreateMenuController({
       worktreeId,
       groupId: resolvedGroupId,
       launchSource: 'tab_bar_quick_launch',
-      ...(option.piProfile ? { piLaunchProfile: option.piProfile } : {})
+      ...(option.agentProfile ? { agentLaunchProfile: option.agentProfile } : {})
     })
     if (!result) {
       toast.error(

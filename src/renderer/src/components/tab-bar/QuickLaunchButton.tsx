@@ -17,11 +17,17 @@ import {
 } from '../../../../shared/tui-agent-selection'
 import { translate } from '@/i18n/i18n'
 import { useStructuredAgentLaunchStatus } from '@/lib/structured-agent-session-launch'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
-import { isLocalNativePiProfileTarget } from '@/lib/pi-profile-launch-target'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { isProfileAgent, PROFILE_AGENTS } from '../../../../shared/agent-launch-profile-agents'
+import { useAgentLaunchProfilesForWorktree } from '@/hooks/useAgentLaunchProfilesForWorktree'
 import { getTabAgentLaunchOptionLabel } from './tab-agent-launch-options'
 
-const EMPTY_PI_LAUNCH_PROFILES: readonly PiLaunchProfile[] = []
+type QuickLaunchOption = {
+  agent: TuiAgent
+  key: string
+  label: string
+  profile?: AgentLaunchProfile
+}
 
 export type QuickLaunchAgentMenuItemsProps = {
   worktreeId: string
@@ -67,7 +73,10 @@ function getLaunchWatchdogTimeoutMessage(label: string): string {
   return `Still waiting for the ${label} terminal to start.`
 }
 
-function getTerminalLaunchState(tabId: string): { stillOpen: boolean; hasPty: boolean } {
+function getTerminalLaunchState(tabId: string): {
+  stillOpen: boolean
+  hasPty: boolean
+} {
   const state = useAppStore.getState()
   const hasPtyBinding = (state.ptyIdsByTabId[tabId]?.length ?? 0) > 0
   let stillOpen = false
@@ -116,11 +125,7 @@ function QuickLaunchAgentMenuItemsInner({
   const disabledAgents = useAppStore(
     (s) => s.settings?.disabledTuiAgents ?? DEFAULT_DISABLED_TUI_AGENTS
   )
-  const piLaunchProfiles = useAppStore((state) =>
-    isLocalNativePiProfileTarget(state, worktreeId)
-      ? (state.settings?.piLaunchProfiles ?? EMPTY_PI_LAUNCH_PROFILES)
-      : EMPTY_PI_LAUNCH_PROFILES
-  )
+  const agentLaunchProfiles = useAgentLaunchProfilesForWorktree(worktreeId)
   const openSettingsPage = useAppStore((s) => s.openSettingsPage)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
   const newAgentShortcut = useOptionalShortcutLabel('tab.newAgent')
@@ -137,11 +142,11 @@ function QuickLaunchAgentMenuItemsInner({
   }, [openSettingsPage, openSettingsTarget])
 
   const runLaunch = useCallback(
-    (agent: TuiAgent, piLaunchProfile?: PiLaunchProfile) => {
-      const label = getTabAgentLaunchOptionLabel(agent, piLaunchProfile)
+    (agent: TuiAgent, agentLaunchProfile?: AgentLaunchProfile) => {
+      const label = getTabAgentLaunchOptionLabel(agent, agentLaunchProfile)
       const result = launchAgentInNewTab({
         agent,
-        ...(piLaunchProfile ? { piLaunchProfile } : {}),
+        ...(agentLaunchProfile ? { agentLaunchProfile } : {}),
         worktreeId,
         groupId,
         ...(prompt !== undefined ? { prompt } : {}),
@@ -190,24 +195,22 @@ function QuickLaunchAgentMenuItemsInner({
 
   const enabledDetectedIds = detectedIds ? filterEnabledTuiAgents(detectedIds, disabledAgents) : []
   const agents = detectedIds ? orderAgents(defaultAgent, enabledDetectedIds) : []
-  const piProfileLaunchOptions = piLaunchProfiles.map((profile) => ({
-    agent: 'pi' as const,
-    key: `pi-profile:${profile.id}`,
-    label: getTabAgentLaunchOptionLabel('pi', profile),
-    profile
-  }))
-  const launchOptions = agents.flatMap((agent) => {
-    const options: { agent: TuiAgent; key: string; label: string; profile?: PiLaunchProfile }[] = [
-      { agent, key: agent, label: getTabAgentLaunchOptionLabel(agent) }
-    ]
-    if (agent === 'pi') {
-      options.push(...piProfileLaunchOptions)
-    }
-    return options
-  })
-  if (!agents.includes('pi')) {
-    launchOptions.push(...piProfileLaunchOptions)
-  }
+  const getProfileLaunchOptions = (agent: TuiAgent): QuickLaunchOption[] =>
+    isProfileAgent(agent)
+      ? (agentLaunchProfiles[agent] ?? []).map((profile) => ({
+          agent,
+          key: `${agent}-profile:${profile.id}`,
+          label: getTabAgentLaunchOptionLabel(agent, profile),
+          profile
+        }))
+      : []
+  const launchOptions: QuickLaunchOption[] = [
+    ...agents.flatMap((agent) => [
+      { agent, key: agent, label: getTabAgentLaunchOptionLabel(agent) },
+      ...getProfileLaunchOptions(agent)
+    ]),
+    ...PROFILE_AGENTS.filter((agent) => !agents.includes(agent)).flatMap(getProfileLaunchOptions)
+  ]
 
   return (
     <>

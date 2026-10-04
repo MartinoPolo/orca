@@ -12,7 +12,7 @@ import {
 } from '@/lib/agent-picker-search'
 import { cn } from '@/lib/utils'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentProfileSelection } from '../../../../shared/agent-launch-profile-agents'
 import {
   createAgentComboboxCommandState,
   resolveAgentComboboxCommandState,
@@ -32,9 +32,9 @@ type AgentComboboxProps = {
   value: TuiAgent | null
   onValueChange: (agent: TuiAgent | null) => void
   onValueSelected?: (agent: TuiAgent | null) => void
-  piProfiles?: readonly PiLaunchProfile[]
-  selectedPiProfile?: PiLaunchProfile | null
-  onPiProfileChange?: (profile: PiLaunchProfile | null) => void
+  agentProfiles?: readonly AgentProfileSelection[]
+  selectedAgentProfile?: AgentProfileSelection | null
+  onAgentProfileChange?: (selection: AgentProfileSelection | null) => void
   onOpenManageAgents?: () => void
   /** Current saved default agent preference. Used to render a subtle "default"
    *  indicator in the list and to tell which right-click menu item is the
@@ -55,16 +55,20 @@ type AgentComboboxProps = {
 
 const BLANK_VALUE = '__none__'
 const TRIGGER_MIN_WIDTH_CLASS = '!min-w-[260px]'
-const EMPTY_PI_PROFILES: readonly PiLaunchProfile[] = []
+const EMPTY_AGENT_PROFILES: readonly AgentProfileSelection[] = []
+
+function profileCommandValue(selection: AgentProfileSelection): string {
+  return `${selection.agent}-profile:${selection.profile.id}`
+}
 
 export default function AgentCombobox({
   agents,
   value,
   onValueChange,
   onValueSelected,
-  piProfiles = EMPTY_PI_PROFILES,
-  selectedPiProfile,
-  onPiProfileChange,
+  agentProfiles = EMPTY_AGENT_PROFILES,
+  selectedAgentProfile,
+  onAgentProfileChange,
   onOpenManageAgents,
   defaultAgent,
   onSetDefault,
@@ -88,18 +92,19 @@ export default function AgentCombobox({
     () => (value ? (agents.find((agent) => agent.id === value) ?? null) : null),
     [agents, value]
   )
-  const selectedDefaultPreference = selectedPiProfile
+  const selectedDefaultPreference = selectedAgentProfile
     ? null
     : (value ?? (allowBlankTerminal ? 'blank' : null))
   const filteredAgents = useMemo(() => searchAgentPickerEntries(agents, query), [agents, query])
   const filteredProfiles = isAgentPickerQueryTooLarge(query)
     ? []
-    : piProfiles.filter((profile) =>
+    : agentProfiles.filter(({ profile }) =>
         [profile.name, profile.command].some((text) =>
           text.toLowerCase().includes(query.trim().toLowerCase())
         )
       )
-  const profileCommandValue = (profile: PiLaunchProfile): string => `pi-profile:${profile.id}`
+  const hasProfiles = (agent: TuiAgent): boolean =>
+    agentProfiles.some((selection) => selection.agent === agent)
   const blankMatchesQuery = useMemo(
     () => allowBlankTerminal && agentPickerBlankTerminalMatches(query),
     [allowBlankTerminal, query]
@@ -117,8 +122,8 @@ export default function AgentCombobox({
     !blankMatchesQuery &&
     !filteredAgents.some((agent) => agent.id === query.trim().toLowerCase())
       ? profileCommandValue(filteredProfiles[0])
-      : selectedPiProfile && !query
-        ? profileCommandValue(selectedPiProfile)
+      : selectedAgentProfile && !query
+        ? profileCommandValue(selectedAgentProfile)
         : agentCommandValue
   const resolvedCommandState = resolveAgentComboboxCommandState(
     commandState,
@@ -176,7 +181,9 @@ export default function AgentCombobox({
       if (nextOpen) {
         setCommandState(
           createAgentComboboxCommandState(
-            selectedPiProfile ? profileCommandValue(selectedPiProfile) : (value ?? BLANK_VALUE)
+            selectedAgentProfile
+              ? profileCommandValue(selectedAgentProfile)
+              : (value ?? BLANK_VALUE)
           )
         )
         return
@@ -184,18 +191,18 @@ export default function AgentCombobox({
       cancelFocusFrame()
       setQuery('')
     },
-    [cancelFocusFrame, value, selectedPiProfile]
+    [cancelFocusFrame, value, selectedAgentProfile]
   )
 
   const handleSelect = useCallback(
     (nextValue: TuiAgent | null) => {
-      onPiProfileChange?.(null)
+      onAgentProfileChange?.(null)
       onValueChange(nextValue)
       setOpen(false)
       setQuery('')
       onValueSelected?.(nextValue)
     },
-    [onValueChange, onValueSelected, onPiProfileChange]
+    [onValueChange, onValueSelected, onAgentProfileChange]
   )
 
   // Why: mirror RepoCombobox's trigger-keydown handling — the button-style
@@ -224,7 +231,9 @@ export default function AgentCombobox({
         event.preventDefault()
         setCommandState(
           createAgentComboboxCommandState(
-            selectedPiProfile ? profileCommandValue(selectedPiProfile) : (value ?? BLANK_VALUE)
+            selectedAgentProfile
+              ? profileCommandValue(selectedAgentProfile)
+              : (value ?? BLANK_VALUE)
           )
         )
         setOpen(true)
@@ -237,14 +246,16 @@ export default function AgentCombobox({
         event.preventDefault()
         setCommandState(
           createAgentComboboxCommandState(
-            selectedPiProfile ? profileCommandValue(selectedPiProfile) : (value ?? BLANK_VALUE)
+            selectedAgentProfile
+              ? profileCommandValue(selectedAgentProfile)
+              : (value ?? BLANK_VALUE)
           )
         )
         setQuery(event.key)
         setOpen(true)
       }
     },
-    [open, onTriggerEnter, value, selectedPiProfile]
+    [open, onTriggerEnter, value, selectedAgentProfile]
   )
 
   return (
@@ -280,19 +291,15 @@ export default function AgentCombobox({
               )}
               data-agent-combobox-root="true"
             >
-              {selectedPiProfile ? (
+              {selectedAgentProfile ? (
                 <AgentIconLabel
-                  icon={<AgentIcon agent="pi" size={14} />}
-                  label={selectedPiProfile.name}
+                  icon={<AgentIcon agent={selectedAgentProfile.agent} size={14} />}
+                  label={selectedAgentProfile.profile.name}
                 />
               ) : selectedAgent ? (
                 <AgentIconLabel
                   icon={<AgentIcon agent={selectedAgent.id} size={14} />}
-                  label={
-                    selectedAgent.id === 'pi' && piProfiles.length > 0
-                      ? selectedAgent.id
-                      : selectedAgent.label
-                  }
+                  label={hasProfiles(selectedAgent.id) ? selectedAgent.id : selectedAgent.label}
                 />
               ) : (
                 <AgentIconLabel
@@ -340,7 +347,7 @@ export default function AgentCombobox({
                 ? renderAgentComboboxRow({
                     key: BLANK_VALUE,
                     itemValue: BLANK_VALUE,
-                    isChecked: !selectedPiProfile && value === null,
+                    isChecked: !selectedAgentProfile && value === null,
                     isDefault: defaultAgent === 'blank',
                     onSelect: () => handleSelect(null),
                     onSetDefault: onSetDefault ? () => onSetDefault('blank') : undefined,
@@ -351,32 +358,34 @@ export default function AgentCombobox({
                     )
                   })
                 : null}
-              {filteredProfiles.map((profile) =>
+              {filteredProfiles.map((selection) =>
                 renderAgentComboboxRow({
-                  key: profileCommandValue(profile),
-                  itemValue: profileCommandValue(profile),
-                  isChecked: selectedPiProfile?.id === profile.id,
+                  key: profileCommandValue(selection),
+                  itemValue: profileCommandValue(selection),
+                  isChecked: selectedAgentProfile
+                    ? profileCommandValue(selectedAgentProfile) === profileCommandValue(selection)
+                    : false,
                   isDefault: false,
                   onSelect: () => {
-                    onPiProfileChange?.(profile)
+                    onAgentProfileChange?.(selection)
                     setOpen(false)
                     setQuery('')
-                    onValueSelected?.('pi')
+                    onValueSelected?.(selection.agent)
                   },
-                  icon: <AgentIcon agent="pi" />,
-                  label: profile.name
+                  icon: <AgentIcon agent={selection.agent} />,
+                  label: selection.profile.name
                 })
               )}
               {filteredAgents.map((agent) =>
                 renderAgentComboboxRow({
                   key: agent.id,
                   itemValue: agent.id,
-                  isChecked: !selectedPiProfile && value === agent.id,
+                  isChecked: !selectedAgentProfile && value === agent.id,
                   isDefault: defaultAgent === agent.id,
                   onSelect: () => handleSelect(agent.id),
                   onSetDefault: onSetDefault ? () => onSetDefault(agent.id) : undefined,
                   icon: <AgentIcon agent={agent.id} />,
-                  label: agent.id === 'pi' && piProfiles.length > 0 ? agent.id : agent.label
+                  label: hasProfiles(agent.id) ? agent.id : agent.label
                 })
               )}
             </CommandList>

@@ -31,14 +31,15 @@ type FolderSubmitOrchestrationInput = Pick<
 import { useCallback } from 'react'
 import { useAppStore } from '@/store'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import {
-  buildPiLaunchProfileEnv,
-  type PiLaunchProfile
-} from '../../../../shared/pi-launch-profiles'
+  buildAgentLaunchProfileEnv,
+  isProfileAgent
+} from '../../../../shared/agent-launch-profile-agents'
 import {
-  canLaunchFolderComposerPiProfile,
-  getValidatedComposerPiProfile
-} from '@/lib/composer-pi-profile-target'
+  getValidatedComposerAgentProfile,
+  resolveFolderComposerProfileHostScope
+} from '@/lib/composer-agent-profile-target'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import {
@@ -87,17 +88,19 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
   const { canResolveFolderSmartGitHubSubmit } = decisions
 
   const submitFolderTarget = useCallback(
-    async (requestedAgent: TuiAgent | null, piProfile?: PiLaunchProfile): Promise<void> => {
+    async (requestedAgent: TuiAgent | null, agentProfile?: AgentLaunchProfile): Promise<void> => {
       if (!selectedProjectGroup?.parentPath || folderCreateDisabled) {
         return
       }
       setCreateError(null)
       setCreating(true)
       try {
-        const selectedProfile = getValidatedComposerPiProfile(
-          piProfile,
-          useAppStore.getState().settings,
-          requestedAgent === 'pi' && canLaunchFolderComposerPiProfile(selectedProjectGroup)
+        const liveStore = useAppStore.getState()
+        const selectedProfile = getValidatedComposerAgentProfile(
+          requestedAgent,
+          agentProfile,
+          liveStore.settings,
+          resolveFolderComposerProfileHostScope(selectedProjectGroup, liveStore.sshConnectionStates)
         )
         const shouldResolveSmartGitHubSubmit = canResolveFolderSmartGitHubSubmit({
           hasFolderSourceRepos: folderSourceRepos.length > 0
@@ -119,9 +122,10 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           requestedAgent && isTuiAgentEnabled(requestedAgent, disabledTuiAgents)
             ? requestedAgent
             : null
-        if (selectedProfile && agent !== 'pi') {
+        const profileAgent = selectedProfile && agent && isProfileAgent(agent) ? agent : null
+        if (selectedProfile && agent !== requestedAgent) {
           throw new Error(
-            'Pi is no longer available. Select another agent before creating the workspace.'
+            'The selected agent is no longer available. Select another agent before creating the workspace.'
           )
         }
         if (isSubmissionCancelled()) {
@@ -147,9 +151,10 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           note,
           quickAgent: agent,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
-          agentCmdOverrides: selectedProfile
-            ? { ...settings?.agentCmdOverrides, pi: selectedProfile.command }
-            : settings?.agentCmdOverrides,
+          agentCmdOverrides:
+            profileAgent && selectedProfile
+              ? { ...settings?.agentCmdOverrides, [profileAgent]: selectedProfile.command }
+              : settings?.agentCmdOverrides,
           linkedWorkItemPromptTemplate,
           agentArgs: agent
             ? resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs)
@@ -157,7 +162,9 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           agentEnv: agent
             ? {
                 ...resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
-                ...(selectedProfile ? buildPiLaunchProfileEnv(selectedProfile) : {})
+                ...(profileAgent && selectedProfile
+                  ? buildAgentLaunchProfileEnv(profileAgent, selectedProfile)
+                  : {})
               }
             : undefined,
           sessionOptions: agent
@@ -170,7 +177,10 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
                 {
                   agent,
                   ...(folderLaunchDraftText
-                    ? { promptDelivery: 'draft' as const, launchDraftText: folderLaunchDraftText }
+                    ? {
+                        promptDelivery: 'draft' as const,
+                        launchDraftText: folderLaunchDraftText
+                      }
                     : {}),
                   nativeChatTranscriptIsLocalReadable:
                     isNativeChatTranscriptLocalReadable(folderTargetConnectionId)

@@ -198,6 +198,8 @@ export type SshConnectionState = {
   supportsFolderDownload?: boolean
   /** Remote OS detected by the SSH relay once available. */
   remotePlatform?: SshRemotePlatform
+  /** The host's own `$HOME`, read during relay deploy; resolves `~/` account profile roots. */
+  remoteHomeDirectory?: string
 }
 
 /** Non-secret mutation provenance. Both fields are required when an SSH provider is selected. */

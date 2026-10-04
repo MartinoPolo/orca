@@ -28,8 +28,8 @@ import { seedNativeChatAppliedSessionOptions } from '@/components/native-chat/na
 import { launchAgentInStructuredNewTab } from '@/lib/launch-agent-in-new-tab-structured'
 import { workspaceKindForWorktreeId } from '@/lib/agent-launch-route-input'
 import { planAgentSessionLaunch } from '@/lib/agent-session-launch-plan'
-import { resolvePiProfileLaunchInputs } from '@/lib/pi-profile-launch-inputs'
-import { normalizePiProfileName } from '../../../shared/pi-launch-profiles'
+import { resolveAgentProfileLaunchInputs } from '@/lib/agent-profile-launch-inputs'
+import { normalizeAgentProfileName } from '../../../shared/agent-launch-profiles'
 import type {
   LaunchAgentInNewTabArgs,
   LaunchAgentInNewTabResult
@@ -64,7 +64,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     groupId,
     prompt,
     agentArgs,
-    piLaunchProfile,
+    agentLaunchProfile,
     initialCwd,
     promptDelivery = 'auto-submit',
     launchSource,
@@ -99,9 +99,9 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     isRemote,
     terminalWindowsShell: store.settings?.terminalWindowsShell
   })
-  const piProfileInputs = resolvePiProfileLaunchInputs({
+  const agentProfileInputs = resolveAgentProfileLaunchInputs({
     agent,
-    profile: piLaunchProfile,
+    profile: agentLaunchProfile,
     state: store,
     worktreeId,
     resolvedLaunchPlatform,
@@ -109,7 +109,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     commandOverrides: store.settings?.agentCmdOverrides ?? {},
     environment: resolveTuiAgentLaunchEnv(agent, store.settings?.agentDefaultEnv)
   })
-  if (!piProfileInputs.ok) {
+  if (!agentProfileInputs.ok) {
     return null
   }
   const effectiveAgentArgs =
@@ -132,12 +132,12 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   const initialViewModeProps = initialAgentTabViewModeProps(store.settings, initialViewModeOptions)
   const startupPlanBase = {
     agent,
-    cmdOverrides: piProfileInputs.commandOverrides,
+    cmdOverrides: agentProfileInputs.commandOverrides,
     platform: resolvedLaunchPlatform,
     shell: queuedShell,
     isRemote,
     agentArgs: effectiveAgentArgs,
-    agentEnv: piProfileInputs.environment,
+    agentEnv: agentProfileInputs.environment,
     sessionOptions: resolveInitialNativeChatSessionOptions(store.settings, initialViewModeOptions)
   }
   const { startupPlan, pasteDraftAfterLaunch, submitPastedPrompt } = planLaunchAgentStartupPrompt({
@@ -231,7 +231,9 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   // Why: followup path pastes an unsubmitted draft, so gate the initial chat view like a draft launch, not auto-submit.
   const tab = store.createTab(worktreeId, groupId, undefined, {
     launchAgent: agent,
-    ...(agent === 'pi' && piLaunchProfile && normalizePiProfileName(piLaunchProfile.name) === 'piw'
+    ...(agent === 'pi' &&
+    agentLaunchProfile &&
+    normalizeAgentProfileName(agentLaunchProfile.name) === 'piw'
       ? { launchKind: 'piw' as const }
       : {}),
     quickCommandLabel,
@@ -266,7 +268,11 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   if (hasPrompt && promptDelivery === 'draft' && pasteDraftAfterLaunch === null) {
     // Why: the draft rode in on argv (Claude --prefill etc.), so no paste runs
     // and deliverLaunchPromptToAgentTab never seeds. Mirror it into chat here.
-    seedNativeChatLaunchDraftForAgentTab({ tabId: tab.id, agent, text: trimmedPrompt })
+    seedNativeChatLaunchDraftForAgentTab({
+      tabId: tab.id,
+      agent,
+      text: trimmedPrompt
+    })
   }
   if (pasteDraftAfterLaunch !== null) {
     const timeoutNotice = createPasteReadinessTimeoutNotice({
@@ -291,7 +297,10 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
         }
         onPromptDelivered?.()
       }
-      return { delivered, failureNotified: !delivered && timeoutNotice.wasNotified() }
+      return {
+        delivered,
+        failureNotified: !delivered && timeoutNotice.wasNotified()
+      }
     })
     if (promptDelivery === 'submit-after-ready') {
       promptDeliveryResult = deliveryPromise

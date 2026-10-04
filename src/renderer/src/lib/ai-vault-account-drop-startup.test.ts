@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
 import type { AiVaultSessionDragPayload } from './ai-vault-session-drag'
-import { resolveAiVaultPiDropStartup } from './ai-vault-pi-drop-startup'
+import { resolveAiVaultAccountDropStartup } from './ai-vault-account-drop-startup'
 
 function localState(profiles: unknown = []) {
   return {
@@ -14,7 +14,8 @@ function localState(profiles: unknown = []) {
     folderWorkspaces: [],
     projectGroups: [],
     activeRepoId: 'repo-1',
-    activeWorktreeId: 'wt-1'
+    activeWorktreeId: 'wt-1',
+    sshConnectionStates: new Map()
   }
 }
 
@@ -23,7 +24,7 @@ function resolveDrop(
   payload: AiVaultSessionDragPayload,
   options: { platform?: NodeJS.Platform; defaultAgentDirectory?: string } = {}
 ) {
-  return resolveAiVaultPiDropStartup({
+  const result = resolveAiVaultAccountDropStartup({
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Focused fixtures supply every state slice read by the target and shell resolvers.
     state: state as never,
     payload,
@@ -31,6 +32,10 @@ function resolveDrop(
     platform: options.platform ?? 'linux',
     defaultAgentDirectory: options.defaultAgentDirectory ?? '/Users/ada/.pi/agent'
   })
+  if (!result) {
+    throw new Error('Pi drops always produce a decision.')
+  }
+  return result
 }
 
 function piPayload(overrides: Partial<AiVaultSessionDragPayload> = {}): AiVaultSessionDragPayload {
@@ -220,5 +225,41 @@ describe('Pi AI Vault drop startup safety', () => {
     expect(resolveDrop(state, { ...payload, sessionExecutionHostId: undefined })).toMatchObject({
       ok: false
     })
+  })
+
+  it('rebuilds an SSH drop under the remote root of the profile that owns the transcript', () => {
+    const state = {
+      ...localState([
+        {
+          id: 'work',
+          name: 'Work',
+          command: 'piw',
+          agentDirectory: '/Users/ada/.pi/agent-work',
+          remoteAgentDirectory: '~/.pi/agent-work'
+        }
+      ]),
+      repos: [{ id: 'repo-1', connectionId: 'ssh-1', executionHostId: 'ssh:ssh-1', path: '/repo' }],
+      sshConnectionStates: new Map([['ssh-1', { remoteHomeDirectory: '/home/agent' }]])
+    }
+    const payload = piPayload({
+      command: "pi --session 'session-1'",
+      sessionFilePath: '/home/agent/.pi/agent-work/sessions/session-1.jsonl',
+      sessionExecutionHostId: 'ssh:ssh-1',
+      sessionCwd: '/repo/worktree'
+    })
+
+    expect(resolveDrop(state, payload)).toMatchObject({
+      ok: true,
+      startup: {
+        command: expect.stringContaining('piw'),
+        env: expect.objectContaining({ PI_CODING_AGENT_DIR: '/home/agent/.pi/agent-work' })
+      }
+    })
+    expect(
+      resolveDrop(state, {
+        ...payload,
+        sessionFilePath: '/home/agent/.pi/agent/sessions/session-1.jsonl'
+      })
+    ).toEqual({ ok: true, startup: { command: payload.command } })
   })
 })

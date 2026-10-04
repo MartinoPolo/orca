@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
-import { PiLaunchProfilesSetting } from './PiLaunchProfilesSetting'
+import { AgentLaunchProfilesSetting } from './AgentLaunchProfilesSetting'
 
 afterEach(cleanup)
 
@@ -28,12 +28,13 @@ function createDeferred(): Deferred {
   return { promise, resolve }
 }
 
-describe('PiLaunchProfilesSetting', () => {
+describe('AgentLaunchProfilesSetting', () => {
   it('adds a complete profile and rejects relative account directories', async () => {
     const updateSettings = vi.fn()
     const user = userEvent.setup()
     render(
-      <PiLaunchProfilesSetting
+      <AgentLaunchProfilesSetting
+        agent="pi"
         settings={getDefaultSettings('/tmp')}
         updateSettings={updateSettings}
       />
@@ -71,6 +72,66 @@ describe('PiLaunchProfilesSetting', () => {
     })
   })
 
+  it('saves a Claude profile with a canonical home-relative remote folder', async () => {
+    const updateSettings = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <AgentLaunchProfilesSetting
+        agent="claude"
+        settings={getDefaultSettings('/tmp')}
+        updateSettings={updateSettings}
+      />
+    )
+
+    expect(screen.getByText('Claude profiles')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Add profile' }))
+    await user.type(screen.getByLabelText('Name'), 'ccw')
+    await user.type(screen.getByLabelText('Command'), 'ccw')
+    await user.type(screen.getByLabelText('Account directory'), 'C:/Users/ada/.claude-work')
+    await user.type(screen.getByLabelText('Remote folder (optional)'), '/home/agent/.claude-work')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByRole('alert').textContent).toContain('inside the SSH home')
+    expect(updateSettings).not.toHaveBeenCalled()
+
+    await user.clear(screen.getByLabelText('Remote folder (optional)'))
+    await user.type(screen.getByLabelText('Remote folder (optional)'), '.claude-work/')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(updateSettings).toHaveBeenCalledWith({
+      claudeLaunchProfiles: [
+        expect.objectContaining({
+          name: 'ccw',
+          command: 'ccw',
+          agentDirectory: 'C:/Users/ada/.claude-work',
+          remoteAgentDirectory: '~/.claude-work'
+        })
+      ]
+    })
+  })
+
+  it('rejects remote folders nested inside another profile remote folder', async () => {
+    const updateSettings = vi.fn()
+    const user = userEvent.setup()
+    const settings = {
+      ...getDefaultSettings('/tmp'),
+      piLaunchProfiles: [{ ...WORK_PROFILE, remoteAgentDirectory: '~/.pi' }]
+    }
+    render(
+      <AgentLaunchProfilesSetting agent="pi" settings={settings} updateSettings={updateSettings} />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Add profile' }))
+    await user.type(screen.getByLabelText('Name'), 'Personal')
+    await user.type(screen.getByLabelText('Command'), 'pip')
+    await user.type(screen.getByLabelText('Account directory'), 'C:/Users/ada/.pi-personal/agent')
+    await user.type(screen.getByLabelText('Remote folder (optional)'), '~/.pi/agent-personal')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByRole('alert').textContent).toContain('nested')
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
   it('rejects duplicate display names after trimming and case folding', async () => {
     const updateSettings = vi.fn()
     const user = userEvent.setup()
@@ -85,7 +146,9 @@ describe('PiLaunchProfilesSetting', () => {
         }
       ]
     }
-    render(<PiLaunchProfilesSetting settings={settings} updateSettings={updateSettings} />)
+    render(
+      <AgentLaunchProfilesSetting agent="pi" settings={settings} updateSettings={updateSettings} />
+    )
 
     await user.click(screen.getByRole('button', { name: 'Add profile' }))
     await user.type(screen.getByLabelText('Name'), ' work ')
@@ -111,7 +174,9 @@ describe('PiLaunchProfilesSetting', () => {
         }
       ]
     }
-    render(<PiLaunchProfilesSetting settings={settings} updateSettings={updateSettings} />)
+    render(
+      <AgentLaunchProfilesSetting agent="pi" settings={settings} updateSettings={updateSettings} />
+    )
 
     await user.click(screen.getByRole('button', { name: 'Edit Work' }))
     await user.clear(screen.getByLabelText('Command'))
@@ -140,7 +205,8 @@ describe('PiLaunchProfilesSetting', () => {
       .mockResolvedValueOnce(undefined)
     const user = userEvent.setup()
     render(
-      <PiLaunchProfilesSetting
+      <AgentLaunchProfilesSetting
+        agent="pi"
         settings={getDefaultSettings('/tmp')}
         updateSettings={updateSettings}
       />
@@ -172,7 +238,9 @@ describe('PiLaunchProfilesSetting', () => {
       .mockResolvedValueOnce(undefined)
     const user = userEvent.setup()
     const settings = { ...getDefaultSettings('/tmp'), piLaunchProfiles: [WORK_PROFILE] }
-    render(<PiLaunchProfilesSetting settings={settings} updateSettings={updateSettings} />)
+    render(
+      <AgentLaunchProfilesSetting agent="pi" settings={settings} updateSettings={updateSettings} />
+    )
 
     await user.click(screen.getByRole('button', { name: 'Remove Work' }))
 
@@ -191,7 +259,9 @@ describe('PiLaunchProfilesSetting', () => {
     const deletion = createDeferred()
     const updateSettings = vi.fn().mockReturnValue(deletion.promise)
     const settings = { ...getDefaultSettings('/tmp'), piLaunchProfiles: [WORK_PROFILE] }
-    render(<PiLaunchProfilesSetting settings={settings} updateSettings={updateSettings} />)
+    render(
+      <AgentLaunchProfilesSetting agent="pi" settings={settings} updateSettings={updateSettings} />
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Work' }))
     act(() => {

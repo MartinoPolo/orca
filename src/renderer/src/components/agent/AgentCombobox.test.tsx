@@ -11,44 +11,51 @@ import AgentCombobox from './AgentCombobox'
 afterEach(cleanup)
 
 describe('AgentCombobox', () => {
-  it('offers searchable named Pi alongside built-in pi without changing other consumers', () => {
-    const profile = {
-      id: 'work',
-      name: 'piw',
-      command: '/tools/piw',
-      agentDirectory: '/accounts/work'
+  it('offers searchable named profiles alongside their built-in agents', () => {
+    const piSelection = {
+      agent: 'pi' as const,
+      profile: { id: 'work', name: 'piw', command: '/tools/piw', agentDirectory: '/accounts/work' }
     }
-    const onPiProfileChange = vi.fn()
+    const claudeSelection = {
+      agent: 'claude' as const,
+      profile: { id: 'work', name: 'ccw', command: 'ccw', agentDirectory: '/accounts/claude-work' }
+    }
+    const agents = AGENT_CATALOG.filter((entry) => entry.id === 'pi' || entry.id === 'claude')
+    const onAgentProfileChange = vi.fn()
     const onValueChange = vi.fn()
+    const onValueSelected = vi.fn()
     const { rerender } = render(
       <AgentCombobox
-        agents={AGENT_CATALOG.filter((entry) => entry.id === 'pi')}
+        agents={agents}
         value="pi"
         onValueChange={onValueChange}
-        piProfiles={[profile]}
-        onPiProfileChange={onPiProfileChange}
+        onValueSelected={onValueSelected}
+        agentProfiles={[piSelection, claudeSelection]}
+        onAgentProfileChange={onAgentProfileChange}
       />
     )
     fireEvent.click(screen.getByRole('combobox'))
     expect(screen.getByRole('option', { name: 'piw' })).toBeTruthy()
     expect(screen.getByRole('option', { name: 'pi' })).toBeTruthy()
-    fireEvent.change(screen.getByPlaceholderText('Search agents...'), { target: { value: 'piw' } })
-    fireEvent.click(screen.getByRole('option', { name: 'piw' }))
-    expect(onPiProfileChange).toHaveBeenCalledWith(profile)
+    expect(screen.getByRole('option', { name: 'claude' })).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('Search agents...'), { target: { value: 'ccw' } })
+    fireEvent.click(screen.getByRole('option', { name: 'ccw' }))
+    expect(onAgentProfileChange).toHaveBeenCalledWith(claudeSelection)
+    expect(onValueSelected).toHaveBeenCalledWith('claude')
     rerender(
       <AgentCombobox
-        agents={AGENT_CATALOG.filter((entry) => entry.id === 'pi')}
-        value="pi"
+        agents={agents}
+        value="claude"
         onValueChange={onValueChange}
-        piProfiles={[profile]}
-        selectedPiProfile={profile}
-        onPiProfileChange={onPiProfileChange}
+        agentProfiles={[piSelection, claudeSelection]}
+        selectedAgentProfile={claudeSelection}
+        onAgentProfileChange={onAgentProfileChange}
       />
     )
-    expect(screen.getByRole('combobox').textContent).toContain('piw')
+    expect(screen.getByRole('combobox').textContent).toContain('ccw')
     fireEvent.click(screen.getByRole('combobox'))
     fireEvent.click(screen.getByRole('option', { name: 'pi' }))
-    expect(onPiProfileChange).toHaveBeenLastCalledWith(null)
+    expect(onAgentProfileChange).toHaveBeenLastCalledWith(null)
     expect(onValueChange).toHaveBeenCalledWith('pi')
   })
 

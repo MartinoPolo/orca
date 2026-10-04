@@ -20,6 +20,13 @@ const profile = {
   command: '/tools/piw',
   agentDirectory: '/accounts/work'
 }
+const claudeProfile = {
+  id: 'work',
+  name: 'ccw',
+  command: 'ccw',
+  agentDirectory: '/accounts/claude-work',
+  remoteAgentDirectory: '~/.claude-work'
+}
 const repo = {
   id: 'repo-1',
   path: '/repos/repo-1',
@@ -53,7 +60,9 @@ const prepared: PreparedQuickSubmit = {
   trimmedNote: ''
 }
 
-function createInput(): QuickCreationExecutionInput {
+function createInput(
+  overrides: Partial<QuickCreationExecutionInput> = {}
+): QuickCreationExecutionInput {
   return {
     clearNewWorkspaceDraft: vi.fn(),
     createMultiple: false,
@@ -82,13 +91,32 @@ function createInput(): QuickCreationExecutionInput {
     settings: getDefaultSettings('/tmp'),
     sparseEnabled: false,
     taskSourceContext: null,
-    telemetrySource: 'sidebar'
+    telemetrySource: 'sidebar',
+    ...overrides
   }
 }
 
 beforeEach(() => {
   runBackgroundWorktreeCreation.mockClear()
-  useAppStore.setState({ settings: { ...getDefaultSettings('/tmp'), piLaunchProfiles: [profile] } })
+  useAppStore.setState({
+    settings: {
+      ...getDefaultSettings('/tmp'),
+      piLaunchProfiles: [profile],
+      claudeLaunchProfiles: [claudeProfile]
+    },
+    sshConnectionStates: new Map([
+      [
+        'ssh-1',
+        {
+          targetId: 'ssh-1',
+          status: 'connected',
+          error: null,
+          reconnectAttempt: 0,
+          remoteHomeDirectory: '/home/agent'
+        }
+      ]
+    ])
+  })
 })
 
 describe('quick creation profile submission', () => {
@@ -140,6 +168,41 @@ describe('quick creation profile submission', () => {
               PI_CODING_AGENT_DIR: '/accounts/work',
               ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work'
             })
+          })
+        })
+      })
+    )
+  })
+
+  it('captures a Claude profile root inside the SSH host home', async () => {
+    const sshRepo = { ...repo, connectionId: 'ssh-1', path: '/home/agent/repo' }
+    const hook = renderHook(() =>
+      useQuickCreationExecution(
+        createInput({
+          prepareQuickSubmit: vi.fn().mockResolvedValue({ ...prepared, agent: 'claude' }),
+          selectedRepoExecutionHostId: 'ssh:ssh-1',
+          selectedRepoIsRemote: true
+        })
+      )
+    )
+    await act(async () =>
+      hook.result.current.executeQuickCreation(
+        { kind: 'none' },
+        'claude',
+        { ...claudeProfile, agentDirectory: '/home/agent/.claude-work' },
+        'workspace',
+        null,
+        sshRepo.id,
+        sshRepo
+      )
+    )
+    expect(runBackgroundWorktreeCreation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: 'claude',
+        startupPlan: expect.objectContaining({
+          launchConfig: expect.objectContaining({
+            agentCommand: expect.stringMatching(/^ccw /),
+            agentEnv: expect.objectContaining({ CLAUDE_CONFIG_DIR: '/home/agent/.claude-work' })
           })
         })
       })

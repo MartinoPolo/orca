@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockCreateTab = vi.fn(() => ({ id: 'tab-1' }))
 const mockQueueTabStartupCommand = vi.fn()
 const agentDefaultArgs: Record<string, string> = {}
 const agentDefaultEnv: Record<string, Record<string, string>> = {}
+const workspaceHost: { connectionId: string | null; executionHostId: string } = {
+  connectionId: null,
+  executionHostId: 'local'
+}
 
 type Project = {
   id: string
@@ -20,6 +24,9 @@ const worktree = {
   path: 'C:/repo/worktree',
   displayName: 'main'
 }
+const localRepos: { id: string; connectionId: string | null; path: string }[] = [
+  { id: 'repo-1', connectionId: null, path: 'C:/repo' }
+]
 const store = {
   activeRepoId: 'repo-1',
   activeWorktreeId: 'wt-1',
@@ -30,9 +37,10 @@ const store = {
     activeRuntimeEnvironmentId: null
   },
   projects,
-  repos: [{ id: 'repo-1', connectionId: null, path: 'C:/repo' }],
+  repos: localRepos,
   folderWorkspaces: [],
   projectGroups: [],
+  sshConnectionStates: new Map([['ssh-1', { remoteHomeDirectory: '/home/agent' }]]),
   worktreesByRepo: { 'repo-1': [worktree] },
   allWorktrees: vi.fn(() => [worktree]),
   tabsByWorktree: { 'wt-1': [{ id: 'tab-1' }] },
@@ -48,9 +56,11 @@ const store = {
 vi.mock('@/store', () => ({ useAppStore: { getState: () => store } }))
 vi.mock('@/lib/new-workspace', () => ({ CLIENT_PLATFORM: 'win32' }))
 vi.mock('@/lib/renderer-app-platform', () => ({ getRendererAppPlatform: () => 'win32' }))
-vi.mock('@/lib/connection-context', () => ({ getConnectionIdFromState: () => null }))
+vi.mock('@/lib/connection-context', () => ({
+  getConnectionIdFromState: () => workspaceHost.connectionId
+}))
 vi.mock('@/lib/worktree-runtime-owner', () => ({
-  getKnownExecutionHostIdForWorktree: () => 'local',
+  getKnownExecutionHostIdForWorktree: () => workspaceHost.executionHostId,
   getRuntimeEnvironmentIdForWorktree: () => null
 }))
 vi.mock('@/lib/native-chat-transcript-readability', () => ({
@@ -71,13 +81,15 @@ vi.mock('@/components/native-chat/native-chat-session-option-cache', () => ({
   seedNativeChatAppliedSessionOptions: vi.fn()
 }))
 
-describe('launchAgentInNewTab named Pi profiles', () => {
+describe('launchAgentInNewTab named agent profiles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     projects.splice(0, projects.length, {
       id: 'repo-1',
       localWindowsRuntimePreference: { kind: 'inherit-global' }
     })
+    workspaceHost.connectionId = null
+    workspaceHost.executionHostId = 'local'
     delete agentDefaultArgs.pi
     delete agentDefaultEnv.pi
   })
@@ -90,7 +102,7 @@ describe('launchAgentInNewTab named Pi profiles', () => {
     const result = launchAgentInNewTab({
       agent: 'pi',
       worktreeId: 'wt-1',
-      piLaunchProfile: {
+      agentLaunchProfile: {
         id: 'work',
         name: 'Piw',
         command: 'C:/tools/piw',
@@ -139,7 +151,7 @@ describe('launchAgentInNewTab named Pi profiles', () => {
         agent: 'pi',
         worktreeId: 'wt-1',
         launchPlatform: 'linux',
-        piLaunchProfile: {
+        agentLaunchProfile: {
           id: 'work',
           name: 'Work',
           command: '/c/tools/piw',
@@ -148,5 +160,59 @@ describe('launchAgentInNewTab named Pi profiles', () => {
       })
     ).toBeNull()
     expect(mockCreateTab).not.toHaveBeenCalled()
+  })
+
+  describe('on an SSH workspace', () => {
+    beforeEach(() => {
+      workspaceHost.connectionId = 'ssh-1'
+      workspaceHost.executionHostId = 'ssh:ssh-1'
+      store.repos = [{ id: 'repo-1', connectionId: 'ssh-1', path: '/home/agent/repo' }]
+    })
+    afterEach(() => {
+      store.repos = localRepos
+    })
+
+    it('runs a Claude profile under its root inside the remote home', async () => {
+      const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+
+      const result = launchAgentInNewTab({
+        agent: 'claude',
+        worktreeId: 'wt-1',
+        agentLaunchProfile: {
+          id: 'work',
+          name: 'ccw',
+          command: 'ccw',
+          agentDirectory: 'C:/Users/ada/.claude-work',
+          remoteAgentDirectory: '~/.claude-work'
+        }
+      })
+
+      expect(result).not.toBeNull()
+      expect(mockQueueTabStartupCommand).toHaveBeenCalledWith(
+        'tab-1',
+        expect.objectContaining({
+          command: expect.stringContaining('ccw'),
+          env: { CLAUDE_CONFIG_DIR: '/home/agent/.claude-work' }
+        })
+      )
+    })
+
+    it('refuses a local-only profile without creating a tab', async () => {
+      const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+
+      expect(
+        launchAgentInNewTab({
+          agent: 'pi',
+          worktreeId: 'wt-1',
+          agentLaunchProfile: {
+            id: 'work',
+            name: 'Work',
+            command: 'piw',
+            agentDirectory: 'C:/Users/ada/.pi-work/agent'
+          }
+        })
+      ).toBeNull()
+      expect(mockCreateTab).not.toHaveBeenCalled()
+    })
   })
 })

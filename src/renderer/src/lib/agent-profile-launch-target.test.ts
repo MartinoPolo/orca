@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
-import { resolvePiProfileLaunchTarget } from './pi-profile-launch-target'
+import { resolveAgentProfileLaunchTarget } from './agent-profile-launch-target'
 
 function localProjectState() {
   return {
@@ -24,7 +24,7 @@ function localProjectState() {
 
 function resolveTarget(state: unknown, worktreeId: string, platform: NodeJS.Platform) {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The focused fixture supplies every state slice read by the resolver.
-  return resolvePiProfileLaunchTarget(state as never, worktreeId, { platform })
+  return resolveAgentProfileLaunchTarget(state as never, worktreeId, { platform })
 }
 
 describe('Pi profile launch target', () => {

@@ -23,7 +23,7 @@ describe('buildQuickComposerStartup linked work-item drafts', () => {
       command: '/tools/piw',
       agentDirectory: '/accounts/work'
     }
-    const named = buildQuickComposerStartup({ ...input, piProfile: profile })
+    const named = buildQuickComposerStartup({ ...input, agentProfile: profile })
     expect(named.startupPlan?.launchCommand).toContain('/tools/piw')
     expect(named.backendStartup?.command).toContain('/tools/piw')
     expect(named.backendStartup?.env).toMatchObject({
@@ -35,7 +35,7 @@ describe('buildQuickComposerStartup linked work-item drafts', () => {
       ...input,
       draftPrompt: null,
       prompt: 'start here',
-      piProfile: profile
+      agentProfile: profile
     })
     expect(plain.startupPlan?.launchConfig.agentCommand).toContain('/tools/piw')
     expect(plain.startupPlan?.launchConfig.agentEnv).toMatchObject({

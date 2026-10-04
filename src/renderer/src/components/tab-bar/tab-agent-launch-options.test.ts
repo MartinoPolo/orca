@@ -39,14 +39,20 @@ describe('tab agent launch options', () => {
   })
 
   it('labels the default Pi and one named profile as exact launch commands', () => {
-    const options = buildTabAgentLaunchOptions(['pi'], {}, [
+    const options = buildTabAgentLaunchOptions(
+      ['pi'],
+      {},
       {
-        id: 'work',
-        name: 'piw',
-        command: 'C:/tools/piw',
-        agentDirectory: 'C:/Users/ada/.pi-work/agent'
+        pi: [
+          {
+            id: 'work',
+            name: 'piw',
+            command: 'C:/tools/piw',
+            agentDirectory: 'C:/Users/ada/.pi-work/agent'
+          }
+        ]
       }
-    ])
+    )
 
     expect(options.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: 'agent:pi', label: 'pi' },
@@ -54,6 +60,31 @@ describe('tab agent launch options', () => {
     ])
     expect(findMatchingTabAgentLaunchOptions('piw', options).map((option) => option.id)).toEqual([
       'pi-profile:work'
+    ])
+  })
+
+  it('offers Claude profiles as Claude launches', () => {
+    const options = buildTabAgentLaunchOptions(
+      ['claude'],
+      {},
+      {
+        claude: [
+          {
+            id: 'work',
+            name: 'ccw',
+            command: 'ccw',
+            agentDirectory: '/home/agent/.claude-work'
+          }
+        ]
+      }
+    )
+
+    expect(findMatchingTabAgentLaunchOptions('ccw', options)).toEqual([
+      expect.objectContaining({
+        id: 'claude-profile:work',
+        agent: 'claude',
+        agentProfile: expect.objectContaining({ command: 'ccw' })
+      })
     ])
   })
 

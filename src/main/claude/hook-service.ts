@@ -1,4 +1,5 @@
 import { existsSync, rmSync, writeFileSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
@@ -51,6 +52,15 @@ type ClaudeHookInstallOptions = {
   claudeVersion?: string
 }
 
+type ClaudeLocalHookInstallOptions = ClaudeHookInstallOptions & {
+  configDirectory?: string
+}
+
+type ClaudeRemoteHookInstallOptions = ClaudeHookInstallOptions & {
+  /** Absolute remote config root (a `CLAUDE_CONFIG_DIR` profile) replacing the default one. */
+  configDirectory?: string
+}
+
 const DEFAULT_CLAUDE_HOOK_SERVICE_OPTIONS: ClaudeHookServiceOptions = {
   agent: 'claude',
   displayName: 'Claude',
@@ -64,8 +74,18 @@ export class ClaudeHookService {
     this.options = options
   }
 
-  getStatus(): AgentHookInstallStatus {
-    const configPath = getConfigPath(this.options.settings)
+  private getLocalConfigPath(configDirectory?: string): string {
+    if (configDirectory === undefined) {
+      return getConfigPath(this.options.settings)
+    }
+    if (!isAbsolute(configDirectory)) {
+      throw new Error('Claude config directory must be absolute')
+    }
+    return join(configDirectory, 'settings.json')
+  }
+
+  getStatus(configDirectory?: string): AgentHookInstallStatus {
+    const configPath = this.getLocalConfigPath(configDirectory)
     const scriptPath = getManagedScriptPath(this.options.settings)
     const config = readHooksJson(configPath)
     if (!config) {
@@ -126,8 +146,8 @@ export class ClaudeHookService {
     )
   }
 
-  install(options: ClaudeHookInstallOptions = {}): AgentHookInstallStatus {
-    const configPath = getConfigPath(this.options.settings)
+  install(options: ClaudeLocalHookInstallOptions = {}): AgentHookInstallStatus {
+    const configPath = this.getLocalConfigPath(options.configDirectory)
     const scriptPath = getManagedScriptPath(this.options.settings)
     const config = readHooksJson(configPath)
     if (!config) {
@@ -159,7 +179,7 @@ export class ClaudeHookService {
       nextConfig = this.installManagedStatusLine(nextConfig)
     }
     writeHooksJson(configPath, nextConfig)
-    return this.getStatus()
+    return this.getStatus(options.configDirectory)
   }
 
   // Why: the statusline feed is opportunistic (usage display, not agent status); a user who deleted the
@@ -190,10 +210,12 @@ export class ClaudeHookService {
   async installRemote(
     sftp: SFTPWrapper,
     remoteHome: string,
-    options: ClaudeHookInstallOptions = {}
+    options: ClaudeRemoteHookInstallOptions = {}
   ): Promise<AgentHookInstallStatus> {
     // Why: remote Windows is unsupported; local process.platform cannot identify the remote OS.
-    const remoteConfigPath = getRemoteConfigPath(remoteHome, this.options.settings)
+    const remoteConfigPath = options.configDirectory
+      ? `${options.configDirectory.replace(/\/$/, '')}/settings.json`
+      : getRemoteConfigPath(remoteHome, this.options.settings)
     const remoteScriptFileName = getPosixManagedScriptFileName(this.options.settings)
     const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/${remoteScriptFileName}`
     // Why: surface fallible SFTP installs as structured errors.
@@ -215,7 +237,7 @@ export class ClaudeHookService {
         config,
         hook,
         remoteScriptFileName,
-        this.options.agent === 'claude' ? options : undefined
+        this.options.agent === 'claude' ? { claudeVersion: options.claudeVersion } : undefined
       )
 
       // Why: write scripts before settings to avoid settings pointing to missing scripts.
@@ -251,8 +273,8 @@ export class ClaudeHookService {
     }
   }
 
-  remove(): AgentHookInstallStatus {
-    const configPath = getConfigPath(this.options.settings)
+  remove(configDirectory?: string): AgentHookInstallStatus {
+    const configPath = this.getLocalConfigPath(configDirectory)
     const config = readHooksJson(configPath)
     if (!config) {
       return {
@@ -274,7 +296,7 @@ export class ClaudeHookService {
     if (hooksChanged || statusLineChanged) {
       writeHooksJson(configPath, nextConfig)
     }
-    if (this.options.agent === 'claude') {
+    if (this.options.agent === 'claude' && configDirectory === undefined) {
       try {
         // Why: an Orca-level uninstall resets the opt-out memory so a later re-enable installs the statusline again.
         rmSync(getStatusLineInstallMarkerPath(this.options.settings), { force: true })
@@ -282,7 +304,7 @@ export class ClaudeHookService {
         // ignore — marker cleanup is best-effort
       }
     }
-    return this.getStatus()
+    return this.getStatus(configDirectory)
   }
 }
 

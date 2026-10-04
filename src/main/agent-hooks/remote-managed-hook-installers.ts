@@ -1,5 +1,6 @@
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallStatus, AgentHookTarget } from '../../shared/agent-hook-types'
+import { resolveRemoteAgentDirectory } from '../../shared/agent-launch-profiles'
 import { ampHookService } from '../amp/hook-service'
 import { claudeHookService } from '../claude/hook-service'
 import { codexHookService } from '../codex/hook-service'
@@ -24,6 +25,8 @@ export type RemoteManagedHookInstallOptions = {
   grokHomeDir?: string
   /** Version reported by Claude on this execution host. */
   claudeVersion?: string
+  /** `~/`-relative Claude profile config roots that need hooks besides the default one. */
+  claudeConfigDirectories?: readonly string[]
   /** Stops before starting the next installer when the owning relay request
    *  is cancelled. Individual filesystem mutations remain atomic. */
   signal?: AbortSignal
@@ -38,17 +41,31 @@ type RemoteManagedHookInstaller = readonly [
     sftp: SFTPWrapper,
     remoteHome: string,
     options?: RemoteManagedHookInstallOptions
-  ) => Promise<AgentHookInstallStatus>
+  ) => Promise<AgentHookInstallStatus | readonly AgentHookInstallStatus[]>
 ]
 
+async function installRemoteClaudeHooks(
+  sftp: SFTPWrapper,
+  remoteHome: string,
+  options?: RemoteManagedHookInstallOptions
+): Promise<AgentHookInstallStatus[]> {
+  const claudeVersion = options?.claudeVersion
+  const results = [await claudeHookService.installRemote(sftp, remoteHome, { claudeVersion })]
+  for (const directory of options?.claudeConfigDirectories ?? []) {
+    options?.signal?.throwIfAborted()
+    const configDirectory = resolveRemoteAgentDirectory(remoteHome, directory)
+    if (!configDirectory) {
+      continue
+    }
+    results.push(
+      await claudeHookService.installRemote(sftp, remoteHome, { claudeVersion, configDirectory })
+    )
+  }
+  return results
+}
+
 const REMOTE_MANAGED_HOOK_INSTALLERS: readonly RemoteManagedHookInstaller[] = [
-  [
-    'claude',
-    (sftp, remoteHome, options) =>
-      claudeHookService.installRemote(sftp, remoteHome, {
-        claudeVersion: options?.claudeVersion
-      })
-  ],
+  ['claude', installRemoteClaudeHooks],
   ['openclaude', (sftp, remoteHome) => openClaudeHookService.installRemote(sftp, remoteHome)],
   [
     'codex',
@@ -101,14 +118,16 @@ export async function installRemoteManagedAgentHooks(
     // user-config mutations after their client has gone away.
     options?.signal?.throwIfAborted()
     try {
-      const result = await install(sftp, remoteHome, options)
-      results.push(result)
-      if (result.state === 'error') {
-        console.warn(
-          `[agent-hooks] Remote ${agent} managed hook install failed for ${result.configPath}: ${
-            result.detail ?? 'unknown error'
-          }`
-        )
+      const installed = await install(sftp, remoteHome, options)
+      for (const result of Array.isArray(installed) ? installed : [installed]) {
+        results.push(result)
+        if (result.state === 'error') {
+          console.warn(
+            `[agent-hooks] Remote ${agent} managed hook install failed for ${result.configPath}: ${
+              result.detail ?? 'unknown error'
+            }`
+          )
+        }
       }
     } catch (error) {
       // Why: remote hook installation must not block SSH workspace startup.

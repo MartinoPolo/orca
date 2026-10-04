@@ -1,6 +1,6 @@
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { normalizeDisabledTuiAgents } from '../../../shared/tui-agent-selection'
-import { normalizePiLaunchProfiles } from '../../../shared/pi-launch-profiles'
+import { normalizeAgentLaunchProfiles } from '../../../shared/agent-launch-profiles'
 import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../shared/agent-linked-work-item-prompt-templates'
 import { resolveNestedWorkerMaxDepth } from '../../../shared/nested-worker-depth'
 import {
@@ -87,7 +87,12 @@ export function updateSettings(
     sanitizedUpdates.disabledTuiAgents = normalizeDisabledTuiAgents(updates.disabledTuiAgents)
   }
   if ('piLaunchProfiles' in updates) {
-    sanitizedUpdates.piLaunchProfiles = normalizePiLaunchProfiles(updates.piLaunchProfiles)
+    sanitizedUpdates.piLaunchProfiles = normalizeAgentLaunchProfiles(updates.piLaunchProfiles)
+  }
+  if ('claudeLaunchProfiles' in updates) {
+    sanitizedUpdates.claudeLaunchProfiles = normalizeAgentLaunchProfiles(
+      updates.claudeLaunchProfiles
+    )
   }
   if ('worktreeVisibilityDefaults' in updates) {
     sanitizedUpdates.worktreeVisibilityDefaults = {
@@ -228,7 +233,10 @@ export function updateSettings(
   // Why deep-merge telemetry: a partial update (e.g. flipping only `optedIn`) must not clobber siblings like `installId`.
   const mergedTelemetry =
     sanitizedUpdates.telemetry !== undefined
-      ? { ...operations.state.settings.telemetry, ...sanitizedUpdates.telemetry }
+      ? {
+          ...operations.state.settings.telemetry,
+          ...sanitizedUpdates.telemetry
+        }
       : operations.state.settings.telemetry
   if ('sourceControlAi' in sanitizedUpdates) {
     sanitizedUpdates.sourceControlAi = retireLegacyInstructionsForClearedTextActionRecipes(

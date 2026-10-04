@@ -22,6 +22,13 @@ const profile = {
   command: '/tools/piw',
   agentDirectory: '/accounts/work'
 }
+const claudeProfile = {
+  id: 'work',
+  name: 'ccw',
+  command: 'ccw',
+  agentDirectory: '/accounts/claude-work',
+  remoteAgentDirectory: '~/.claude-work'
+}
 const group: ProjectGroup = {
   id: 'group-1',
   name: 'Group',
@@ -34,6 +41,12 @@ const group: ProjectGroup = {
   createdAt: 0,
   updatedAt: 0,
   executionHostId: 'local'
+}
+const sshGroup: ProjectGroup = {
+  ...group,
+  parentPath: '/home/agent/projects',
+  connectionId: 'ssh-1',
+  executionHostId: 'ssh:ssh-1'
 }
 const workspace: FolderWorkspace = {
   id: 'folder-1',
@@ -51,10 +64,11 @@ const workspace: FolderWorkspace = {
   updatedAt: 0
 }
 
-function setup() {
+function setup(selectedProjectGroup: ProjectGroup = group) {
   const createFolderWorkspace = vi.fn().mockResolvedValue(workspace)
   const onCreated = vi.fn()
   const setCreateError = vi.fn()
+  const isRemote = Boolean(selectedProjectGroup.connectionId)
   const hook = renderHook(() =>
     useFolderSubmitOrchestration({
       clearNewWorkspaceDraft: vi.fn(),
@@ -63,8 +77,8 @@ function setup() {
       disabledTuiAgents: [],
       folderCreateDisabled: false,
       folderSourceRepos: [],
-      folderTargetConnectionId: null,
-      folderTargetIsRemote: false,
+      folderTargetConnectionId: selectedProjectGroup.connectionId ?? null,
+      folderTargetIsRemote: isRemote,
       folderTargetRuntimeEnvironmentId: null,
       isSubmissionCancelled: () => false,
       lastAutoNameRef: { current: '' },
@@ -74,7 +88,7 @@ function setup() {
       onCreated,
       persistDraft: false,
       resolvePendingSmartGitHubSubmit: vi.fn(),
-      selectedProjectGroup: group,
+      selectedProjectGroup,
       setCreateError,
       setCreating: vi.fn(),
       settings: getDefaultSettings('/tmp'),
@@ -87,7 +101,25 @@ function setup() {
 
 beforeEach(() => {
   activateAndRevealFolderWorkspace.mockClear()
-  useAppStore.setState({ settings: { ...getDefaultSettings('/tmp'), piLaunchProfiles: [profile] } })
+  useAppStore.setState({
+    settings: {
+      ...getDefaultSettings('/tmp'),
+      piLaunchProfiles: [profile],
+      claudeLaunchProfiles: [claudeProfile]
+    },
+    sshConnectionStates: new Map([
+      [
+        'ssh-1',
+        {
+          targetId: 'ssh-1',
+          status: 'connected',
+          error: null,
+          reconnectAttempt: 0,
+          remoteHomeDirectory: '/home/agent'
+        }
+      ]
+    ])
+  })
 })
 
 describe('folder creation profile submission', () => {
@@ -108,39 +140,33 @@ describe('folder creation profile submission', () => {
     )
   })
 
-  it('rejects an ineligible selected target before creating a folder', async () => {
-    const { hook, createFolderWorkspace, onCreated, setCreateError } = setup()
-    const remoteHook = renderHook(() =>
-      useFolderSubmitOrchestration({
-        clearNewWorkspaceDraft: vi.fn(),
-        createFolderWorkspace,
-        decisions: { canResolveFolderSmartGitHubSubmit: () => false },
-        disabledTuiAgents: [],
-        folderCreateDisabled: false,
-        folderSourceRepos: [],
-        folderTargetConnectionId: 'ssh-1',
-        folderTargetIsRemote: true,
-        folderTargetRuntimeEnvironmentId: null,
-        isSubmissionCancelled: () => false,
-        lastAutoNameRef: { current: '' },
-        linkedWorkItem: null,
-        name: 'workspace',
-        note: '',
-        onCreated,
-        persistDraft: false,
-        resolvePendingSmartGitHubSubmit: vi.fn(),
-        selectedProjectGroup: { ...group, connectionId: 'ssh-1' },
-        setCreateError,
-        setCreating: vi.fn(),
-        settings: getDefaultSettings('/tmp'),
-        taskSourceContext: null,
-        telemetrySource: 'sidebar'
+  it('launches an SSH folder under the profile root inside the remote home', async () => {
+    const { hook, createFolderWorkspace } = setup(sshGroup)
+    await act(async () =>
+      hook.result.current.submitFolderTarget('claude', {
+        ...claudeProfile,
+        agentDirectory: '/home/agent/.claude-work'
       })
     )
-    await act(async () => remoteHook.result.current.submitFolderTarget('pi', profile))
+    expect(createFolderWorkspace).toHaveBeenCalledOnce()
+    expect(activateAndRevealFolderWorkspace).toHaveBeenCalledWith(
+      'folder-1',
+      expect.objectContaining({
+        startup: expect.objectContaining({
+          launchConfig: expect.objectContaining({
+            agentCommand: expect.stringMatching(/^ccw /),
+            agentEnv: expect.objectContaining({ CLAUDE_CONFIG_DIR: '/home/agent/.claude-work' })
+          })
+        })
+      })
+    )
+  })
+
+  it('rejects a profile without a root on the selected host before creating a folder', async () => {
+    const { hook, createFolderWorkspace, onCreated, setCreateError } = setup(sshGroup)
+    await act(async () => hook.result.current.submitFolderTarget('pi', profile))
     expect(createFolderWorkspace).not.toHaveBeenCalled()
     expect(onCreated).not.toHaveBeenCalled()
     expect(setCreateError).toHaveBeenCalled()
-    hook.unmount()
   })
 })

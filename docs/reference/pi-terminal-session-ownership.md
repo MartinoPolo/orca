@@ -49,29 +49,41 @@ process has exited.
 
 ## Named launch profiles
 
-Agent settings can register local-native Pi profiles with a display name, concrete
-command, and absolute account directory. Credentials stay in that directory and are
-not persisted in settings. Profiles are not offered to WSL, SSH, or paired runtimes;
-on Windows, POSIX wrapper commands require a compatible configured shell such as Git
-Bash. The recommended two-account setup keeps the built-in default as `pi` and
-adds one profile named `piw` with command `piw` and the work account directory.
-Launch menus show `pi` for the default and each profile's exact configured name;
-do not add a duplicate Personal profile for the default account. New worktree and
-folder workspace creation offer configured profiles alongside built-in `pi` on
-local-native targets; selecting a profile carries its command and account directory
-into the initial startup, including linked-item drafts. SSH, WSL, paired runtime,
-and ephemeral-VM targets cannot use local account profiles.
+Agent settings register named Pi and Claude profiles with a display name, a concrete
+command, an absolute local account directory, and an optional `~/`-relative remote
+directory. Credentials stay in those directories and are never persisted in
+settings. A profile exports its agent's account variables: `PI_CODING_AGENT_DIR` and
+`ORCA_PI_SOURCE_AGENT_DIR` for Pi, `CLAUDE_CONFIG_DIR` for Claude. On Windows, POSIX
+wrapper commands require a compatible configured shell such as Git Bash.
 
-Launches snapshot the concrete command plus `PI_CODING_AGENT_DIR` and
-`ORCA_PI_SOURCE_AGENT_DIR`. Local-native restore and history flows compare lexical
-transcript boundaries against that account root; remote, WSL, and paired snapshots
-are never interpreted with local profile roots. A matching captured command and root
-remain authoritative after settings change; conflicting account roots are rejected.
-Stamped local records can select one unambiguous registered root, but never-stamped
-records cannot because they may be remote orphans. History and drag/drop use the
-same account checks. Unmatched custom history remains parked instead of falling
-back to default Pi. Conventional history is accepted only under the local home
-reported by preload, never by matching a `.pi/agent/sessions` suffix alone.
+Keep the built-in default as `pi` or `claude` and add one profile per extra account
+(for example `piw` or `ccw`); do not duplicate the default account. Claude history
+under the owning host's `~/.claude/projects` selects `claude`, not a work-account
+command override. Leave the implicit default config directory unpinned: exporting
+`CLAUDE_CONFIG_DIR` even for `~/.claude` changes its OAuth Keychain identity. Local-native
+targets offer every profile. SSH targets offer only profiles with a remote directory,
+resolved against the home the host reported, so a remote launch never receives a
+local path. WSL, paired runtime, and ephemeral-VM targets offer none. Tab launch
+menus, quick launch, and new worktree or folder creation share this scoping; a
+pending linked creation is reused only when its captured command and account root
+match the selection.
+
+Launches snapshot the concrete command and account variables, and resume replays
+that snapshot rather than the current default, locally and over SSH. Local-native
+restore and history flows compare lexical transcript boundaries against the account
+root; remote, WSL, and paired snapshots are never interpreted with local roots. A
+matching captured command and root remain authoritative after settings change;
+conflicting roots are rejected. Stamped local records can select one unambiguous
+registered root, but never-stamped records cannot because they may be remote orphans.
+History and drag/drop use the same checks; unmatched custom history stays parked
+instead of falling back to the default. Conventional history is accepted only under
+the local home reported by preload, never by matching a `.pi/agent/sessions` suffix.
+
+Claude hook installation includes configured local and remote profile roots;
+saving profiles reconciles connected SSH hosts without restarting their terminals.
+Older relays ignore the extra roots and hook only `~/.claude`. Pi's existing relay
+spawn preparation installs its status extension directly into the selected account
+root. MPX hook mirroring remains a compatibility fallback.
 
 ## Validation and deployment
 

@@ -21,7 +21,8 @@ import { shouldAllowComposerEnterSubmitTarget } from '@/lib/new-workspace-enter-
 import { isScreenSubmitShortcut } from '@/lib/screen-submit-shortcut'
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
 import type { TuiAgent } from '../../../shared/tui-agent'
-import { normalizePiLaunchProfiles, type PiLaunchProfile } from '../../../shared/pi-launch-profiles'
+import type { AgentProfileSelection } from '../../../shared/agent-launch-profile-agents'
+import { getComposerAgentProfiles } from '@/lib/composer-agent-profile-target'
 import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../../shared/workspace-source'
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
@@ -92,7 +93,9 @@ function ComposerModalBody({
           // so users can start typing immediately.
           event.preventDefault()
           const content = event.currentTarget as HTMLElement
-          getWorkspaceComposerInitialFocusTarget(content)?.focus({ preventScroll: true })
+          getWorkspaceComposerInitialFocusTarget(content)?.focus({
+            preventScroll: true
+          })
         }}
       >
         <QuickTabBody
@@ -124,7 +127,7 @@ function QuickTabBody({
     onComposerNodeChange,
     nameInputRef,
     submitQuick,
-    piProfilesAvailable,
+    profileHostScope,
     createDisabled,
     selectAddedProjectRepo
   } = useComposerState({
@@ -179,21 +182,24 @@ function QuickTabBody({
     // before the child selector renders an unavailable option for one commit.
     setQuickAgentOverride(resolvedQuickAgentSelection.quickAgentOverride)
   }
-  const [selectedPiProfile, setSelectedPiProfile] = useState<PiLaunchProfile | null>(null)
-  const quickAgent = selectedPiProfile ? 'pi' : resolvedQuickAgentSelection.quickAgent
-  const availablePiProfiles =
-    piProfilesAvailable && !settings?.disabledTuiAgents?.includes('pi')
-      ? normalizePiLaunchProfiles(settings?.piLaunchProfiles)
-      : []
+  const [selectedAgentProfile, setSelectedAgentProfile] = useState<AgentProfileSelection | null>(
+    null
+  )
+  const quickAgent = selectedAgentProfile?.agent ?? resolvedQuickAgentSelection.quickAgent
+  const availableAgentProfiles = getComposerAgentProfiles(
+    settings,
+    profileHostScope,
+    settings?.disabledTuiAgents
+  )
 
   const handleQuickAgentChange = useCallback((agent: TuiAgent | null) => {
     setQuickAgentOverride(agent)
-    setSelectedPiProfile(null)
+    setSelectedAgentProfile(null)
   }, [])
 
   const handleCreate = useCallback(async (): Promise<void> => {
-    await submitQuick(quickAgent, selectedPiProfile ?? undefined)
-  }, [quickAgent, selectedPiProfile, submitQuick])
+    await submitQuick(quickAgent, selectedAgentProfile?.profile)
+  }, [quickAgent, selectedAgentProfile, submitQuick])
   // Why: Add Project layers over the composer as a nested dialog instead of
   // replacing it in the activeModal slot — closing the composer mid-flow (and
   // losing the typed name/prompt) was the old, abrupt behavior. Once opened it
@@ -309,12 +315,12 @@ function QuickTabBody({
         nameInputRef={nameInputRef}
         quickAgent={quickAgent}
         onQuickAgentChange={handleQuickAgentChange}
-        piProfiles={availablePiProfiles}
-        selectedPiProfile={selectedPiProfile}
-        onPiProfileChange={(profile) => {
-          setSelectedPiProfile(profile)
-          if (profile) {
-            setQuickAgentOverride('pi')
+        agentProfiles={availableAgentProfiles}
+        selectedAgentProfile={selectedAgentProfile}
+        onAgentProfileChange={(selection) => {
+          setSelectedAgentProfile(selection)
+          if (selection) {
+            setQuickAgentOverride(selection.agent)
           }
         }}
         {...cardProps}

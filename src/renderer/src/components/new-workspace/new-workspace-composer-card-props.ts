@@ -18,7 +18,7 @@ import type { SparsePreset } from '../../../../shared/worktree/create-types'
 import type { SshConnectionStatus } from '../../../../shared/ssh-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentProfileSelection } from '../../../../shared/agent-launch-profile-agents'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 
 export type RepoOption = React.ComponentProps<typeof RepoCombobox>['repos'][number]
@@ -36,9 +36,9 @@ export type NewWorkspaceComposerCardProps = {
   nameInputRef?: React.RefObject<HTMLInputElement | null>
   quickAgent: TuiAgent | null
   onQuickAgentChange: (agent: TuiAgent | null) => void
-  piProfiles?: readonly PiLaunchProfile[]
-  selectedPiProfile?: PiLaunchProfile | null
-  onPiProfileChange?: (profile: PiLaunchProfile | null) => void
+  agentProfiles?: readonly AgentProfileSelection[]
+  selectedAgentProfile?: AgentProfileSelection | null
+  onAgentProfileChange?: (selection: AgentProfileSelection | null) => void
   eligibleRepos: readonly RepoOption[]
   repoId: string
   projectOptions?: NewWorkspaceProjectOption[]
