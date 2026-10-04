@@ -24,6 +24,7 @@ import { buildBody } from './server.test-fixtures'
 import { _internals as codexInternals } from '../codex/hook-service'
 import { makePaneKey } from '../../shared/stable-pane-id'
 import { buildPosixHookSpoolLines } from './hook-stdin-contract'
+import { findGitBash } from './windows-git-bash-path.test-fixture'
 
 describe('agent hook spool', () => {
   it('appends each record with one printf write to prevent concurrent field interleaving', () => {
@@ -231,11 +232,13 @@ describe('agent hook spool', () => {
     const script = join(dir, 'codex-hook.sh')
     writeFileSync(script, codexInternals.getManagedScript('posix'))
     chmodSync(script, 0o755)
-    execFileSync('/bin/sh', [script], {
+    const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
+    execFileSync(shell, [script], {
+      windowsHide: true,
       input: '{"hook_event_name":"SubagentStop","agent_id":"child"}\n',
       env: {
         ...process.env,
-        ORCA_AGENT_HOOK_ENDPOINT: endpoint,
+        ORCA_AGENT_HOOK_ENDPOINT: endpoint.replace(/\\/g, '/'),
         ORCA_PANE_KEY: 'tab-failure:0',
         ORCA_TAB_ID: 'tab-failure',
         ORCA_AGENT_LAUNCH_TOKEN: 'generation-token'
