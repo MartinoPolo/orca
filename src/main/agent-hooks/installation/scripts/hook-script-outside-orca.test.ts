@@ -4,6 +4,7 @@ import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getManagedScript } from '../../../codex/hooks/definitions/codex-hook-script'
+import { findGitBash } from '../commands/testing/windows-git-bash-path.test-fixture'
 
 const roots: string[] = []
 
@@ -30,7 +31,9 @@ function runHook(dir: string, extraEnv: NodeJS.ProcessEnv = {}) {
       clean[k] = v
     }
   }
-  return spawnSync('/bin/sh', [script], {
+  const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
+  return spawnSync(shell, [script], {
+    windowsHide: true,
     input: '{"hook_event_name":"SubagentStop","agent_id":"child"}\n',
     env: { ...clean, ...extraEnv },
     timeout: 5000,
@@ -51,7 +54,7 @@ describe.skipIf(process.platform === 'win32')('managed hook outside an Orca term
   it('endpoint points at a path that does not exist: silent, exit 0', () => {
     const dir = createTempDir('orca-outside-stale-')
     const res = runHook(dir, {
-      ORCA_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env'),
+      ORCA_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env').replace(/\\/g, '/'),
       ORCA_PANE_KEY: 'tab:0'
     })
     expect(res.status).toBe(0)
@@ -65,7 +68,7 @@ describe.skipIf(process.platform === 'win32')('managed hook outside an Orca term
     const dir = createTempDir('orca-outside-readable-')
     const endpoint = join(dir, 'endpoint.env')
     writeFileSync(endpoint, 'ORCA_AGENT_HOOK_PORT=9\nORCA_AGENT_HOOK_TOKEN=stale\n')
-    const res = runHook(dir, { ORCA_AGENT_HOOK_ENDPOINT: endpoint })
+    const res = runHook(dir, { ORCA_AGENT_HOOK_ENDPOINT: endpoint.replace(/\\/g, '/') })
     expect(res.status).toBe(0)
     expect(res.stdout).toBe('')
     expect(res.stderr).toBe('')
