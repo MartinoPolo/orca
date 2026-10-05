@@ -1,5 +1,5 @@
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -86,7 +86,7 @@ export type ComposerSubmitModel = {
   executeQuickCreation: (
     resolution: PendingSmartGitHubSubmitResolution,
     requestedAgent: TuiAgent | null,
-    piProfile: PiLaunchProfile | undefined,
+    agentProfile: AgentLaunchProfile | undefined,
     workspaceNameSeed: string,
     workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
     repoId: string,
@@ -110,9 +110,9 @@ export type ComposerSubmitModel = {
   ) => QuickSubmitSource | null
   resetForNextCreate: () => void
   submit: () => Promise<void>
-  submitQuick: (agent: TuiAgent | null, piProfile?: PiLaunchProfile) => Promise<void>
+  submitQuick: (agent: TuiAgent | null, agentProfile?: AgentLaunchProfile) => Promise<void>
   submitFolderTarget: (
     requestedAgent: TuiAgent | null,
-    piProfile?: PiLaunchProfile
+    agentProfile?: AgentLaunchProfile
   ) => Promise<void>
 }

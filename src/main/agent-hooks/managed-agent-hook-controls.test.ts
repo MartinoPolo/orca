@@ -1,3 +1,5 @@
+import { homedir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -50,6 +52,7 @@ import {
   applyAgentStatusHooksEnabled,
   installManagedAgentHooks,
   removeManagedAgentHooksAsync,
+  reconcileClaudeLaunchProfileHooks,
   resolveStartupManagedHookAction,
   shouldInstallStartupManagedAgentHook,
   shouldContinueManagedHookStartup
@@ -79,13 +82,102 @@ describe('managed agent hook controls', () => {
     mocks.probeClaudeVersion.mockResolvedValue(null)
   })
 
+  const profile = {
+    id: 'work',
+    name: 'Work',
+    command: 'claude',
+    agentDirectory: resolve('/accounts/work')
+  }
+
+  it('installs normalized unique local profile roots after default Claude using the same installer', async () => {
+    mocks.detect.mockResolvedValue({ claude: { state: 'found', executablePath: '/bin/claude' } })
+    mocks.probeClaudeVersion.mockResolvedValue('2.1.261')
+    await installManagedAgentHooks(
+      {
+        claudeLaunchProfiles: [
+          profile,
+          { ...profile, id: 'duplicate', name: 'Duplicate' },
+          {
+            ...profile,
+            id: 'default',
+            name: 'Default',
+            agentDirectory: join(homedir(), '.claude')
+          },
+          { ...profile, id: 'invalid', name: 'Invalid', agentDirectory: 'relative' }
+        ]
+      },
+      { agents: ['claude'] }
+    )
+    expect(mocks.installClaude.mock.calls).toEqual([
+      [{ cliVersion: '2.1.261' }],
+      [{ cliVersion: '2.1.261', configDirectory: profile.agentDirectory }]
+    ])
+  })
+
+  it.each([{ agentStatusHooksEnabled: false }, { disabledTuiAgents: ['claude'] as const }])(
+    'skips profile installation when disabled: %j',
+    async (settings) => {
+      mocks.detect.mockResolvedValue({ claude: { state: 'found' } })
+      await installManagedAgentHooks(
+        {
+          ...settings,
+          disabledTuiAgents: [...(settings.disabledTuiAgents ?? [])],
+          claudeLaunchProfiles: [profile]
+        },
+        { agents: ['claude'] }
+      )
+      expect(mocks.installClaude).not.toHaveBeenCalled()
+    }
+  )
+
+  it('rechecks shouldContinue before installing profile roots', async () => {
+    mocks.detect.mockResolvedValue({ claude: { state: 'found' } })
+    let enabled = true
+    mocks.installClaude.mockImplementation(() => {
+      enabled = false
+      return status('claude', 'installed')
+    })
+    await installManagedAgentHooks(
+      { claudeLaunchProfiles: [profile] },
+      {
+        agents: ['claude'],
+        shouldContinue: () => enabled
+      }
+    )
+    expect(mocks.installClaude).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes configured profile hooks along with default hooks when disabled', async () => {
+    await applyAgentStatusHooksEnabled(false, { claudeLaunchProfiles: [profile] })
+    expect(mocks.removeClaude.mock.calls).toEqual([[], [profile.agentDirectory]])
+    expect(mocks.installClaude).not.toHaveBeenCalled()
+  })
+
+  it('removes retired profile roots and reconciles only Claude on profile changes', async () => {
+    mocks.detect.mockResolvedValue({ claude: { state: 'found' } })
+    const nextProfile = { ...profile, agentDirectory: resolve('/accounts/new-work') }
+    await reconcileClaudeLaunchProfileHooks(
+      { claudeLaunchProfiles: [profile] },
+      { claudeLaunchProfiles: [nextProfile], agentStatusHooksEnabled: true }
+    )
+    expect(mocks.removeClaude).toHaveBeenCalledWith(profile.agentDirectory)
+    expect(mocks.installClaude).toHaveBeenCalledWith({
+      configDirectory: nextProfile.agentDirectory
+    })
+    expect(mocks.installCodex).not.toHaveBeenCalled()
+    expect(mocks.removeCodex).not.toHaveBeenCalled()
+  })
+
   it('installs only agents with positively detected CLIs', async () => {
     mocks.detect.mockResolvedValue({
       claude: { state: 'missing' },
       codex: { state: 'found' }
     })
 
-    const results = await installManagedAgentHooks({ agentCmdOverrides: {} })
+    const results = await installManagedAgentHooks({
+      agentCmdOverrides: {},
+      claudeLaunchProfiles: [profile]
+    })
 
     expect(mocks.installClaude).not.toHaveBeenCalled()
     expect(mocks.installCodex).toHaveBeenCalledTimes(1)
@@ -213,10 +305,11 @@ describe('managed agent hook controls', () => {
 
     const results = await applyAgentStatusHooksEnabled(true, {
       agentCmdOverrides: {},
-      disabledTuiAgents: ['claude']
+      disabledTuiAgents: ['claude'],
+      claudeLaunchProfiles: [profile]
     })
 
-    expect(mocks.removeClaude).toHaveBeenCalledTimes(1)
+    expect(mocks.removeClaude.mock.calls).toEqual([[], [profile.agentDirectory]])
     expect(mocks.installClaude).not.toHaveBeenCalled()
     expect(mocks.installCodex).toHaveBeenCalledTimes(1)
     expect(results).toEqual([
@@ -238,6 +331,23 @@ describe('managed agent hook controls', () => {
 
     expect(mocks.installClaude).not.toHaveBeenCalled()
     expect(mocks.installCodex).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not install default or profile hooks if disabled while probing Claude version', async () => {
+    mocks.detect.mockResolvedValue({ claude: { state: 'found', executablePath: '/bin/claude' } })
+    let enabled = true
+    mocks.probeClaudeVersion.mockImplementation(async () => {
+      enabled = false
+      return '2.1.261'
+    })
+    await installManagedAgentHooks(
+      { claudeLaunchProfiles: [profile] },
+      {
+        agents: ['claude'],
+        shouldContinue: () => enabled
+      }
+    )
+    expect(mocks.installClaude).not.toHaveBeenCalled()
   })
 
   it('does not finish a startup install after shutdown begins', async () => {

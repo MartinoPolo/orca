@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { PendingWorktreeCreation } from '@/lib/pending-worktree-creation'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import { useQuickSubmitAction } from './quick-submit-action'
 
-const profile: PiLaunchProfile = {
+const profile: AgentLaunchProfile = {
   id: 'work',
   name: 'piw',
   command: '/tools/piw',
@@ -45,7 +45,10 @@ const pending = (command: string, directory?: string): PendingWorktreeCreation =
         agentCommand: command,
         agentArgs: '',
         agentEnv: directory
-          ? { PI_CODING_AGENT_DIR: directory, ORCA_PI_SOURCE_AGENT_DIR: directory }
+          ? {
+              PI_CODING_AGENT_DIR: directory,
+              ORCA_PI_SOURCE_AGENT_DIR: directory
+            }
           : {}
       }
     }
@@ -106,7 +109,9 @@ function setup() {
 
 describe('quick linked-work-item pending reuse', () => {
   it('refuses a personal pending Pi creation when a named profile was selected', async () => {
-    useAppStore.setState({ pendingWorktreeCreations: { 'pending-1': pending('pi') } })
+    useAppStore.setState({
+      pendingWorktreeCreations: { 'pending-1': pending('pi') }
+    })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', profile))
     expect(input.setCreateError).toHaveBeenCalledWith(
@@ -126,35 +131,48 @@ describe('quick linked-work-item pending reuse', () => {
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', profile))
     expect(input.setCreateError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('different Pi account') })
+      expect.objectContaining({
+        message: expect.stringContaining('different Pi account')
+      })
     )
     expect(input.onCreated).not.toHaveBeenCalled()
     expect(useAppStore.getState().setActivePendingWorktreeCreation).not.toHaveBeenCalled()
   })
 
   it('refuses an env-less pending Pi snapshot for a named profile targeting the default directory', async () => {
-    vi.stubGlobal('api', { platform: { get: () => ({ homeDirectory: '/tmp' }) } })
+    vi.stubGlobal('api', {
+      platform: { get: () => ({ homeDirectory: '/tmp' }) }
+    })
     const defaultDirectoryProfile = {
       ...profile,
       command: 'pi',
       agentDirectory: '/tmp/.pi/agent'
     }
     useAppStore.setState({
-      settings: { ...getDefaultSettings('/tmp'), piLaunchProfiles: [defaultDirectoryProfile] },
+      settings: {
+        ...getDefaultSettings('/tmp'),
+        piLaunchProfiles: [defaultDirectoryProfile]
+      },
       pendingWorktreeCreations: { 'pending-1': pending('pi') }
     })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', defaultDirectoryProfile))
     expect(input.setCreateError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('different Pi account') })
+      expect.objectContaining({
+        message: expect.stringContaining('different Pi account')
+      })
     )
     expect(input.onCreated).not.toHaveBeenCalled()
     expect(useAppStore.getState().setActivePendingWorktreeCreation).not.toHaveBeenCalled()
   })
 
   it('reuses an env-less local built-in Pi pending creation', async () => {
-    vi.stubGlobal('api', { platform: { get: () => ({ homeDirectory: '/tmp' }) } })
-    useAppStore.setState({ pendingWorktreeCreations: { 'pending-1': pending('pi') } })
+    vi.stubGlobal('api', {
+      platform: { get: () => ({ homeDirectory: '/tmp' }) }
+    })
+    useAppStore.setState({
+      pendingWorktreeCreations: { 'pending-1': pending('pi') }
+    })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi'))
     expect(input.onCreated).toHaveBeenCalledOnce()
@@ -163,7 +181,9 @@ describe('quick linked-work-item pending reuse', () => {
 
   it('reuses only the same captured Pi command and normalized account', async () => {
     useAppStore.setState({
-      pendingWorktreeCreations: { 'pending-1': pending('/tools/piw', '/accounts/work/') }
+      pendingWorktreeCreations: {
+        'pending-1': pending('/tools/piw', '/accounts/work/')
+      }
     })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', profile))
@@ -173,7 +193,9 @@ describe('quick linked-work-item pending reuse', () => {
 
   it('reuses only the same captured Pi command and account', async () => {
     useAppStore.setState({
-      pendingWorktreeCreations: { 'pending-1': pending('/tools/piw', '/accounts/work') }
+      pendingWorktreeCreations: {
+        'pending-1': pending('/tools/piw', '/accounts/work')
+      }
     })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', profile))
@@ -198,7 +220,9 @@ describe('quick linked-work-item pending reuse', () => {
 
   it('refuses a pending Pi creation with the same command but a different account', async () => {
     useAppStore.setState({
-      pendingWorktreeCreations: { 'pending-1': pending('/tools/piw', '/accounts/personal') }
+      pendingWorktreeCreations: {
+        'pending-1': pending('/tools/piw', '/accounts/personal')
+      }
     })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi', profile))
@@ -208,7 +232,9 @@ describe('quick linked-work-item pending reuse', () => {
 
   it('refuses a named pending Pi creation when default Pi was selected', async () => {
     useAppStore.setState({
-      pendingWorktreeCreations: { 'pending-1': pending('/tools/piw', '/accounts/work') }
+      pendingWorktreeCreations: {
+        'pending-1': pending('/tools/piw', '/accounts/work')
+      }
     })
     const { input, hook } = setup()
     await act(async () => hook.result.current.submitQuick('pi'))
@@ -226,7 +252,7 @@ describe('quick linked-work-item pending reuse', () => {
     expect(input.onCreated).not.toHaveBeenCalled()
   })
 
-  it('keeps non-Pi linked dedup unchanged', async () => {
+  it('keeps profile-free Claude linked dedup unchanged', async () => {
     const entry = pending('claude')
     entry.request.agent = 'claude'
     useAppStore.setState({ pendingWorktreeCreations: { 'pending-1': entry } })
@@ -236,9 +262,34 @@ describe('quick linked-work-item pending reuse', () => {
     expect(input.setCreateError).not.toHaveBeenCalled()
   })
 
+  it('refuses a pending Claude creation from another profile account', async () => {
+    const claudeProfile = {
+      id: 'work',
+      name: 'ccw',
+      command: 'ccw',
+      agentDirectory: '/accounts/claude-work'
+    }
+    const entry = pending('claude')
+    entry.request.agent = 'claude'
+    useAppStore.setState({
+      pendingWorktreeCreations: { 'pending-1': entry },
+      settings: { ...getDefaultSettings('/tmp'), claudeLaunchProfiles: [claudeProfile] }
+    })
+    const { input, hook } = setup()
+    await act(async () => hook.result.current.submitQuick('claude', claudeProfile))
+    expect(input.setCreateError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('different Claude account')
+      })
+    )
+    expect(input.onCreated).not.toHaveBeenCalled()
+  })
+
   it('rejects a deleted selected profile before reusing a pending creation', async () => {
     useAppStore.setState({
-      pendingWorktreeCreations: { 'pending-1': pending('/tools/piw', '/accounts/work') },
+      pendingWorktreeCreations: {
+        'pending-1': pending('/tools/piw', '/accounts/work')
+      },
       settings: { ...getDefaultSettings('/tmp'), piLaunchProfiles: [] }
     })
     const { input, hook } = setup()

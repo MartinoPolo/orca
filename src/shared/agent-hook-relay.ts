@@ -220,6 +220,8 @@ export type AgentHookInstallManagedHooksParams = {
   agents: readonly AgentHookTarget[]
   /** Execution-host Claude version; absent means retain the legacy hook set. */
   claudeVersion?: string
+  /** `~/`-relative Claude profile config roots that need hooks besides `~/.claude`. */
+  claudeConfigDirectories?: readonly string[]
 }
 
 /** Feature-flag env var. Read once at process start by Orca and the relay.

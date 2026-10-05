@@ -4,6 +4,8 @@ import type { GlobalSettings } from '../../shared/global-settings-types'
 const {
   applyAppIconMock,
   applyAgentStatusHooksEnabledMock,
+  reconcileClaudeLaunchProfileHooksMock,
+  activeSessionsMock,
   applyElectronProxySettingsMock,
   browserWindowGetAllWindowsMock,
   handleMock,
@@ -19,6 +21,8 @@ const {
 } = vi.hoisted(() => ({
   applyAppIconMock: vi.fn(),
   applyAgentStatusHooksEnabledMock: vi.fn(),
+  reconcileClaudeLaunchProfileHooksMock: vi.fn(),
+  activeSessionsMock: new Map<string, { reconcileClaudeLaunchProfileHooks: () => Promise<void> }>(),
   applyElectronProxySettingsMock: vi.fn(),
   browserWindowGetAllWindowsMock: vi.fn(),
   handleMock: vi.fn(),
@@ -69,8 +73,11 @@ vi.mock('../ai-vault-search/session-search-enablement', () => ({
 }))
 
 vi.mock('../agent-hooks/managed-agent-hook-controls', () => ({
-  applyAgentStatusHooksEnabled: applyAgentStatusHooksEnabledMock
+  applyAgentStatusHooksEnabled: applyAgentStatusHooksEnabledMock,
+  reconcileClaudeLaunchProfileHooks: reconcileClaudeLaunchProfileHooksMock
 }))
+
+vi.mock('./ssh-active-relay-sessions', () => ({ activeSessions: activeSessionsMock }))
 
 vi.mock('../worktree-root-preparation', () => ({
   prepareLocalWorktreeRootsForRepos: prepareLocalWorktreeRootsForReposMock
@@ -107,6 +114,8 @@ describe('registerSettingsHandlers', () => {
     onMock.mockClear()
     applyAppIconMock.mockClear()
     applyAgentStatusHooksEnabledMock.mockReset().mockResolvedValue([])
+    reconcileClaudeLaunchProfileHooksMock.mockReset().mockResolvedValue([])
+    activeSessionsMock.clear()
     applyElectronProxySettingsMock.mockClear()
     applyElectronProxySettingsMock.mockResolvedValue({ source: 'settings' })
     previewGhosttyImportMock.mockClear()
@@ -195,6 +204,54 @@ describe('registerSettingsHandlers', () => {
       updated,
       expect.objectContaining({ shouldContinue: expect.any(Function) })
     )
+  })
+
+  it('awaits Claude profile reconciliation before resolving settings:set', async () => {
+    const profile = {
+      id: 'work',
+      name: 'Work',
+      command: 'claude',
+      agentDirectory: '/accounts/work',
+      remoteAgentDirectory: '~/.claude-work'
+    }
+    const before = {
+      agentStatusHooksEnabled: true,
+      disabledTuiAgents: [],
+      claudeLaunchProfiles: []
+    }
+    const updated = { ...before, claudeLaunchProfiles: [profile] }
+    store.getSettings.mockReturnValue(before)
+    store.updateSettings.mockReturnValue(updated)
+    let finishRemote: (() => void) | undefined
+    const liveSession = {
+      reconcileClaudeLaunchProfileHooks: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishRemote = resolve
+          })
+      )
+    }
+    activeSessionsMock.set('live', liveSession)
+    registerSettingsHandlers(store as never)
+    const handler = handleMock.mock.calls.find(([channel]) => channel === 'settings:set')?.[1]
+    expect(handler).toBeTypeOf('function')
+    let saved = false
+    const saving = handler(settingsInvokeEvent, { claudeLaunchProfiles: [profile] }).then(() => {
+      saved = true
+    })
+    await vi.waitFor(() =>
+      expect(liveSession.reconcileClaudeLaunchProfileHooks).toHaveBeenCalledTimes(1)
+    )
+    expect(reconcileClaudeLaunchProfileHooksMock).toHaveBeenCalledWith(
+      before,
+      updated,
+      expect.any(Object)
+    )
+    expect(saved).toBe(false)
+    finishRemote?.()
+    await saving
+    expect(saved).toBe(true)
+    expect(applyAgentStatusHooksEnabledMock).not.toHaveBeenCalled()
   })
 
   it('rejects durable Active Server writes through generic settings:set', async () => {

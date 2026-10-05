@@ -11,8 +11,7 @@ import { track } from '../telemetry/client'
 import { SETTINGS_CHANGED_WHITELIST, type SettingsChangedKey } from '../../shared/telemetry-events'
 import type { AgentAwakeService } from '../agent-awake-service'
 import { sanitizeFloatingWorkspaceDirectorySetting } from './floating-workspace-directory'
-import { applyAgentStatusHooksEnabled } from '../agent-hooks/managed-agent-hook-controls'
-import { recordManagedHookInstallFailure } from '../agent-hooks/install-telemetry'
+import { reconcileSettingsManagedHooks } from './settings-managed-hook-reconciliation'
 import { applyElectronProxySettings } from '../network/proxy-settings'
 import { applyBrowserSessionProxies } from '../browser/browser-session-proxy'
 import { browserSessionRegistry } from '../browser/browser-session-registry'
@@ -27,7 +26,6 @@ import { prepareLocalWorktreeRootsForRepos } from '../worktree-root-preparation'
 import { scheduleCurrentWorktreeBaseDirectoryWatcherSync } from './worktree-base-directory-watcher'
 import { applyPRBotAuthorOverride } from '../../shared/pr-bot-author-overrides'
 import { resolveEnvironment } from '../../shared/runtime-environment-store'
-import { haveSameDisabledTuiAgents } from '../../shared/tui-agent-selection'
 import {
   normalizeMobilePairingCustomAddress,
   normalizeMobilePairingCustomAddresses
@@ -231,29 +229,7 @@ export function registerSettingsHandlers(
         normalizeComputerAwakeMode(result.computerAwakeMode, result.keepComputerAwakeWhileAgentsRun)
       )
     }
-    const hookSettingChanged =
-      ('agentStatusHooksEnabled' in sanitizedArgs &&
-        before.agentStatusHooksEnabled !== result.agentStatusHooksEnabled) ||
-      ('disabledTuiAgents' in sanitizedArgs &&
-        !haveSameDisabledTuiAgents(before.disabledTuiAgents, result.disabledTuiAgents))
-    if (hookSettingChanged) {
-      try {
-        await applyAgentStatusHooksEnabled(result.agentStatusHooksEnabled, result, {
-          userInitiated: true,
-          shouldHydrateShellPath: app.isPackaged,
-          onInstallError: recordManagedHookInstallFailure,
-          shouldContinue: (agent) => {
-            const settings = store.getSettings()
-            return (
-              settings.agentStatusHooksEnabled !== false &&
-              !settings.disabledTuiAgents.includes(agent)
-            )
-          }
-        })
-      } catch (error) {
-        console.warn('[settings] failed to reconcile managed agent hooks:', error)
-      }
-    }
+    await reconcileSettingsManagedHooks(store, before, result, sanitizedArgs)
     if ('uiLanguage' in sanitizedArgs && before.uiLanguage !== result.uiLanguage) {
       await setMainUiLanguage(result.uiLanguage)
       rebuildAppMenu()

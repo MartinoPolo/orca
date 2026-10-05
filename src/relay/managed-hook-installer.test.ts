@@ -112,4 +112,33 @@ describe('registerManagedHookInstaller', () => {
       agents: ['claude']
     })
   })
+
+  it('forwards normalized Claude profile roots and rejects roots outside the home', async () => {
+    const installManagedHooks = vi.fn().mockResolvedValue({ installers: 1, errors: 0 })
+    const handler = captureHandler(() => ({ installManagedHooks }))
+
+    await handler(
+      {
+        agents: ['claude'],
+        claudeConfigDirectories: ['~/.claude-work', '.claude-work/', '~/.claude']
+      },
+      context()
+    )
+    await handler({ agents: ['claude'], claudeConfigDirectories: ['~/.claude'] }, context())
+
+    expect(installManagedHooks).toHaveBeenNthCalledWith(1, {
+      signal: undefined,
+      agents: ['claude'],
+      claudeConfigDirectories: ['~/.claude-work']
+    })
+    expect(installManagedHooks).toHaveBeenNthCalledWith(2, {
+      signal: undefined,
+      agents: ['claude']
+    })
+    for (const claudeConfigDirectories of [['/etc'], ['~/../other'], [1], '~/.claude-work']) {
+      await expect(
+        handler({ agents: ['claude'], claudeConfigDirectories }, context())
+      ).rejects.toThrow('invalid_claude_config_directories')
+    }
+  })
 })

@@ -89,7 +89,8 @@ describe('cold restore Pi profile provenance', () => {
       folderWorkspaces: [],
       projectGroups: [],
       activeRepoId: 'repo-1',
-      activeWorktreeId: 'wt-1'
+      activeWorktreeId: 'wt-1',
+      sshConnectionStates: new Map()
     }
   })
 

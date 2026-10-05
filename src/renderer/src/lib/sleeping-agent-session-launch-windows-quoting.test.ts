@@ -77,6 +77,7 @@ const store = {
     Object.values(store.worktreesByRepo)
       .flat()
       .find((worktree) => worktree.id === id),
+  sshConnectionStates: new Map<string, { remoteHomeDirectory?: string }>(),
   tabsByWorktree: { 'wt-1': [{ id: 'tab-1' }] },
   openFiles: [] as { id: string; worktreeId: string }[],
   browserTabsByWorktree: {} as Record<string, { id: string }[]>,

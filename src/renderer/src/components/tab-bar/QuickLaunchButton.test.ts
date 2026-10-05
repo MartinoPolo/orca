@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { toast } from 'sonner'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import { QuickLaunchAgentMenuItems, shouldShowLaunchWatchdogTimeout } from './QuickLaunchButton'
 
 const {
@@ -20,8 +21,10 @@ const {
     settings: {
       defaultTuiAgent: 'claude' | 'codex' | 'gemini' | 'pi' | 'blank' | null
       disabledTuiAgents: string[]
-      piLaunchProfiles: { id: string; name: string; command: string; agentDirectory: string }[]
+      piLaunchProfiles: AgentLaunchProfile[]
+      claudeLaunchProfiles: AgentLaunchProfile[]
     }
+    sshConnectionStates: Map<string, { remoteHomeDirectory?: string }>
     worktreesByRepo: Record<
       string,
       { id: string; repoId: string; path?: string; hostId?: string }[]
@@ -36,8 +39,10 @@ const {
     settings: {
       defaultTuiAgent: 'codex',
       disabledTuiAgents: [],
-      piLaunchProfiles: []
+      piLaunchProfiles: [],
+      claudeLaunchProfiles: []
     },
+    sshConnectionStates: new Map(),
     worktreesByRepo: {},
     repos: [],
     activeWorktreeId: 'worktree-1',
@@ -161,6 +166,8 @@ beforeEach(() => {
   storeState.settings.defaultTuiAgent = 'codex'
   storeState.settings.disabledTuiAgents = []
   storeState.settings.piLaunchProfiles = []
+  storeState.settings.claudeLaunchProfiles = []
+  storeState.sshConnectionStates = new Map()
   storeState.worktreesByRepo = {
     'repo-1': [{ id: 'worktree-1', repoId: 'repo-1', path: '/repo/worktree' }]
   }
@@ -242,10 +249,44 @@ describe('QuickLaunchAgentMenuItems', () => {
     })
     expect(launchAgentInNewTabMock).toHaveBeenNthCalledWith(2, {
       agent: 'pi',
-      piLaunchProfile: piwProfile,
+      agentLaunchProfile: piwProfile,
       worktreeId: 'worktree-1',
       groupId: 'group-1'
     })
+  })
+
+  it('offers only profiles with a remote folder on SSH workspaces, rooted in the remote home', () => {
+    storeState.repos = [{ id: 'repo-1', connectionId: 'ssh-1', executionHostId: 'ssh:ssh-1' }]
+    storeState.sshConnectionStates = new Map([['ssh-1', { remoteHomeDirectory: '/home/agent' }]])
+    storeState.settings.claudeLaunchProfiles = [
+      {
+        id: 'work',
+        name: 'ccw',
+        command: 'ccw',
+        agentDirectory: 'C:/Users/ada/.claude-work',
+        remoteAgentDirectory: '~/.claude-work'
+      }
+    ]
+    storeState.settings.piLaunchProfiles = [
+      { id: 'local', name: 'piw', command: 'piw', agentDirectory: 'C:/accounts/work' }
+    ]
+    render(
+      React.createElement(QuickLaunchAgentMenuItems, {
+        worktreeId: 'worktree-1',
+        groupId: 'group-1',
+        onFocusTerminal: vi.fn()
+      })
+    )
+
+    expect(screen.queryByRole('button', { name: /piw/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /ccw/ }))
+
+    expect(launchAgentInNewTabMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: 'claude',
+        agentLaunchProfile: expect.objectContaining({ agentDirectory: '/home/agent/.claude-work' })
+      })
+    )
   })
 
   it('renders the new-agent shortcut next to the configured default agent only', () => {

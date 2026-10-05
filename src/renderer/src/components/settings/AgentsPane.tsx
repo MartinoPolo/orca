@@ -46,7 +46,7 @@ import {
 import { AgentAvailabilityControl, type AgentCatalogRowProps } from './AgentCatalogRow'
 import { AgentDefaultSetting } from './AgentDefaultSetting'
 import { AgentDetectionCatalog } from './AgentDetectionCatalog'
-import { PiLaunchProfilesSetting } from './PiLaunchProfilesSetting'
+import { AgentLaunchProfilesSetting } from './AgentLaunchProfilesSetting'
 
 export {
   buildAgentAvailabilitySettingsUpdate,
@@ -281,7 +281,18 @@ export function AgentsPane({
         wslCapabilitiesLoading={wslCapabilitiesLoading}
       />
       {!isPairedWebClientWindow() && !activeServerEnvironmentId ? (
-        <PiLaunchProfilesSetting settings={settings} updateSettings={updateSettingsOrThrow} />
+        <>
+          <AgentLaunchProfilesSetting
+            agent="pi"
+            settings={settings}
+            updateSettings={updateSettingsOrThrow}
+          />
+          <AgentLaunchProfilesSetting
+            agent="claude"
+            settings={settings}
+            updateSettings={updateSettingsOrThrow}
+          />
+        </>
       ) : null}
       <AgentStatusHooksSetting settings={settings} updateSettings={updateSettings} />
       <AgentGeneratedTabTitlesSetting settings={settings} updateSettings={updateSettings} />

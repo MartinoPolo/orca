@@ -3,7 +3,7 @@ import type { AgentSessionLaunchPlan } from '@/lib/agent-session-launch-plan'
 import type { StructuredAgentLaunchSettlement } from '@/lib/structured-agent-launch-settlement'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { LaunchSource } from '../../../shared/telemetry-events'
-import type { PiLaunchProfile } from '../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
 
 export type LaunchAgentInNewTabArgs = {
   agent: TuiAgent
@@ -11,7 +11,7 @@ export type LaunchAgentInNewTabArgs = {
   groupId?: string
   prompt?: string
   agentArgs?: string | null
-  piLaunchProfile?: PiLaunchProfile
+  agentLaunchProfile?: AgentLaunchProfile
   initialCwd?: string | null
   promptDelivery?: 'auto-submit' | 'draft' | 'submit-after-ready'
   launchSource?: LaunchSource
@@ -36,6 +36,9 @@ export type LaunchAgentInNewTabResult = {
   surface: AgentLaunchSurface
   startupPlan: AgentStartupPlan
   pasteDraftAfterLaunch: boolean
-  promptDeliveryResult?: Promise<{ delivered: boolean; failureNotified: boolean }>
+  promptDeliveryResult?: Promise<{
+    delivered: boolean
+    failureNotified: boolean
+  }>
   structuredSettlement?: Promise<StructuredAgentLaunchSettlement>
 } | null

@@ -44,14 +44,17 @@ export function broadcastSshState(
 }
 
 function withSshRemotePlatform(targetId: string, state: SshConnectionState): SshConnectionState {
-  const remotePlatform = activeSessions.get(targetId)?.getHostPlatform()?.os
+  const relaySession = activeSessions.get(targetId)
+  const remotePlatform = relaySession?.getHostPlatform()?.os
+  const remoteHomeDirectory = relaySession?.getRemoteHomeDirectory()
   const authority = getSshProviderAuthority(targetId)
   return {
     ...state,
     targetId,
     providerEpoch: authority.providerEpoch,
     connectionGeneration: authority.connectionGeneration,
-    ...(remotePlatform ? { remotePlatform } : {})
+    ...(remotePlatform ? { remotePlatform } : {}),
+    ...(remoteHomeDirectory ? { remoteHomeDirectory } : {})
   }
 }
 

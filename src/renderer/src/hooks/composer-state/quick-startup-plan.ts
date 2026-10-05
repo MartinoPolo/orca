@@ -1,9 +1,10 @@
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import {
-  buildPiLaunchProfileEnv,
-  type PiLaunchProfile
-} from '../../../../shared/pi-launch-profiles'
+  buildAgentLaunchProfileEnv,
+  isProfileAgent
+} from '../../../../shared/agent-launch-profile-agents'
 import type { AgentStartupShell } from '../../../../shared/tui-agent-startup-shell'
 import type { AgentStartedTelemetry } from '@/lib/worktree-startup-payload'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
@@ -19,7 +20,7 @@ import { tuiAgentToAgentKind } from '@/lib/telemetry'
 
 export type QuickComposerStartupInput = {
   agent: TuiAgent | null
-  piProfile?: PiLaunchProfile
+  agentProfile?: AgentLaunchProfile
   prompt: string
   draftPrompt: string | null | undefined
   settings: GlobalSettings | null | undefined
@@ -38,15 +39,20 @@ export type QuickComposerStartup = {
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
   const { agent, draftPrompt, prompt, settings } = input
-  const commandOverrides = input.piProfile
-    ? { ...settings?.agentCmdOverrides, pi: input.piProfile.command }
-    : (settings?.agentCmdOverrides ?? {})
+  const profileAgent = agent && isProfileAgent(agent) ? agent : null
+  const agentProfile = profileAgent ? input.agentProfile : undefined
+  const commandOverrides =
+    profileAgent && agentProfile
+      ? { ...settings?.agentCmdOverrides, [profileAgent]: agentProfile.command }
+      : (settings?.agentCmdOverrides ?? {})
   const agentEnvironment =
     agent === null
       ? undefined
       : {
           ...resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
-          ...(input.piProfile ? buildPiLaunchProfileEnv(input.piProfile) : {})
+          ...(profileAgent && agentProfile
+            ? buildAgentLaunchProfileEnv(profileAgent, agentProfile)
+            : {})
         }
   const sessionOptions =
     agent === null
@@ -60,7 +66,10 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
           {
             agent,
             ...(draftPrompt
-              ? { promptDelivery: 'draft' as const, launchDraftText: draftPrompt }
+              ? {
+                  promptDelivery: 'draft' as const,
+                  launchDraftText: draftPrompt
+                }
               : {}),
             nativeChatTranscriptIsLocalReadable: isNativeChatTranscriptLocalReadable(
               input.repoConnectionId

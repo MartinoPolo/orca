@@ -24,7 +24,7 @@ import type { TabDropZone } from './useTabDragSplit'
 import { translate } from '@/i18n/i18n'
 import type { AiVaultPrepareSessionResumeResult } from '../../../../shared/ai-vault-resume-preparation'
 import { activateAiVaultStructuredSession } from '@/lib/activate-ai-vault-structured-session'
-import { resolveAiVaultPiDropStartup } from '@/lib/ai-vault-pi-drop-startup'
+import { resolveAiVaultAccountDropStartup } from '@/lib/ai-vault-account-drop-startup'
 
 type PaneDropTarget = {
   groupId: string
@@ -213,10 +213,9 @@ export default function AiVaultSessionDropLayer({
         return true
       }
 
-      const piDropStartup =
-        payload.agent === 'pi' ? resolveAiVaultPiDropStartup({ state, payload, worktreeId }) : null
-      if (piDropStartup && !piDropStartup.ok) {
-        toast.error(piDropStartup.blockedReason)
+      const accountDropStartup = resolveAiVaultAccountDropStartup({ state, payload, worktreeId })
+      if (accountDropStartup && !accountDropStartup.ok) {
+        toast.error(accountDropStartup.blockedReason)
         return true
       }
 
@@ -256,7 +255,7 @@ export default function AiVaultSessionDropLayer({
                   substituteCodexHome: result.substituteCodexHome,
                   worktreeId
                 })
-              : (piDropStartup?.startup ?? payload)
+              : (accountDropStartup?.startup ?? payload)
           if (!startup) {
             // Why: the host just proved the prebuilt command pins another
             // account's home, so an unrepinnable payload (older serializer)

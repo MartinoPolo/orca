@@ -1,14 +1,17 @@
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
 import {
+  findAgentLaunchProfilesForTranscript,
+  normalizeAgentAccountPath,
+  normalizeAgentLaunchProfiles,
+  transcriptBelongsToAgentDirectory,
+  type AgentLaunchProfile
+} from '../../../shared/agent-launch-profiles'
+import {
   buildPiLaunchProfileEnv,
-  findPiLaunchProfilesForTranscript,
   getDefaultPiAgentDirectory,
-  isDefaultPiTranscriptPath,
-  normalizePiAccountPath,
-  normalizePiLaunchProfiles,
-  piTranscriptBelongsToAgentDirectory,
-  type PiLaunchProfile
+  isDefaultPiTranscriptPath
 } from '../../../shared/pi-launch-profiles'
+import { getLocalHomeDirectory } from './agent-profile-launch-target'
 
 export class PiResumeProfileError extends Error {
   constructor(message: string) {
@@ -20,9 +23,11 @@ export class PiResumeProfileError extends Error {
 function capturedPiAgentDirectory(config: SleepingAgentLaunchConfig | undefined): string | null {
   const sourceDirectory = config?.agentEnv.ORCA_PI_SOURCE_AGENT_DIR?.trim() ?? ''
   const runtimeDirectory = config?.agentEnv.PI_CODING_AGENT_DIR?.trim() ?? ''
-  const normalizedSourceDirectory = sourceDirectory ? normalizePiAccountPath(sourceDirectory) : ''
+  const normalizedSourceDirectory = sourceDirectory
+    ? normalizeAgentAccountPath(sourceDirectory)
+    : ''
   const normalizedRuntimeDirectory = runtimeDirectory
-    ? normalizePiAccountPath(runtimeDirectory)
+    ? normalizeAgentAccountPath(runtimeDirectory)
     : ''
 
   if (
@@ -42,22 +47,7 @@ function capturedPiAgentDirectory(config: SleepingAgentLaunchConfig | undefined)
 }
 
 export function getLocalDefaultPiAgentDirectory(): string | undefined {
-  try {
-    return getDefaultPiAgentDirectory(window.api.platform.get().homeDirectory)
-  } catch {
-    return undefined
-  }
-}
-
-export function getPiAccountEnvironment(config: SleepingAgentLaunchConfig): Record<string, string> {
-  const environment: Record<string, string> = {}
-  if (config.agentEnv.PI_CODING_AGENT_DIR) {
-    environment.PI_CODING_AGENT_DIR = config.agentEnv.PI_CODING_AGENT_DIR
-  }
-  if (config.agentEnv.ORCA_PI_SOURCE_AGENT_DIR) {
-    environment.ORCA_PI_SOURCE_AGENT_DIR = config.agentEnv.ORCA_PI_SOURCE_AGENT_DIR
-  }
-  return environment
+  return getDefaultPiAgentDirectory(getLocalHomeDirectory())
 }
 
 export function resolvePiHistoryLaunchConfig(args: {
@@ -110,7 +100,7 @@ export function resolvePiResumeLaunchConfig(args: {
     allowCapturedSnapshot &&
     capturedDirectory &&
     hasCapturedCommand &&
-    piTranscriptBelongsToAgentDirectory(transcriptPath, capturedDirectory)
+    transcriptBelongsToAgentDirectory(transcriptPath, capturedDirectory)
   ) {
     return args.launchConfig
   }
@@ -127,7 +117,7 @@ export function resolvePiResumeLaunchConfig(args: {
     )
   }
 
-  const profiles = normalizePiLaunchProfiles(args.profiles)
+  const profiles = normalizeAgentLaunchProfiles(args.profiles)
   const rawProfileCount = Array.isArray(args.profiles) ? args.profiles.length : 0
   if (rawProfileCount !== profiles.length) {
     throw new PiResumeProfileError(
@@ -135,7 +125,7 @@ export function resolvePiResumeLaunchConfig(args: {
     )
   }
 
-  const matches = findPiLaunchProfilesForTranscript(profiles, transcriptPath)
+  const matches = findAgentLaunchProfilesForTranscript(profiles, transcriptPath)
   if (matches.length > 1) {
     throw new PiResumeProfileError(
       'This Pi session matches more than one configured profile. Make the account directories distinct before resuming.'
@@ -164,7 +154,7 @@ export function resolvePiResumeLaunchConfig(args: {
 
 function applyPiProfileToLaunchConfig(
   config: SleepingAgentLaunchConfig,
-  profile: PiLaunchProfile
+  profile: AgentLaunchProfile
 ): SleepingAgentLaunchConfig {
   return {
     agentCommand: profile.command,

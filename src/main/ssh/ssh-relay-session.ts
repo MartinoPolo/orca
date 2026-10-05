@@ -23,7 +23,12 @@ import { SshFilesystemProvider } from '../providers/ssh-filesystem-provider'
 import { isMethodNotFoundError } from './ssh-filesystem-stream-reader'
 import { SshGitProvider } from '../providers/ssh-git-provider'
 import { agentHookServer } from '../agent-hooks/server'
-import { isAgentStatusHooksEnabled } from '../agent-hooks/managed-agent-hook-controls'
+import {
+  isAgentStatusHooksEnabled,
+  shouldInstallStartupManagedAgentHook
+} from '../agent-hooks/managed-agent-hook-controls'
+import type { AgentHookTarget } from '../../shared/agent-hook-types'
+import { getRemoteClaudeConfigDirectories } from '../agent-hooks/remote-claude-config-directories'
 import {
   buildManagedHookDetectionCommands,
   readManagedHookDetectionResult
@@ -1363,9 +1368,27 @@ export class SshRelaySession {
     })
   }
 
+  async reconcileClaudeLaunchProfileHooks(): Promise<void> {
+    const mux = this.mux
+    const connection = this.currentConnection
+    if (!mux || !connection || mux.isDisposed() || this._state !== 'ready') {
+      return
+    }
+    await this.installManagedHooksOnRemote(
+      mux,
+      () =>
+        this.mux === mux &&
+        this.currentConnection === connection &&
+        this.getState() === 'ready' &&
+        !mux.isDisposed(),
+      ['claude']
+    )
+  }
+
   private async installManagedHooksOnRemote(
     mux: SshChannelMultiplexer,
-    shouldContinue?: () => boolean
+    shouldContinue?: () => boolean,
+    selectedAgents?: readonly AgentHookTarget[]
   ): Promise<void> {
     if (
       !isRemoteAgentHooksEnabled() ||
@@ -1389,15 +1412,24 @@ export class SshRelaySession {
           commands: buildManagedHookDetectionCommands(store.getSettings?.() ?? null, 'linux')
         })
       )
-      const agents = detected.agents
+      const settings = store.getSettings?.() ?? null
+      const agents = detected.agents.filter(
+        (agent) =>
+          (!selectedAgents || selectedAgents.includes(agent)) &&
+          shouldInstallStartupManagedAgentHook(settings, agent)
+      )
       if (agents.length === 0 || (shouldContinue && !shouldContinue())) {
         return
       }
       const hostKeyFingerprint = this.requireReadyConnection().getHostKeyFingerprint?.()
+      const claudeConfigDirectories = agents.includes('claude')
+        ? getRemoteClaudeConfigDirectories(store.getSettings?.() ?? null)
+        : []
       const params = {
         ...(hostKeyFingerprint ? { hostKeyFingerprint } : {}),
         agents,
-        ...(detected.claudeVersion ? { claudeVersion: detected.claudeVersion } : {})
+        ...(detected.claudeVersion ? { claudeVersion: detected.claudeVersion } : {}),
+        ...(claudeConfigDirectories.length > 0 ? { claudeConfigDirectories } : {})
       }
       const result = (await mux.request(AGENT_HOOK_INSTALL_MANAGED_HOOKS_METHOD, params)) as {
         errors?: unknown

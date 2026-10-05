@@ -5,6 +5,12 @@ import {
 } from '../../shared/managed-agent-hook-targets'
 import { normalizeDisabledTuiAgents } from '../../shared/tui-agent-selection'
 import type { GlobalSettings } from '../../shared/global-settings-types'
+import { normalizeAgentAccountPath } from '../../shared/agent-launch-profiles'
+import {
+  getLocalClaudeConfigDirectories,
+  removeClaudeProfileHooks
+} from './local-claude-profile-hooks'
+import { errorStatus, skippedStatus } from './managed-hook-control-status'
 import { probeClaudeCliVersion } from '../claude/claude-session-end-hook-capability'
 import { detectLocalManagedAgentCliPresence } from './local-agent-cli-presence'
 import {
@@ -21,7 +27,10 @@ export { MANAGED_AGENT_HOOK_INSTALLERS } from './managed-agent-hook-registry'
 export { prepareManagedCodexHomeBeforeShellLaunch } from '../codex/managed-home-shell-preflight'
 
 type ManagedHookSettings = Partial<
-  Pick<GlobalSettings, 'agentCmdOverrides' | 'agentStatusHooksEnabled' | 'disabledTuiAgents'>
+  Pick<
+    GlobalSettings,
+    'agentCmdOverrides' | 'agentStatusHooksEnabled' | 'disabledTuiAgents' | 'claudeLaunchProfiles'
+  >
 > | null
 
 type InstallOptions = {
@@ -35,6 +44,7 @@ type InstallOptions = {
 
 type RemoveOptions = {
   agents?: readonly AgentHookTarget[]
+  settings?: ManagedHookSettings
 }
 
 export function isAgentStatusHooksEnabled(
@@ -76,31 +86,6 @@ export function shouldContinueManagedHookStartup(
     isAgentStatusHooksEnabled(settings) &&
     !normalizeDisabledTuiAgents(settings?.disabledTuiAgents).includes(agent)
   )
-}
-
-function errorStatus(agent: AgentHookTarget, error: unknown): AgentHookInstallStatus {
-  return {
-    agent,
-    state: 'error',
-    configPath: '',
-    managedHooksPresent: false,
-    detail: error instanceof Error ? error.message : String(error)
-  }
-}
-
-function skippedStatus(
-  agent: AgentHookTarget,
-  skipReason: NonNullable<AgentHookInstallStatus['skipReason']>,
-  detail: string
-): AgentHookInstallStatus {
-  return {
-    agent,
-    state: 'skipped',
-    configPath: '',
-    managedHooksPresent: false,
-    detail,
-    skipReason
-  }
 }
 
 function selectedInstallers(options: InstallOptions): readonly ManagedAgentHookInstaller[] {
@@ -154,6 +139,11 @@ export async function installManagedAgentHooks(
 ): Promise<AgentHookInstallStatus[]> {
   await refreshExistingManagedScripts(options)
   const installers = selectedInstallers(options)
+  if (!isAgentStatusHooksEnabled(settings)) {
+    return installers.map(([agent]) =>
+      skippedStatus(agent, 'hooks_disabled', 'Agent status hooks are disabled in Settings.')
+    )
+  }
   const disabled = new Set(normalizeDisabledTuiAgents(settings?.disabledTuiAgents))
   const enabledInstallers = installers.filter(([agent]) => !disabled.has(agent))
   const targets = enabledInstallers.flatMap(([agent]) => {
@@ -206,12 +196,31 @@ export async function installManagedAgentHooks(
       agent === 'claude' && presence.executablePath
         ? await probeClaudeCliVersion(presence.executablePath)
         : null
-    results.push(
-      await runInstaller(entry, options.onInstallError, {
-        ...(options.userInitiated !== undefined ? { userInitiated: options.userInitiated } : {}),
-        ...(cliVersion ? { cliVersion } : {})
-      })
-    )
+    if (options.shouldContinue && !options.shouldContinue(agent)) {
+      results.push(
+        skippedStatus(
+          agent,
+          'hooks_disabled',
+          'Agent status hooks were disabled before install completed.'
+        )
+      )
+      continue
+    }
+    const installOptions = {
+      ...(options.userInitiated !== undefined ? { userInitiated: options.userInitiated } : {}),
+      ...(cliVersion ? { cliVersion } : {})
+    }
+    results.push(await runInstaller(entry, options.onInstallError, installOptions))
+    if (agent === 'claude') {
+      for (const configDirectory of getLocalClaudeConfigDirectories(settings)) {
+        if (options.shouldContinue && !options.shouldContinue(agent)) {
+          break
+        }
+        results.push(
+          await runInstaller(entry, options.onInstallError, { ...installOptions, configDirectory })
+        )
+      }
+    }
   }
   return results
 }
@@ -231,7 +240,35 @@ export async function removeManagedAgentHooks(
       results.push(errorStatus(agent, error))
     }
   }
+  if (allowed === null || allowed.has('claude')) {
+    results.push(
+      ...(await removeClaudeProfileHooks(getLocalClaudeConfigDirectories(options.settings ?? null)))
+    )
+  }
   return results
+}
+
+export async function reconcileClaudeLaunchProfileHooks(
+  previousSettings: ManagedHookSettings,
+  settings: ManagedHookSettings,
+  options: InstallOptions = {}
+): Promise<AgentHookInstallStatus[]> {
+  const currentDirectories = new Set(
+    getLocalClaudeConfigDirectories(settings).map(normalizeAgentAccountPath)
+  )
+  const retiredDirectories = getLocalClaudeConfigDirectories(previousSettings).filter(
+    (directory) => !currentDirectories.has(normalizeAgentAccountPath(directory))
+  )
+  const removed = await removeClaudeProfileHooks(retiredDirectories)
+  const reconciled = await applyAgentStatusHooksEnabled(
+    isAgentStatusHooksEnabled(settings),
+    settings,
+    {
+      ...options,
+      agents: ['claude']
+    }
+  )
+  return [...removed, ...reconciled]
 }
 
 export async function removeManagedAgentHooksAsync(
@@ -267,7 +304,7 @@ export async function applyAgentStatusHooksEnabled(
   options: InstallOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
   if (!enabled) {
-    return await removeManagedAgentHooks()
+    return await removeManagedAgentHooks({ agents: options.agents, settings })
   }
   const disabled = normalizeDisabledTuiAgents(settings?.disabledTuiAgents).filter(
     isManagedAgentHookTarget
@@ -280,7 +317,7 @@ export async function applyAgentStatusHooksEnabled(
     return installed
   }
   const removed = new Map(
-    (await removeManagedAgentHooks({ agents: disabledToRemove })).map((status) => [
+    (await removeManagedAgentHooks({ agents: disabledToRemove, settings })).map((status) => [
       status.agent,
       status
     ])

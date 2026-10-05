@@ -1,13 +1,16 @@
 import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import { normalizePiAccountPath, type PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { AGENT_LAUNCH_PROFILE_AGENTS } from '../../../../shared/agent-launch-profile-agents'
 import {
-  getValidatedComposerPiProfile,
-  isComposerRepoPiProfileTarget
-} from '@/lib/composer-pi-profile-target'
-import { getLocalDefaultPiAgentDirectory } from '@/lib/pi-profile-resume-provenance'
+  isMatchingPendingAccountStartup,
+  resolvePendingAccountAgent
+} from './pending-account-startup'
+import {
+  getValidatedComposerAgentProfile,
+  resolveComposerRepoProfileHostScope
+} from '@/lib/composer-agent-profile-target'
 import { buildQuickComposerStartup } from './quick-startup-plan'
-import type { SleepingAgentLaunchConfig } from '../../../../shared/agent-session-resume'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { findPendingLinkedWorkItemCreationId } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
@@ -55,49 +58,6 @@ type QuickSubmitActionInput = Pick<
   | 'submitFolderTarget'
 >
 
-function capturedPiAccountDirectory(
-  config: SleepingAgentLaunchConfig,
-  allowImplicitDefaultDirectory: boolean
-): string | null {
-  const source = config.agentEnv.ORCA_PI_SOURCE_AGENT_DIR
-  const runtime = config.agentEnv.PI_CODING_AGENT_DIR
-  const normalizedSource = source ? normalizePiAccountPath(source) : ''
-  const normalizedRuntime = runtime ? normalizePiAccountPath(runtime) : ''
-  if ((source && !normalizedSource) || (runtime && !normalizedRuntime)) {
-    return null
-  }
-  if (normalizedSource && normalizedSource !== normalizedRuntime) {
-    return null
-  }
-  return (
-    normalizedRuntime ||
-    (allowImplicitDefaultDirectory
-      ? normalizePiAccountPath(getLocalDefaultPiAgentDirectory() ?? '')
-      : null) ||
-    null
-  )
-}
-
-function isMatchingPendingPiStartup(
-  pendingConfig: SleepingAgentLaunchConfig | undefined,
-  selectedConfig: SleepingAgentLaunchConfig | undefined,
-  allowImplicitDefaultDirectory: boolean
-): boolean {
-  if (!pendingConfig?.agentCommand || !selectedConfig?.agentCommand) {
-    return false
-  }
-  const pendingDirectory = capturedPiAccountDirectory(pendingConfig, allowImplicitDefaultDirectory)
-  const selectedDirectory = capturedPiAccountDirectory(
-    selectedConfig,
-    allowImplicitDefaultDirectory
-  )
-  return Boolean(
-    pendingDirectory &&
-    pendingDirectory === selectedDirectory &&
-    pendingConfig.agentCommand === selectedConfig.agentCommand
-  )
-}
-
 export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   const {
     effectiveLinkedPR,
@@ -133,9 +93,9 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   } = input
 
   const submitQuick = useCallback(
-    async (requestedAgent: TuiAgent | null, piProfile?: PiLaunchProfile): Promise<void> => {
+    async (requestedAgent: TuiAgent | null, agentProfile?: AgentLaunchProfile): Promise<void> => {
       if (isProjectGroupTarget) {
-        await submitFolderTarget(requestedAgent, piProfile)
+        await submitFolderTarget(requestedAgent, agentProfile)
         return
       }
 
@@ -187,29 +147,37 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       )
 
       if (pendingCreationId) {
-        if (
-          requestedAgent === 'pi' ||
-          liveStore.pendingWorktreeCreations[pendingCreationId]?.request.agent === 'pi'
-        ) {
+        const pendingRequest = liveStore.pendingWorktreeCreations[pendingCreationId]?.request
+        const pendingAgent = pendingRequest?.agent
+        const pendingConfig =
+          pendingRequest?.startupPlan?.launchConfig ?? pendingRequest?.startup?.launchConfig
+        const accountAgent = resolvePendingAccountAgent(
+          requestedAgent,
+          Boolean(agentProfile),
+          pendingAgent,
+          pendingConfig
+        )
+        if (accountAgent) {
           try {
-            const isLocalPiTarget = isComposerRepoPiProfileTarget({
+            const scope = resolveComposerRepoProfileHostScope({
               executionHostId: workspaceRunContext?.hostId ?? selectedRepoExecutionHostId,
               connectionId: selectedRepo.connectionId,
               settings: selectedRepoSettings,
               launchPlatform: selectedRepoAgentLaunchPlatform,
-              ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
+              ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null,
+              sshConnectionStates: liveStore.sshConnectionStates
             })
-            const selectedProfile = getValidatedComposerPiProfile(
-              piProfile,
+            const selectedProfile = getValidatedComposerAgentProfile(
+              requestedAgent,
+              agentProfile,
               liveStore.settings,
-              requestedAgent === 'pi' && isLocalPiTarget
+              scope
             )
-            const pendingRequest = liveStore.pendingWorktreeCreations[pendingCreationId]?.request
             const selectedStartup =
-              requestedAgent === 'pi'
+              requestedAgent === accountAgent
                 ? buildQuickComposerStartup({
-                    agent: 'pi',
-                    piProfile: selectedProfile,
+                    agent: accountAgent,
+                    agentProfile: selectedProfile,
                     prompt: '',
                     draftPrompt: null,
                     settings,
@@ -220,16 +188,23 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
                     telemetrySource: undefined
                   }).startupPlan?.launchConfig
                 : undefined
+            const implicitDefaultDirectory =
+              scope && !selectedProfile
+                ? AGENT_LAUNCH_PROFILE_AGENTS[accountAgent].getDefaultAgentDirectory(
+                    scope.homeDirectory
+                  )
+                : undefined
             if (
-              pendingRequest?.agent !== 'pi' ||
-              !isMatchingPendingPiStartup(
-                pendingRequest.startupPlan?.launchConfig ?? pendingRequest.startup?.launchConfig,
+              pendingAgent !== accountAgent ||
+              !isMatchingPendingAccountStartup(
+                accountAgent,
+                pendingConfig,
                 selectedStartup,
-                isLocalPiTarget && !selectedProfile
+                implicitDefaultDirectory
               )
             ) {
               throw new Error(
-                'This linked workspace has a pending creation with a different Pi account. Open that creation to finish or retry it before submitting again.'
+                `This linked workspace has a pending creation with a different ${AGENT_LAUNCH_PROFILE_AGENTS[accountAgent].label} account. Open that creation to finish or retry it before submitting again.`
               )
             }
           } catch (error) {
@@ -260,7 +235,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
         await executeQuickCreation(
           smartGitHubSettlement.value,
           requestedAgent,
-          piProfile,
+          agentProfile,
           workspaceNameSeed,
           workspaceRunContext,
           repoId,

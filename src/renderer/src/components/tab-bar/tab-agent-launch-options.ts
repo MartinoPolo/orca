@@ -2,14 +2,19 @@ import { getAgentCatalog } from '@/lib/agent-catalog'
 import { filterEnabledTuiAgents } from '../../../../shared/tui-agent-selection'
 import { normalizeMatchQuery, tokenizeMatchValue } from './query-token-match'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { PROFILE_AGENTS, type ProfileAgent } from '../../../../shared/agent-launch-profile-agents'
+
+export type AgentLaunchProfilesByAgent = Partial<
+  Record<ProfileAgent, readonly AgentLaunchProfile[]>
+>
 
 export type TabAgentLaunchOption = {
   id: string
   agent: TuiAgent
   aliases: readonly string[]
   label: string
-  piProfile?: PiLaunchProfile
+  agentProfile?: AgentLaunchProfile
 }
 
 function normalizeAgentAlias(value: string): string {
@@ -24,9 +29,12 @@ function getCatalogEntry(agent: TuiAgent): { id: TuiAgent; label: string; cmd: s
   return getAgentCatalog().find((entry) => entry.id === agent) ?? null
 }
 
-export function getTabAgentLaunchOptionLabel(agent: TuiAgent, piProfile?: PiLaunchProfile): string {
-  if (piProfile) {
-    return piProfile.name
+export function getTabAgentLaunchOptionLabel(
+  agent: TuiAgent,
+  agentProfile?: AgentLaunchProfile
+): string {
+  if (agentProfile) {
+    return agentProfile.name
   }
   if (agent === 'pi') {
     return 'pi'
@@ -52,7 +60,7 @@ export function orderTabLaunchAgents(
 export function buildTabAgentLaunchOptions(
   agents: readonly TuiAgent[],
   commandOverrides: Partial<Record<TuiAgent, string>> = {},
-  piProfiles: readonly PiLaunchProfile[] = []
+  profilesByAgent: AgentLaunchProfilesByAgent = {}
 ): TabAgentLaunchOption[] {
   const options = agents.map((agent) => {
     const entry = getCatalogEntry(agent)
@@ -74,22 +82,22 @@ export function buildTabAgentLaunchOptions(
     }
     return { id: `agent:${agent}`, agent, aliases: [...aliases], label }
   })
-  return [
-    ...options,
-    ...piProfiles.map((profile) => ({
-      id: `pi-profile:${profile.id}`,
-      agent: 'pi' as const,
+  const profileOptions = PROFILE_AGENTS.flatMap((agent) =>
+    (profilesByAgent[agent] ?? []).map((profile) => ({
+      id: `${agent}-profile:${profile.id}`,
+      agent,
       aliases: [
-        'pi',
+        agent,
         normalizeAgentAlias(profile.name),
         compactAgentAlias(profile.name),
         normalizeAgentAlias(profile.command),
         compactAgentAlias(profile.command)
       ],
-      label: getTabAgentLaunchOptionLabel('pi', profile),
-      piProfile: profile
+      label: getTabAgentLaunchOptionLabel(agent, profile),
+      agentProfile: profile
     }))
-  ]
+  )
+  return [...options, ...profileOptions]
 }
 
 // Scores how well a query matches an agent. Exact alias equality is the

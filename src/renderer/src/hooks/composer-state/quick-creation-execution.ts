@@ -3,11 +3,11 @@ import type { QuickCreationExecutionInput } from './quick-creation-execution-inp
 import { useCallback } from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { PiLaunchProfile } from '../../../../shared/pi-launch-profiles'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import {
-  getValidatedComposerPiProfile,
-  isComposerRepoPiProfileTarget
-} from '@/lib/composer-pi-profile-target'
+  getValidatedComposerAgentProfile,
+  resolveComposerRepoProfileHostScope
+} from '@/lib/composer-agent-profile-target'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
@@ -57,23 +57,25 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
     async (
       smartGitHubResolution: PendingSmartGitHubSubmitResolution,
       requestedAgent: TuiAgent | null,
-      piProfile: PiLaunchProfile | undefined,
+      agentProfile: AgentLaunchProfile | undefined,
       workspaceNameSeed: string,
       workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
       repoId: string,
       selectedRepo: Repo
     ): Promise<void> => {
-      const selectedProfile = getValidatedComposerPiProfile(
-        piProfile,
-        useAppStore.getState().settings,
-        requestedAgent === 'pi' &&
-          isComposerRepoPiProfileTarget({
-            executionHostId: workspaceRunContext?.hostId ?? selectedRepoExecutionHostId,
-            connectionId: selectedRepo.connectionId,
-            settings: selectedRepoSettings,
-            launchPlatform: selectedRepoAgentLaunchPlatform,
-            ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
-          })
+      const liveStore = useAppStore.getState()
+      const selectedProfile = getValidatedComposerAgentProfile(
+        requestedAgent,
+        agentProfile,
+        liveStore.settings,
+        resolveComposerRepoProfileHostScope({
+          executionHostId: workspaceRunContext?.hostId ?? selectedRepoExecutionHostId,
+          connectionId: selectedRepo.connectionId,
+          settings: selectedRepoSettings,
+          launchPlatform: selectedRepoAgentLaunchPlatform,
+          ephemeralVmRecipeId: ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null,
+          sshConnectionStates: liveStore.sshConnectionStates
+        })
       )
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
@@ -107,9 +109,9 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         trimmedNote
       } = prepared
 
-      if (selectedProfile && agent !== 'pi') {
+      if (selectedProfile && agent !== requestedAgent) {
         throw new Error(
-          'Pi is no longer available. Select another agent before creating the workspace.'
+          'The selected agent is no longer available. Select another agent before creating the workspace.'
         )
       }
       const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
@@ -127,7 +129,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         telemetry: quickTelemetry
       } = buildQuickComposerStartup({
         agent,
-        piProfile: selectedProfile,
+        agentProfile: selectedProfile,
         prompt: quickPrompt,
         draftPrompt: quickDraftPrompt,
         settings,

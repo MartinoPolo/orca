@@ -14,19 +14,13 @@ import {
 import {
   agentProviderSessionsEqual,
   isResumableTuiAgent,
-  normalizeAgentProviderSession,
-  type SleepingAgentLaunchConfig
+  normalizeAgentProviderSession
 } from '../../../../../shared/agent-session-resume'
 
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
-import {
-  getLocalDefaultPiAgentDirectory,
-  PiResumeProfileError,
-  resolvePiResumeLaunchConfig
-} from '@/lib/pi-profile-resume-provenance'
-import { resolvePiProfileLaunchTarget } from '@/lib/pi-profile-launch-target'
+import { resolveAgentAccountResumeLaunchConfig } from '@/lib/agent-account-resume'
 
 export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySession): void {
   session.buildColdRestoreAgentResumeStartup = (): ColdRestoreAgentResumeStartup | null => {
@@ -72,19 +66,6 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
       return null
     }
     const resumeWorktreeId = sleepingRecord?.worktreeId ?? session.worktree?.id
-    const piProfileTarget =
-      agent !== 'pi'
-        ? null
-        : typeof resumeWorktreeId === 'string'
-          ? resolvePiProfileLaunchTarget(state, resumeWorktreeId, {
-              executionHostId: session.executionHostId,
-              projectRuntime: session.projectRuntime
-            })
-          : 'unresolved'
-    if (agent === 'pi' && piProfileTarget === 'unresolved') {
-      toast.error('Cannot resume Pi until its workspace owner is available.')
-      return null
-    }
     const matchingSleepingLaunchConfig =
       sleepingRecord?.launchConfig &&
       (!useLiveEntry ||
@@ -95,31 +76,23 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
     const capturedLaunchConfig =
       (useLiveEntry && entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined) ??
       matchingSleepingLaunchConfig
-    let launchConfig = capturedLaunchConfig
-    if (agent === 'pi' && piProfileTarget === 'local-native') {
-      const fallbackLaunchConfig =
-        capturedLaunchConfig ??
-        ({
-          agentArgs: resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
-          agentEnv: resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv)
-        } satisfies SleepingAgentLaunchConfig)
-      try {
-        launchConfig = resolvePiResumeLaunchConfig({
-          transcriptPath: providerSession.transcriptPath,
-          launchConfig: fallbackLaunchConfig,
-          profiles: state.settings?.piLaunchProfiles,
-          allowProfileSelection: resumeOriginConnectionId === null,
-          defaultAgentDirectory: getLocalDefaultPiAgentDirectory()
-        })
-      } catch (error) {
-        toast.error(
-          error instanceof PiResumeProfileError
-            ? error.message
-            : 'This Pi session cannot be associated with an account safely.'
-        )
-        return null
-      }
+    const accountResolution = resolveAgentAccountResumeLaunchConfig({
+      state,
+      agent,
+      worktreeId: typeof resumeWorktreeId === 'string' ? resumeWorktreeId : undefined,
+      hostOptions: {
+        executionHostId: session.executionHostId,
+        projectRuntime: session.projectRuntime
+      },
+      transcriptPath: providerSession.transcriptPath,
+      capturedLaunchConfig,
+      originConnectionId: resumeOriginConnectionId
+    })
+    if (!accountResolution.ok) {
+      toast.error(accountResolution.message)
+      return null
     }
+    const launchConfig = accountResolution.launchConfig
     // Why: the resume line is typed into this pane's live shell, so its quoting must
     // follow the tab's effective Windows shell, not the win32 PowerShell default.
     const resumeTarget = resolveAgentResumeLaunchTarget({

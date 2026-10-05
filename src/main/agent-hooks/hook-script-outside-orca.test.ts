@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _internals as codexInternals } from '../codex/hook-service'
 import { buildPosixHookSpoolLines } from './hook-stdin-contract'
+import { findGitBash } from './windows-git-bash-path.test-fixture'
 
 /** Managed hooks are installed into the user's agent config, so they also run when the
  *  agent is launched from a plain terminal. There they must be inert and silent. */
@@ -18,7 +19,9 @@ function runHook(dir: string, extraEnv: NodeJS.ProcessEnv = {}) {
       clean[k] = v
     }
   }
-  return spawnSync('/bin/sh', [script], {
+  const shell = process.platform === 'win32' ? findGitBash() : '/bin/sh'
+  return spawnSync(shell, [script], {
+    windowsHide: true,
     input: '{"hook_event_name":"SubagentStop","agent_id":"child"}\n',
     env: { ...clean, ...extraEnv },
     timeout: 5000,
@@ -48,7 +51,7 @@ describe('managed hook outside an Orca terminal', () => {
   it('endpoint points at a path that does not exist: silent, exit 0', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-outside-stale-'))
     const res = runHook(dir, {
-      ORCA_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env'),
+      ORCA_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env').replace(/\\/g, '/'),
       ORCA_PANE_KEY: 'tab:0'
     })
     expect(res.status).toBe(0)
@@ -62,7 +65,7 @@ describe('managed hook outside an Orca terminal', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-outside-readable-'))
     const endpoint = join(dir, 'endpoint.env')
     writeFileSync(endpoint, 'ORCA_AGENT_HOOK_PORT=9\nORCA_AGENT_HOOK_TOKEN=stale\n')
-    const res = runHook(dir, { ORCA_AGENT_HOOK_ENDPOINT: endpoint })
+    const res = runHook(dir, { ORCA_AGENT_HOOK_ENDPOINT: endpoint.replace(/\\/g, '/') })
     expect(res.status).toBe(0)
     expect(res.stdout).toBe('')
     expect(res.stderr).toBe('')
