@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
+import { i18n } from '../i18n/i18n'
 import { resolveAgentAccountResumeLaunchConfig } from './agent-account-resume'
+import * as piResumeProvenance from './pi-profile-resume-provenance'
 
 type TestState = Parameters<typeof resolveAgentAccountResumeLaunchConfig>[0]['state']
 
@@ -61,7 +63,12 @@ function resolve(args: {
 }
 
 describe('resolveAgentAccountResumeLaunchConfig', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(async () => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('test-account-resume', 'translation')
+  })
 
   beforeEach(() => {
     vi.stubGlobal('window', {
@@ -78,6 +85,79 @@ describe('resolveAgentAccountResumeLaunchConfig', () => {
       activeWorktreeId: 'wt-1',
       sshConnectionStates: new Map()
     }
+  })
+
+  async function useResumeTranslations(): Promise<void> {
+    i18n.addResourceBundle('test-account-resume', 'translation', {
+      settings: {
+        agentLaunchProfiles: {
+          resumeOwnerUnavailable: 'Owner unavailable for {{agentLabel}}',
+          resumeRemoteHomeUnknown: 'Remote home unknown for {{agentLabel}}',
+          resumeClaudeProfileAmbiguous: 'Claude profile is ambiguous',
+          resumePiAccountUnknown: 'Pi account is unknown'
+        }
+      }
+    })
+    await i18n.changeLanguage('test-account-resume')
+  }
+
+  it.each(['pi', 'claude'] as const)(
+    'localizes the unresolved owner error for %s with its label',
+    async (agent) => {
+      await useResumeTranslations()
+      state.repos = []
+      state.settings.claudeLaunchProfiles = [claudeWork]
+
+      expect(resolve({ agent, originConnectionId: null })).toEqual({
+        ok: false,
+        message: `Owner unavailable for ${agent === 'pi' ? 'Pi' : 'Claude'}`
+      })
+    }
+  )
+
+  it.each(['pi', 'claude'] as const)(
+    'localizes the missing SSH home error for %s with its label',
+    async (agent) => {
+      await useResumeTranslations()
+      useSshWorkspace(undefined)
+      state.settings.piLaunchProfiles = [piWork]
+      state.settings.claudeLaunchProfiles = [claudeWork]
+
+      expect(resolve({ agent, originConnectionId: 'ssh-1', executionHostId: 'ssh:ssh-1' })).toEqual(
+        {
+          ok: false,
+          message: `Remote home unknown for ${agent === 'pi' ? 'Pi' : 'Claude'}`
+        }
+      )
+    }
+  )
+
+  it('localizes an ambiguous Claude account without selecting a profile', async () => {
+    await useResumeTranslations()
+    state.settings.claudeLaunchProfiles = [
+      claudeWork,
+      { ...claudeWork, id: 'claude-other', name: 'other', command: 'other' }
+    ]
+
+    expect(
+      resolve({
+        agent: 'claude',
+        transcriptPath: `${claudeWork.agentDirectory}/projects/repo/session.jsonl`,
+        originConnectionId: null
+      })
+    ).toEqual({ ok: false, message: 'Claude profile is ambiguous' })
+  })
+
+  it('localizes the fallback for an unexpected Pi account resolution failure', async () => {
+    await useResumeTranslations()
+    vi.spyOn(piResumeProvenance, 'resolvePiResumeLaunchConfig').mockImplementationOnce(() => {
+      throw new Error('unexpected failure')
+    })
+
+    expect(resolve({ agent: 'pi', originConnectionId: null })).toEqual({
+      ok: false,
+      message: 'Pi account is unknown'
+    })
   })
 
   it('resumes an SSH Pi transcript with the profile whose home-relative root owns it', () => {

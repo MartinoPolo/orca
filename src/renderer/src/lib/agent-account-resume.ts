@@ -1,3 +1,4 @@
+import { translate } from '../i18n/i18n'
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
 import {
   findAgentLaunchProfilesForTranscript,
@@ -91,7 +92,11 @@ export function resolveAgentAccountResumeLaunchConfig(args: {
     return agent === 'pi' || profiles.length > 0
       ? {
           ok: false,
-          message: `Cannot resume ${agentLabel} until its workspace owner is available.`
+          message: translate(
+            'settings.agentLaunchProfiles.resumeOwnerUnavailable',
+            'Cannot resume {{agentLabel}} until its workspace owner is available.',
+            { agentLabel }
+          )
         }
       : keepCaptured
   }
@@ -103,7 +108,11 @@ export function resolveAgentAccountResumeLaunchConfig(args: {
     return hasRemoteProfiles
       ? {
           ok: false,
-          message: `Cannot resume ${agentLabel} until the SSH host reports its home directory. Reconnect and try again.`
+          message: translate(
+            'settings.agentLaunchProfiles.resumeRemoteHomeUnknown',
+            'Cannot resume {{agentLabel}} until the SSH host reports its home directory. Reconnect and try again.',
+            { agentLabel }
+          )
         }
       : keepCaptured
   }
@@ -138,7 +147,10 @@ export function resolveAgentAccountResumeLaunchConfig(args: {
         message:
           error instanceof PiResumeProfileError
             ? error.message
-            : 'This Pi session cannot be associated with an account safely.'
+            : translate(
+                'settings.agentLaunchProfiles.resumePiAccountUnknown',
+                'This Pi session cannot be associated with an account safely.'
+              )
       }
     }
   }
@@ -171,8 +183,10 @@ function resolveClaudeAccountResumeLaunchConfig(args: {
   if (matches.length > 1) {
     return {
       ok: false,
-      message:
+      message: translate(
+        'settings.agentLaunchProfiles.resumeClaudeProfileAmbiguous',
         'This Claude session matches more than one configured profile. Make the account directories distinct before resuming.'
+      )
     }
   }
   const [profile] = matches

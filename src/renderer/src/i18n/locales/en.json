@@ -226,7 +226,11 @@
       "accountDirectoryLabel": "Account directory",
       "remoteDirectoryLabel": "Remote folder (optional)",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "resumeOwnerUnavailable": "Cannot resume {{agentLabel}} until its workspace owner is available.",
+      "resumeRemoteHomeUnknown": "Cannot resume {{agentLabel}} until the SSH host reports its home directory. Reconnect and try again.",
+      "resumePiAccountUnknown": "This Pi session cannot be associated with an account safely.",
+      "resumeClaudeProfileAmbiguous": "This Claude session matches more than one configured profile. Make the account directories distinct before resuming."
     }
   },
   "menu": {
