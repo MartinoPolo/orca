@@ -97,7 +97,9 @@ describe('native preload SSH authority forwarding', () => {
       error: null,
       reconnectAttempt: 0,
       providerEpoch: 'native-provider-epoch' as SshProviderEpoch,
-      connectionGeneration: 29
+      connectionGeneration: 29,
+      remotePlatform: 'linux',
+      remoteHomeDirectory: '/srv/users/alice'
     }
     invoke.mockResolvedValueOnce(state)
     await import('./index')
@@ -124,36 +126,26 @@ describe('native preload SSH authority forwarding', () => {
       status: 'connected',
       error: null,
       reconnectAttempt: 0,
-      providerEpoch: 'partial-provider-epoch'
-    } as SshConnectionState
+      providerEpoch: 'partial-provider-epoch',
+      remoteHomeDirectory: '/srv/users/alice'
+    }
     invoke.mockResolvedValueOnce(partialState)
     await import('./index')
     const api = exposeInMainWorld.mock.calls.find(([name]) => name === 'api')?.[1] as PreloadApi
 
+    const expectedState = { ...partialState, providerEpoch: null }
     const returned = await api.ssh.getState({ targetId: 'ssh-1' })
-    expect(returned).toEqual({
-      targetId: 'ssh-1',
-      status: 'connected',
-      error: null,
-      reconnectAttempt: 0,
-      providerEpoch: null
-    })
+    expect(returned).toEqual(expectedState)
 
     const onStateChanged = vi.fn()
     api.ssh.onStateChanged(onStateChanged)
-    const listener = on.mock.calls.find(([channel]) => channel === 'ssh:state-changed')?.[1] as (
-      event: unknown,
-      data: { targetId: string; state: SshConnectionState }
-    ) => void
+    const listener = on.mock.calls.find(([channel]) => channel === 'ssh:state-changed')?.[1]
+    if (typeof listener !== 'function') {
+      throw new Error('SSH state listener was not registered')
+    }
     listener({}, { targetId: 'ssh-1', state: partialState })
 
-    expect(onStateChanged.mock.calls[0]?.[0].state).toEqual({
-      targetId: 'ssh-1',
-      status: 'connected',
-      error: null,
-      reconnectAttempt: 0,
-      providerEpoch: null
-    })
+    expect(onStateChanged.mock.calls[0]?.[0].state).toEqual(expectedState)
   })
 
   it('drops malformed full authority before it reaches the renderer', async () => {

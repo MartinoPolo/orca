@@ -63,7 +63,11 @@ command override. Leave the implicit default config directory unpinned: exportin
 `CLAUDE_CONFIG_DIR` even for `~/.claude` changes its OAuth Keychain identity. Local-native
 targets offer every profile. SSH targets offer only profiles with a remote directory,
 resolved against the home the host reported, so a remote launch never receives a
-local path. WSL, paired runtime, and ephemeral-VM targets offer none. Tab launch
+local path. Retained SSH state admission must preserve the optional, bounded
+`remoteHomeDirectory` through preload and authority reconciliation; omit invalid
+or oversized paths rather than truncating them. Without that metadata profiles
+remain unavailable, including when an older host omits it. WSL, paired runtime,
+and ephemeral-VM targets offer none. Tab launch
 menus, quick launch, and new worktree or folder creation share this scoping; a
 pending linked creation is reused only when its captured command and account root
 match the selection.
@@ -93,9 +97,11 @@ reload, intentional session changes, and noninteractive runtime compatibility.
 
 A desktop test requires disposable user data **and** disposable agent homes. The
 E2E home helper does not remove every inherited agent-directory variable; explicitly
-isolate Pi/OMP/Prime directories and hook endpoints as well as HOME, USERPROFILE,
-APPDATA, and LOCALAPPDATA. Always set `ORCA_BACKGROUND_LAUNCH=1`. Never reuse a live
-transcript for a disposable-session test.
+isolate Pi/OMP/Prime directories and hook endpoints as well as the test home.
+Packaged Lab GUI probes use the Lab environment builder and explicit account roots;
+preserve Windows known-folder variables so Electron can resolve `appData`.
+Always set `ORCA_BACKGROUND_LAUNCH=1`. Never reuse a live transcript for a
+disposable-session test.
 
 An unpacked build is preferable to installer validation on a working desktop. An
 alternate installer directory does not isolate Windows registration or shortcuts.

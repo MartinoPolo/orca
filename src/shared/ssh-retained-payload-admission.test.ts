@@ -8,6 +8,7 @@ import {
   SSH_DETECTED_PORT_ADVERTISED_URL_MAX_UTF8_BYTES,
   SSH_DETECTED_PORT_PROCESS_NAME_MAX_UTF8_BYTES,
   SSH_PROVIDER_EPOCH_MAX_UTF8_BYTES,
+  SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES,
   SSH_RETAINED_IDENTIFIER_MAX_UTF8_BYTES,
   admitSshConnectionStateForAuthorityReconciliation,
   isAdmissibleDirectSshAuthority
@@ -25,6 +26,7 @@ describe('SSH retained payload admission', () => {
         connectionGeneration: 3,
         supportsFolderDownload: true,
         remotePlatform: 'linux',
+        remoteHomeDirectory: '/srv/users/alice',
         unexpected: 'x'.repeat(1024)
       },
       'ssh-a'
@@ -38,7 +40,8 @@ describe('SSH retained payload admission', () => {
       providerEpoch: 'provider-a',
       connectionGeneration: 3,
       supportsFolderDownload: true,
-      remotePlatform: 'linux'
+      remotePlatform: 'linux',
+      remoteHomeDirectory: '/srv/users/alice'
     })
   })
 
@@ -50,6 +53,49 @@ describe('SSH retained payload admission', () => {
     const malformed = admitSshConnectionState({ ...state, plainSsh: { reason: 7 } }, 'ssh-a')
     expect(malformed).not.toBeNull()
     expect(malformed).not.toHaveProperty('plainSsh')
+  })
+
+  it.each([
+    { label: 'missing', homeDirectory: undefined },
+    { label: 'null', homeDirectory: null },
+    { label: 'wrong type', homeDirectory: 42 },
+    { label: 'empty', homeDirectory: '' },
+    { label: 'blank', homeDirectory: '   ' },
+    { label: 'NUL', homeDirectory: '/srv/users/alice\0other' },
+    {
+      label: 'oversized UTF-8',
+      homeDirectory: '🙂'.repeat(SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES / 4 + 1)
+    }
+  ])('drops $label home metadata without rejecting connection state', ({ homeDirectory }) => {
+    const admitted = admitSshConnectionState(
+      {
+        targetId: 'ssh-a',
+        status: 'connected',
+        error: null,
+        reconnectAttempt: 0,
+        remoteHomeDirectory: homeDirectory
+      },
+      'ssh-a'
+    )
+
+    expect(admitted?.status).toBe('connected')
+    expect(admitted).not.toHaveProperty('remoteHomeDirectory')
+  })
+
+  it('preserves a home directory at the UTF-8 byte limit without truncation', () => {
+    const homeDirectory = '🙂'.repeat(SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES / 4)
+    expect(
+      admitSshConnectionState(
+        {
+          targetId: 'ssh-a',
+          status: 'connected',
+          error: null,
+          reconnectAttempt: 0,
+          remoteHomeDirectory: homeDirectory
+        },
+        'ssh-a'
+      )?.remoteHomeDirectory
+    ).toBe(homeDirectory)
   })
 
   it('rejects partial and malformed provider authority', () => {
@@ -114,10 +160,10 @@ describe('SSH retained payload admission', () => {
 
     expect(
       admitSshConnectionStateForAuthorityReconciliation(
-        { ...state, providerEpoch: 'provider-a' },
+        { ...state, providerEpoch: 'provider-a', remoteHomeDirectory: '/srv/users/alice' },
         'ssh-a'
       )
-    ).toEqual({ ...state, providerEpoch: null })
+    ).toEqual({ ...state, providerEpoch: null, remoteHomeDirectory: '/srv/users/alice' })
     expect(
       admitSshConnectionStateForAuthorityReconciliation(
         { ...state, providerEpoch: '', connectionGeneration: 3 },
