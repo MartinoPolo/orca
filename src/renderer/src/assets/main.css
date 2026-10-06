@@ -1433,6 +1433,14 @@ html.native-shell .app-layout {
   background: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
+/* Why: attention surfaces tint many rows, so the agent shown in the focused
+   terminal pane needs an edge that survives them; inset so expansion clipping
+   cannot hide it. */
+.worktree-agent-row-hover[data-focused-agent-pane='true'] {
+  outline: 1.5px solid var(--terminal-pane-locate);
+  outline-offset: -1.5px;
+}
+
 /* Why: one-shot sidebar education cards need stronger separation than
    worktree-sidebar-accent, which sits almost on top of the sidebar fill. */
 .worktree-sidebar-notice-card {
