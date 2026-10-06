@@ -26,7 +26,7 @@
 
 - **Implemented:** The sidebar agent row matching the focused terminal pane carries a blue `--terminal-pane-locate` outline over attention surfaces, so switching tabs shows which agent is in view; non-agent terminals highlight nothing.
 - **Implemented:** Sidebar agent lists start expanded; compact lists offer a collapse row only above three top-level agents. Explicit collapse choices survive sidebar remounts within the renderer session.
-- **Implemented:** Terminal tab headers use launch-aware cool tints (Pi violet for every account, Claude sky, command launches green), with manual swatches, Automatic, and No color choices; ordinary terminals remain neutral. Unread (orange) and attention (red) replace the identity background, while the active strip keeps the identity color.
+- **Implemented:** Terminal tab headers mark launch identity (Pi blue for every account, Claude orange, command launches green) with a bottom strip, softened on inactive tabs; only the active tab fills with its identity tint. Unread (yellow) and attention (red) fill any tab, so a filled inactive tab always needs the user. Manual swatches, Automatic, and No color choices remain; ordinary terminals stay neutral.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 

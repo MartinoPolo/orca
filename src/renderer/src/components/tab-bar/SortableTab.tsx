@@ -28,9 +28,10 @@ import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { TerminalTabLeadingIcon } from './TerminalTabLeadingIcon'
 import {
   getTerminalTabTintBackground,
+  getTerminalTabUnderlineColor,
+  resolveTerminalTabBackgroundTint,
   resolveTerminalTabIdentityTint,
-  resolveTerminalTabStateTintName,
-  TERMINAL_TAB_TINTS
+  resolveTerminalTabStateTintName
 } from './terminal-tab-color'
 import {
   isTerminalTabActivityLive,
@@ -156,8 +157,7 @@ export default function SortableTab({
   const showUnreadActivity =
     hasUnreadActivity && !isEditing && !isTerminalTabActivityLive(activityStatus)
   const stateTintName = resolveTerminalTabStateTintName(activityStatus, showUnreadActivity)
-  // Why: state owns the background while identity stays readable from the icon and the active strip.
-  const backgroundTint = stateTintName ? TERMINAL_TAB_TINTS[stateTintName] : identityTint
+  const backgroundTint = resolveTerminalTabBackgroundTint(identityTint, stateTintName, isActive)
 
   useEffect(() => {
     const closeMenu = (): void => setMenuOpen(false)
@@ -206,7 +206,7 @@ export default function SortableTab({
       className={`group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${cn(getTabRootStateClasses(isActive), backgroundTint && 'text-foreground')}`}
       style={
         backgroundTint
-          ? { backgroundColor: getTerminalTabTintBackground(backgroundTint, isActive) }
+          ? { backgroundColor: getTerminalTabTintBackground(backgroundTint) }
           : undefined
       }
       onDoubleClick={(e) => {
@@ -243,10 +243,14 @@ export default function SortableTab({
         }
       }}
     >
-      {isActive && (
+      {(isActive || identityTint) && (
         <span
           className={ACTIVE_TAB_INDICATOR_CLASSES}
-          style={identityTint ? { backgroundColor: identityTint.color } : undefined}
+          style={
+            identityTint
+              ? { backgroundColor: getTerminalTabUnderlineColor(identityTint, isActive) }
+              : undefined
+          }
           aria-hidden
         />
       )}
