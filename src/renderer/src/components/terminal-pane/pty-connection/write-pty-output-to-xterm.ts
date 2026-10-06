@@ -1,6 +1,7 @@
 import { takeCurrentTerminalDeliveryCredit } from '@/lib/pane-manager/terminal-delivery-credit'
 import { nativeWindowsRewriteNeedsFollowupRenderRefresh } from '@/lib/pane-manager/terminal-complex-script'
 import { writeTerminalOutput } from '@/lib/pane-manager/pane-terminal-output-scheduler'
+import { RESET_TERMINAL_CURSOR_STYLE } from '../../../../../shared/terminal-mode-reset-profiles'
 import { forceFullViewportPresent } from '@/lib/pane-manager/terminal-render-pause-release'
 
 import { FOREGROUND_SYNCHRONIZED_FRAME_INTERACTIVE_WINDOW_MS } from './foreground-output-budgets'
@@ -15,7 +16,13 @@ import type { ConnectPanePtySession } from './connect-pane-pty-session'
 
 /** The xterm write path for PTY output, including the queued agent-idle mode reset. */
 export function bindWritePtyOutputToXterm(session: ConnectPanePtySession): void {
-  const renderOutput: ConnectPanePtySession['writePtyOutputToXterm'] = (data, foreground, opts) => {
+  session.writePtyOutputToXterm = function (
+    data: string,
+    foreground: boolean,
+    opts?: { hiddenStartupRendererQuery?: boolean; liveStartupBatch?: boolean }
+  ): void {
+    // Why: every application byte funnels through here, so it's the one place the kitty keyboard mirror observes the pane's protocol negotiation.
+    session.kittyKeyboardModes.scan(data)
     if (foreground) {
       session.resetHiddenOutputRestoreIfPtyChanged()
     }
@@ -115,18 +122,12 @@ export function bindWritePtyOutputToXterm(session: ConnectPanePtySession): void 
     })
   }
 
-  session.writePtyOutputToXterm = (data, foreground, opts): void => {
-    // Why: only application output owns the mirror; renderer-generated resets must not erase Pi's negotiated input flags.
-    session.kittyKeyboardModes.scan(data)
-    renderOutput(data, foreground, opts)
-  }
-
   session.queueAgentIdleTerminalModeReset = (): void => {
     if (session.disposed) {
       return
     }
-    renderOutput(
-      session.idleAgentTerminalModeReset,
+    session.writePtyOutputToXterm(
+      RESET_TERMINAL_CURSOR_STYLE,
       shouldWritePtyOutputForeground(session.deps.isVisibleRef.current)
     )
   }

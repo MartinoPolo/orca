@@ -23,7 +23,7 @@ export function appendUnsupportedAndRetainedEvents(context: {
     terminalPtyId?: string | null,
     capturedExecutionHostId?: ExecutionHostId
   ) => { worktree: Worktree; repo: Repo | null; knownWorktree: boolean }
-  pushPaneEvents: (paneEvents: ActivityEvent[]) => void
+  pushPaneEvents: (paneEvents: ActivityEvent[], rowEntry: AgentStatusEntry) => void
 }): void {
   const {
     args,
@@ -47,8 +47,12 @@ export function appendUnsupportedAndRetainedEvents(context: {
     if (!entry || !tabEntry) {
       continue
     }
-    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId, undefined)
-    const { events: paneEvents, live } = resolvePaneBuild(
+    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId)
+    const {
+      events: paneEvents,
+      live,
+      rowEntry
+    } = resolvePaneBuild(
       {
         cacheKey,
         source: unsupported,
@@ -72,7 +76,7 @@ export function appendUnsupportedAndRetainedEvents(context: {
     if (live) {
       liveAgentByPaneKey[entry.paneKey] = live
     }
-    pushPaneEvents(paneEvents)
+    pushPaneEvents(paneEvents, rowEntry)
   }
 
   for (const [paneKey, retained] of Object.entries(args.retainedAgentsByPaneKey)) {
@@ -88,7 +92,7 @@ export function appendUnsupportedAndRetainedEvents(context: {
     if (!owner.knownWorktree) {
       continue
     }
-    const { events: paneEvents } = resolvePaneBuild(
+    const { events: paneEvents, rowEntry } = resolvePaneBuild(
       {
         cacheKey: `retained:${paneKey}`,
         source: retained,
@@ -108,6 +112,6 @@ export function appendUnsupportedAndRetainedEvents(context: {
       cache,
       seenCacheKeys
     )
-    pushPaneEvents(paneEvents)
+    pushPaneEvents(paneEvents, rowEntry)
   }
 }

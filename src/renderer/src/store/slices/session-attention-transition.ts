@@ -82,6 +82,21 @@ export function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
   })
 }
 
+/** The session's saved priority, defaulting to P3 when the entry has no resolvable identity. */
+export function resolveEntrySessionPriority(state: AppState, entry: AgentStatusEntry): number {
+  const identity = resolveEntryIdentity(state, entry)
+  if (!identity?.sessionIdentity) {
+    return 3
+  }
+  for (const candidate of [identity.sessionIdentity, ...identity.identityAliases]) {
+    const savedPriority = state.sessionAttentionMetadataByIdentity[candidate]?.priority
+    if (savedPriority !== undefined) {
+      return savedPriority
+    }
+  }
+  return 3
+}
+
 function hasMeaningfulMetadata(metadata: SessionAttentionMetadata): boolean {
   return (
     metadata.priority !== 3 ||

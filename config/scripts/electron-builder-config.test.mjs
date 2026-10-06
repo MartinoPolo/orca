@@ -1,17 +1,17 @@
 import { existsSync } from 'node:fs'
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildMobileWebBundle } from './build-mobile-web-bundle.mjs'
+import { writeMobileWebBundleFixtureTree } from './mobile-web-bundle-fixture-tree.mjs'
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..')
 const SRC_MAIN_DIR = join(REPO_ROOT, 'src', 'main')
 
 const require = createRequire(import.meta.url)
 const electronBuilderConfig = require('../electron-builder.config.cjs')
-const { FileMatcher } = require('app-builder-lib/out/fileMatcher')
+const { copyFiles, FileMatcher } = require('app-builder-lib/out/fileMatcher')
 const FpmTarget = require('app-builder-lib/out/targets/FpmTarget').default
 const electronBuilderNativeRebuild = require('./electron-builder-native-rebuild.cjs')
 
@@ -65,6 +65,62 @@ describe('electron-builder config', () => {
     expect(packs('out/main/index.js')).toBe(true)
   })
 
+  it.each(['file', 'directory'])('keeps a root notes %s out of app.asar', async (kind) => {
+    const root = await mkdtemp(join(tmpdir(), 'orca-packaging-notes-'))
+    const source = join(root, 'app')
+    const destination = join(root, 'selected')
+    const runtimePaths = [
+      'package.json',
+      'out/main/index.js',
+      'out/renderer/index.html',
+      'out/cli/index.js',
+      'out/shared/index.js',
+      'out/main/notes/index.js',
+      'out/renderer/assets/notes/help.md',
+      'resources/notes/help.md',
+      'notes.txt'
+    ]
+    const notesPaths =
+      kind === 'file'
+        ? ['notes']
+        : [
+            'notes/build.log',
+            'notes/installed-orca-backup/Orca.exe',
+            'notes/installed-orca-backup/resources/app.asar',
+            'notes/orca-windows-setup.exe',
+            'notes/.recovery/state.json'
+          ]
+    try {
+      for (const fixturePath of [...runtimePaths, ...notesPaths]) {
+        const file = join(source, fixturePath)
+        await mkdir(dirname(file), { recursive: true })
+        await writeFile(file, 'synthetic fixture\n')
+      }
+      if (kind === 'directory') {
+        await mkdir(join(source, 'notes', 'empty'))
+      }
+      const matcher = new FileMatcher(
+        source,
+        destination,
+        (value) => value,
+        electronBuilderConfig.files
+      )
+      // copyFiles adds the default include and prunes excluded directories during traversal.
+      await copyFiles([matcher])
+      for (const runtimePath of runtimePaths) {
+        expect(await readFile(join(destination, runtimePath), 'utf8')).toBe('synthetic fixture\n')
+      }
+      const isPacked = matcher.createFilter()
+      for (const notesPath of new Set(['notes', ...notesPaths])) {
+        const file = join(source, notesPath)
+        expect(isPacked(file, await lstat(file)), notesPath).toBe(false)
+      }
+      expect(existsSync(join(destination, 'notes'))).toBe(false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   // Why: `files` is an all-negation list, so electron-builder's default `**/*` packs
   // anything without an explicit `!` entry — examples/ landed without one and shipped
   // hostile-panel, the adversarial containment fixture, into 1.4.160-rc.3's app.asar.
@@ -105,6 +161,32 @@ describe('electron-builder config', () => {
     // The real build outputs sit beside it under out/ and must still ship.
     expect(packs('out/main/index.js')).toBe(true)
     expect(packs('out/renderer/index.html')).toBe(true)
+  })
+
+  // Why: an AV verdict on the bundled relay.js used to take app.asar with it as a
+  // compound object, gutting the install (#20966). resources/relay is the only copy
+  // a packaged build resolves, so the asar copy was 14MB of pure blast radius.
+  it('keeps the relay bundles out of app.asar and ships them only through extraResources', () => {
+    const matcher = new FileMatcher('/app', '/dest', (value) => value, electronBuilderConfig.files)
+    matcher.prependPattern('**/*')
+    const isPacked = matcher.createFilter()
+    const packs = (repoPath) => isPacked(join('/app', repoPath), { isDirectory: () => false })
+
+    for (const relayPath of [
+      'out/relay/linux-x64/relay.js',
+      'out/relay/win32-x64/relay.js',
+      'out/relay/darwin-arm64/relay-watcher.js',
+      'out/relay/wsl/wsl-agent-hook-relay.js'
+    ]) {
+      expect(packs(relayPath)).toBe(false)
+    }
+
+    for (const platform of ['mac', 'linux', 'win']) {
+      expect(electronBuilderConfig[platform].extraResources).toContainEqual({
+        from: 'out/relay',
+        to: 'relay'
+      })
+    }
   })
 
   it('keeps runtime resources available through extraResources', () => {
@@ -159,6 +241,23 @@ describe('electron-builder config', () => {
     expect(serveSimResources).toEqual([
       expect.objectContaining({ to: join('node_modules', 'serve-sim') })
     ])
+  })
+
+  // Why: serve-sim's addon is a Mach-O, and Windows signing rejects every *.node that is not PE.
+  it('keeps serve-sim out of the Windows and Linux runtime closures', () => {
+    const {
+      PACKAGED_RUNTIME_PACKAGE_ROOTS,
+      createPackagedRuntimeNodeModuleResources
+    } = require('../packaged-runtime-node-modules.cjs')
+    expect(PACKAGED_RUNTIME_PACKAGE_ROOTS).not.toContain('serve-sim')
+    const serveSimTarget = join('node_modules', 'serve-sim')
+    expect(createPackagedRuntimeNodeModuleResources('linux').map((r) => r.to)).not.toContain(
+      serveSimTarget
+    )
+    expect(electronBuilderConfig.linux.extraResources.map((r) => r.to)).not.toContain(
+      serveSimTarget
+    )
+    expect(electronBuilderConfig.win.extraResources.map((r) => r.to)).not.toContain(serveSimTarget)
   })
 
   // Why: the Windows CLI shim is delivered only via extraResources to
@@ -242,12 +341,14 @@ describe('electron-builder config', () => {
   // invisible to it and a packed worker entry fails closed — dropping every
   // OpenCode session in packaged builds while dev stays green. Three legs must
   // agree on the filename, so all three are read rather than hardcoded.
-  it('unpacks the OpenCode SQLite worker entry the scanner service forks', async () => {
-    const spawnSource = await readFile(
-      join(SRC_MAIN_DIR, 'ai-vault', 'session-scanner-opencode-sqlite-worker-spawn.ts'),
+  it('unpacks the foreign SQLite reader entry the scanner service runs OpenCode reads on', async () => {
+    const entryPathSource = await readFile(
+      join(SRC_MAIN_DIR, 'foreign-sqlite-readers', 'foreign-sqlite-reader-entry-path.ts'),
       'utf8'
     )
-    const entryFilename = spawnSource.match(/WORKER_ENTRY_FILENAME = '([^']+)'/)?.[1]
+    const entryFilename = entryPathSource.match(
+      /FOREIGN_SQLITE_READER_ENTRY_FILENAME = '([^']+)'/
+    )?.[1]
 
     expect(entryFilename).toBeDefined()
     expect(electronBuilderConfig.asarUnpack).toContain(`out/main/${entryFilename}`)
@@ -360,108 +461,6 @@ describe('electron-builder config', () => {
     }
   })
 
-  it('marks manual-update packages without publishing while preserving version metadata', () => {
-    const configPath = require.resolve('../electron-builder.config.cjs')
-    const originalManualUpdatesOnly = process.env.ORCA_MANUAL_UPDATES_ONLY
-    const originalLocalVersion = process.env.ORCA_LOCAL_BUILD_VERSION
-    const originalBuildCommit = process.env.ORCA_BUILD_COMMIT
-    try {
-      delete require.cache[configPath]
-      process.env.ORCA_MANUAL_UPDATES_ONLY = '1'
-      process.env.ORCA_LOCAL_BUILD_VERSION = '1.4.159-local.20260924100739.gabcdef01'
-      process.env.ORCA_BUILD_COMMIT = 'abcdef0123456789abcdef0123456789abcdef01'
-      const config = require('../electron-builder.config.cjs')
-
-      expect(config.extraMetadata).toEqual({
-        version: '1.4.159-local.20260924100739.gabcdef01',
-        orcaManualUpdatesOnly: true,
-        orcaBuildSource: {
-          repository: 'MartinoPolo/orca',
-          branch: 'main',
-          commit: process.env.ORCA_BUILD_COMMIT
-        }
-      })
-      expect(config.publish).toBeNull()
-      delete process.env.ORCA_BUILD_COMMIT
-      expect(() => config.beforePack({ electronPlatformName: 'win32', arch: 1 })).toThrow(
-        /requires ORCA_BUILD_COMMIT and MPX_APPS/
-      )
-    } finally {
-      if (originalBuildCommit === undefined) {
-        delete process.env.ORCA_BUILD_COMMIT
-      } else {
-        process.env.ORCA_BUILD_COMMIT = originalBuildCommit
-      }
-      if (originalManualUpdatesOnly === undefined) {
-        delete process.env.ORCA_MANUAL_UPDATES_ONLY
-      } else {
-        process.env.ORCA_MANUAL_UPDATES_ONLY = originalManualUpdatesOnly
-      }
-      if (originalLocalVersion === undefined) {
-        delete process.env.ORCA_LOCAL_BUILD_VERSION
-      } else {
-        process.env.ORCA_LOCAL_BUILD_VERSION = originalLocalVersion
-      }
-      delete require.cache[configPath]
-      require('../electron-builder.config.cjs')
-    }
-  })
-
-  it('requires matching compiled proof for manual packaging on any target platform', async () => {
-    const configPath = require.resolve('../electron-builder.config.cjs')
-    const sourcePolicyPath = require.resolve('./fork-release-policy.cjs')
-    const buildSourcePath = require.resolve('./fork-build-source.cjs')
-    const originalPolicy = require.cache[sourcePolicyPath].exports
-    const originalBuildSource = require.cache[buildSourcePath].exports
-    const originals = Object.fromEntries(
-      ['ORCA_MANUAL_UPDATES_ONLY', 'ORCA_LOCAL_BUILD_VERSION', 'ORCA_BUILD_COMMIT', 'MPX_APPS'].map(
-        (name) => [name, process.env[name]]
-      )
-    )
-    const scratch = await mkdtemp(join(tmpdir(), 'orca-manual-proof-'))
-    const source = { repository: 'MartinoPolo/orca', branch: 'main', commit: 'a'.repeat(40) }
-    const calls = []
-    try {
-      process.env.ORCA_MANUAL_UPDATES_ONLY = '1'
-      process.env.ORCA_LOCAL_BUILD_VERSION = '1.4.159-local.20260924100739.gaaaaaaaa'
-      process.env.ORCA_BUILD_COMMIT = source.commit
-      process.env.MPX_APPS = scratch
-      require.cache[sourcePolicyPath].exports = {
-        ...originalPolicy,
-        assertForkReleaseSource: () => source
-      }
-      require.cache[buildSourcePath].exports = {
-        ...originalBuildSource,
-        assertForkBuildSource: (details) => {
-          calls.push(details)
-          throw new Error('Fork build proof is missing')
-        }
-      }
-      delete require.cache[configPath]
-      const config = require('../electron-builder.config.cjs')
-      for (const electronPlatformName of ['win32', 'darwin', 'linux']) {
-        expect(() => config.beforePack({ electronPlatformName, arch: 1 })).toThrow(
-          /proof is missing/
-        )
-      }
-      expect(calls).toHaveLength(3)
-      expect(calls[0]).toMatchObject({ source, version: process.env.ORCA_LOCAL_BUILD_VERSION })
-    } finally {
-      for (const [name, value] of Object.entries(originals)) {
-        if (value === undefined) {
-          delete process.env[name]
-        } else {
-          process.env[name] = value
-        }
-      }
-      require.cache[sourcePolicyPath].exports = originalPolicy
-      require.cache[buildSourcePath].exports = originalBuildSource
-      delete require.cache[configPath]
-      require('../electron-builder.config.cjs')
-      await rm(scratch, { recursive: true, force: true })
-    }
-  })
-
   it('never applies local semver to release packaging', () => {
     const configPath = require.resolve('../electron-builder.config.cjs')
     const originalLocalVersion = process.env.ORCA_LOCAL_BUILD_VERSION
@@ -556,7 +555,7 @@ describe('arch-aware packaging guard', () => {
   beforeAll(async () => {
     scratch = await mkdtemp(join(tmpdir(), 'orca-electron-builder-guard-'))
     bundleDir = join(scratch, 'mobile-web')
-    await buildMobileWebBundle({ outDir: bundleDir })
+    await writeMobileWebBundleFixtureTree({ outDir: bundleDir })
   })
   afterAll(async () => {
     await rm(scratch, { recursive: true, force: true })

@@ -53,8 +53,10 @@ export function buildActivityEvents(
 ): {
   events: ActivityEvent[]
   liveAgentByPaneKey: Record<string, ActivityLiveAgentSnapshot>
+  paneEntryByPaneKey: Record<string, AgentStatusEntry>
 } {
   const events: ActivityEvent[] = []
+  const paneEntryByPaneKey: Record<string, AgentStatusEntry> = {}
   const seenEventIds = new Set<string>()
   const tabContext = buildActivityTabContext(args.tabsByWorktree, args.unifiedTabsByWorktree)
   const tabHostIndex = buildActivityTabHostIndex(args.unifiedTabsByWorktree)
@@ -62,9 +64,10 @@ export function buildActivityEvents(
   const liveAgentByPaneKey: Record<string, ActivityLiveAgentSnapshot> = {}
   const seenCacheKeys = cache ? new Set<string>() : null
 
-  const pushPaneEvents = (paneEvents: ActivityEvent[]): void => {
+  const pushPaneEvents = (paneEvents: ActivityEvent[], rowEntry: AgentStatusEntry): void => {
     // Why: a paneKey can appear in more than one source (live + retained overlap);
     // event ids stay globally unique so the first source wins, as before.
+    paneEntryByPaneKey[rowEntry.paneKey] ??= rowEntry
     for (const event of paneEvents) {
       if (seenEventIds.has(event.id)) {
         continue
@@ -96,7 +99,11 @@ export function buildActivityEvents(
     // Only fresh live turns contribute working activity; history cannot establish liveness.
     // The freshness check runs on the raw entry (orchestration merges never change state/timing fields).
     const liveState = freshActivityLiveAgentState(entry, args.now)
-    const { events: paneEvents, live } = resolvePaneBuild(
+    const {
+      events: paneEvents,
+      live,
+      rowEntry
+    } = resolvePaneBuild(
       {
         cacheKey: `live:${paneKey}`,
         source: entry,
@@ -118,7 +125,7 @@ export function buildActivityEvents(
     if (live) {
       liveAgentByPaneKey[paneKey] = live
     }
-    pushPaneEvents(paneEvents)
+    pushPaneEvents(paneEvents, rowEntry)
   }
 
   appendUnsupportedAndRetainedEvents({
@@ -148,5 +155,5 @@ export function buildActivityEvents(
       }
     }
   }
-  return { events: capActivityEvents(events), liveAgentByPaneKey }
+  return { events: capActivityEvents(events), liveAgentByPaneKey, paneEntryByPaneKey }
 }

@@ -86,6 +86,9 @@ function renderRow(
     detailsExpanded?: boolean
     worktreeInfo?: AiVaultSessionWorktreeInfo | null
     onToggleDetails?: () => void
+    onJumpToOriginalPane?: () => void
+    onResume?: () => void
+    resumeHidden?: boolean
     onRequestDelete?: () => void
     resumeStartup?: AiVaultResumeStartup
     realHomeResumeStartup?: AiVaultResumeStartup
@@ -106,9 +109,11 @@ function renderRow(
         vaultScope="all"
         detailsExpanded={overrides.detailsExpanded ?? false}
         resumeDisabled={false}
+        resumeHidden={overrides.resumeHidden}
         onToggleDetails={overrides.onToggleDetails ?? vi.fn()}
+        onJumpToOriginalPane={overrides.onJumpToOriginalPane}
         showJumpToWorktree={false}
-        onResume={vi.fn()}
+        onResume={overrides.onResume ?? vi.fn()}
         resumeLabel="Resume in New Tab"
         resumeActions={{
           worktree: { worktreeId: null, disabled: true },
@@ -209,6 +214,38 @@ it('serializes local Pi provenance and the captured launch snapshot when draggin
     sessionFilePath: '/accounts/work/sessions/session-1.jsonl',
     env: launchConfig.agentEnv,
     launchConfig
+  })
+})
+
+describe('VaultSessionRow native session actions', () => {
+  it('shows the jump action instead of Resume for an open structured session', async () => {
+    const onJumpToOriginalPane = vi.fn()
+    const onResume = vi.fn()
+    renderRow({ resumeHidden: true, onJumpToOriginalPane, onResume })
+
+    expect(screen.queryByTestId('ai-vault-session-resume')).toBeNull()
+    fireEvent.click(screen.getByTestId('ai-vault-session-jump-original-pane'))
+
+    expect(onJumpToOriginalPane).toHaveBeenCalledOnce()
+    expect(onResume).not.toHaveBeenCalled()
+
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId('ai-vault-session-more-actions'))
+    expect(await screen.findByRole('menuitem', { name: 'Jump to Original Pane' })).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Resume in New Tab' })).toBeNull()
+  })
+
+  it('hides Delete for structured native sessions', async () => {
+    const nativeSession = {
+      ...session,
+      structuredSession: { sessionId: 'native-1', workspaceId: 'workspace-1' }
+    }
+
+    renderRow({ session: nativeSession })
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId('ai-vault-session-more-actions'))
+
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull()
   })
 })
 

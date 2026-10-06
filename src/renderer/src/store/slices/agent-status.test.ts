@@ -332,7 +332,9 @@ describe('persisted session attention episodes', () => {
         [ATTENTION_WORKSPACE_ID]: state.unifiedTabsByWorktree[ATTENTION_WORKSPACE_ID].map(
           (tab) => ({
             ...tab,
-            structuredSessionId: 'structured-attention-session'
+            id: ATTENTION_TAB_ID,
+            contentType: 'agent-session' as const,
+            entityId: 'structured-attention-session'
           })
         )
       }

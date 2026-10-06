@@ -4,6 +4,7 @@ import {
   paneTitleForEvent,
   statusPreviewForEntry
 } from './activity-thread-presentation'
+import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import type {
   ActivityEvent,
   ActivityLiveAgentSnapshot,
@@ -65,6 +66,7 @@ function reuseThreadIfEqual(
     previous.agentType === next.agentType &&
     previous.currentAgentState === next.currentAgentState &&
     previous.currentAgentEntry === next.currentAgentEntry &&
+    previous.paneEntry === next.paneEntry &&
     previous.responsePreview === next.responsePreview &&
     previous.latestTimestamp === next.latestTimestamp &&
     previous.latestEvent === next.latestEvent &&
@@ -89,6 +91,7 @@ export function buildAgentPaneThreads(
     liveAgentByPaneKey: Record<string, ActivityLiveAgentSnapshot>
     sessionAttentionMetadataByIdentity?: Record<string, SessionAttentionMetadata>
     defaultHostId?: ExecutionHostId
+    paneEntryByPaneKey?: Record<string, AgentStatusEntry>
     generatedTitlesEnabled?: boolean
   },
   reuseCache?: AgentPaneThreadReuseCache
@@ -110,6 +113,7 @@ export function buildAgentPaneThreads(
         agentType: event.agentType,
         currentAgentState: null,
         currentAgentEntry: null,
+        paneEntry: args.paneEntryByPaneKey?.[paneKey],
         responsePreview: statusPreviewForEntry(event.entry, event.state),
         latestTimestamp: event.timestamp,
         latestEvent: event,
@@ -128,7 +132,9 @@ export function buildAgentPaneThreads(
     existing.unread = existing.unread || event.unread
     existing.migrationUnsupportedPtyId =
       existing.migrationUnsupportedPtyId ?? event.migrationUnsupportedPtyId
-    if (!existing.latestEvent || event.timestamp > existing.latestEvent.timestamp) {
+    // Why max, not the latest event's: "Clear completed" cuts off at this, and must pass every event.
+    existing.latestTimestamp = Math.max(existing.latestTimestamp, event.timestamp)
+    if (!existing.latestEvent || event.observedAt > existing.latestEvent.observedAt) {
       existing.latestEvent = event
       existing.paneTitle = paneTitleForEvent(event, generatedTitlesEnabled)
       existing.agentType = event.agentType
@@ -140,7 +146,6 @@ export function buildAgentPaneThreads(
         event.state,
         existing.responsePreview
       )
-      existing.latestTimestamp = event.timestamp
     }
   }
 
@@ -158,6 +163,7 @@ export function buildAgentPaneThreads(
         agentType: liveAgent.agentType,
         currentAgentState: liveAgent.state,
         currentAgentEntry: liveAgent.entry,
+        paneEntry: args.paneEntryByPaneKey?.[paneKey],
         responsePreview: statusPreviewForEntry(liveAgent.entry, liveAgent.entry.state),
         latestTimestamp: liveAgent.timestamp,
         latestEvent: null,
@@ -217,7 +223,7 @@ export function buildAgentPaneThreads(
         : null
       const nextWithEvents: AgentPaneThread = {
         ...thread,
-        events: [...thread.events].sort((a, b) => b.timestamp - a.timestamp),
+        events: [...thread.events].sort((a, b) => b.observedAt - a.observedAt),
         sessionIdentity,
         priority: metadata?.priority ?? 3,
         savedMarker,

@@ -141,6 +141,8 @@ export function mergeSettings(
     ...base,
     ...updates,
     notifications: {
+      // Why: browser-stored settings can predate a newer notification field.
+      ...defaults.notifications,
       ...base.notifications,
       ...updates.notifications
     },

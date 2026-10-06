@@ -1,3 +1,8 @@
+import {
+  assertAntigravityReferenceTarget,
+  buildAntigravityReferenceStartup
+} from './ai-vault-antigravity-reference-startup'
+import { isAntigravityReferenceSession } from '../../../shared/antigravity-session-origin'
 import type { AiVaultSession } from '../../../shared/ai-vault-types'
 import {
   buildAiVaultResumeCommand,
@@ -11,10 +16,6 @@ import {
 } from '../../../shared/agent-session-resume'
 import { normalizeAiVaultResumeFilePath } from '../../../shared/ai-vault-resume-path'
 import { parseWslUncPath } from '../../../shared/wsl-paths'
-import {
-  resolveTuiAgentLaunchArgs,
-  resolveTuiAgentLaunchEnv
-} from '../../../shared/tui-agent-launch-defaults'
 import type { AgentStartupShell } from '../../../shared/tui-agent-startup-shell'
 import type { AppState } from '@/store/types'
 import type { AiVaultSessionDragPayload } from '@/lib/ai-vault-session-drag'
@@ -29,7 +30,7 @@ import {
   resolveAiVaultResumeStartupShell
 } from '@/lib/ai-vault-resume-shell'
 import { PiResumeProfileError } from '@/lib/pi-profile-resume-provenance'
-import { resolveAiVaultAccountLaunchInputs } from '@/lib/ai-vault-account-launch-inputs'
+import { resolveAiVaultSessionAccountLaunchInputs } from '@/lib/ai-vault-account-launch-inputs'
 import { AgentAccountResumeError } from '@/lib/agent-account-resume'
 import { getAiVaultAgentProviderSession } from '@/lib/ai-vault-provider-session'
 
@@ -140,35 +141,20 @@ function buildAiVaultResumeForWorktree(
    *  Spawned startups drop them through `envToDelete` instead. */
   clearEnvNames?: readonly string[]
 ): AiVaultResumeStartup {
+  assertAntigravityReferenceTarget(args)
   const providerSession = getAiVaultAgentProviderSession(args.session)
-  const defaultAgentArgs = resolveTuiAgentLaunchArgs(
-    args.session.agent,
-    args.state.settings?.agentDefaultArgs
-  )
-  const defaultAgentEnv = resolveTuiAgentLaunchEnv(
-    args.session.agent,
-    args.state.settings?.agentDefaultEnv
-  )
   const {
     launchConfig: accountLaunchConfig,
     agentArgs: effectiveAgentArgs,
     agentEnv: effectiveAgentEnv,
     accountEnvironment,
     commandOverride: effectiveCommandOverride
-  } = resolveAiVaultAccountLaunchInputs({
-    agent: args.session.agent,
-    transcriptPath: args.session.filePath,
-    sessionExecutionHostId: args.session.executionHostId,
-    worktreeId: args.worktreeId,
-    state: args.state,
-    commandOverride: args.commandOverride,
-    agentArgs: defaultAgentArgs,
-    agentEnv: defaultAgentEnv
-  })
+  } = resolveAiVaultSessionAccountLaunchInputs(args)
   if (
     args.session.executionHostId &&
     args.session.executionHostId !== LOCAL_EXECUTION_HOST_ID &&
     args.session.resumeCommand &&
+    !isAntigravityReferenceSession(args.session) &&
     args.session.agent !== 'omp' &&
     !(args.session.agent === 'codex' && args.session.codexHome === null) &&
     !args.commandOverride?.trim() &&
@@ -200,6 +186,19 @@ function buildAiVaultResumeForWorktree(
       : undefined
   const cwd = embedCwd ? args.session.cwd : null
   const startupCwd = !embedCwd && args.session.cwd ? { cwd: args.session.cwd } : {}
+  if (isAntigravityReferenceSession(args.session)) {
+    const reference = buildAntigravityReferenceStartup({
+      session: { ...args.session, filePath: resumeFilePath },
+      cwd,
+      platform,
+      shell: liveShell,
+      commandOverride: args.commandOverride,
+      settings: args.state.settings
+    })
+    if (reference) {
+      return { ...reference, ...startupCwd }
+    }
+  }
   if (providerSession && isResumableTuiAgent(args.session.agent)) {
     const startupPlan = buildAgentResumeStartupPlan({
       agent: args.session.agent,
@@ -299,7 +298,7 @@ function resolveAiVaultResumeShell(args: AiVaultResumeWorktreeArgs): AgentStartu
   })
 }
 
-export function getAiVaultResumePlatform(
+function getAiVaultResumePlatform(
   state: Pick<
     AppState,
     | 'activeRepoId'

@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getDefaultNotificationSettings, getDefaultSettings } from '../../../../shared/constants'
+import { getDefaultSettings } from '../../../../shared/constants'
+import { getDefaultNotificationSettings } from '../../../../shared/notification-settings-defaults'
 
 vi.mock('../ui/select', () => ({
   Select: ({

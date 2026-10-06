@@ -5,6 +5,10 @@ import type { PiAgentKind } from '../../shared/pi-agent-kind'
 import { getOmpSessionOwnerHandlerSourceLines } from './omp-session-status-owner-source'
 import { getPiAgentStatusUiPromptHandlerSourceLines } from './agent-status-ui-prompt-source'
 import { getPiAgentStatusOwnershipSourceLines } from './agent-status-ownership-source'
+import {
+  getPiSubagentRosterEventSourceLines,
+  getPiSubagentRosterSetupSourceLines
+} from './agent-status-subagent-roster-source'
 
 // Why: keep the generated handler registrations separate from hook transport;
 // both are independently sizeable and the installed extension concatenates them.
@@ -132,13 +136,19 @@ export function getPiAgentStatusHandlerSourceLines(kind: PiAgentKind): string[] 
       ? `  if (isOmpRuntime()) process.env.${ownerEnv} = selfPid`
       : `  process.env.${ownerEnv} = selfPid`,
     '  resetPostQueue()',
+    ...getPiSubagentRosterSetupSourceLines(),
     ...(kind !== 'pi'
-      ? ["  pi.on('session_shutdown', () => { resetPostQueue(); clearPendingAgentEndCheck() })"]
+      ? [
+          "  pi.on('session_shutdown', () => { lifecycleState.active.clear(); lifecycleState.exited?.clear(); lifecycleState.waiting = false; resetPostQueue(); clearPendingAgentEndCheck() })"
+        ]
       : []),
     ...(kind !== 'prime-agent'
       ? [
           "  pi.on('session_switch', (_event, ctx) => {",
           '    if (!isOmpRuntime()) return',
+          '    lifecycleState.active.clear()',
+          '    lifecycleState.exited?.clear()',
+          '    lifecycleState.waiting = false',
           '    resetPostQueue()',
           '    clearPendingAgentEndCheck()',
           '    updateRuntimeOmpSessionMetadata(ctx)',
@@ -169,6 +179,7 @@ export function getPiAgentStatusHandlerSourceLines(kind: PiAgentKind): string[] 
     `  ${statusRegistration}('agent_start', (${bareCtxParams}) => {`,
     ...captureSessionMetadata,
     '    clearPendingAgentEndCheck()',
+    '    lifecycleState.waiting = false',
     '    runGeneration += 1',
     // Why: a turn cannot begin under a dialog holding input focus, so this is the one
     // boundary that can recover a modal whose close never arrived.
@@ -239,11 +250,15 @@ export function getPiAgentStatusHandlerSourceLines(kind: PiAgentKind): string[] 
     '    pendingAgentEndCheck = null',
     '    pendingAgentEndContext = null',
     '  }',
-    '',
-    '  // Why: isIdle flips before agent_settled handlers run, so both paths',
-    '  // share a guard instead of racing duplicate completion posts — one keyed on the',
-    '  // generation of the run that ENDED, so a later run still reports its own end.',
+    ...getPiSubagentRosterEventSourceLines(),
     '  function postAgentEndOnce(): void {',
+    '    for (const id of lifecycleState.exited ?? []) lifecycleState.active.delete(id)',
+    '    lifecycleState.exited?.clear()',
+    '    if (lifecycleState.active.size > 0) {',
+    '      lifecycleState.waiting = true',
+    '      return',
+    '    }',
+    '    lifecycleState.waiting = false',
     '    if (completionPostedGeneration === endedRunGeneration) return',
     '    completionPostedGeneration = endedRunGeneration',
     // Why: distinct from the completion guard, which holds the generation of the posted run

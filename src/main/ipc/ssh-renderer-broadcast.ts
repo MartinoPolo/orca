@@ -13,6 +13,7 @@ import {
   getWorktreeIdsForConnection
 } from '../ports/ssh-advertised-url-enrichment'
 import { getSshProviderAuthority } from '../ssh/ssh-provider-authority'
+import { getSshPlainSshMode } from '../ssh/ssh-plain-ssh-mode'
 import { activeSessions } from './ssh-active-relay-sessions'
 import {
   connectionManager,
@@ -48,13 +49,15 @@ function withSshRemotePlatform(targetId: string, state: SshConnectionState): Ssh
   const remotePlatform = relaySession?.getHostPlatform()?.os
   const remoteHomeDirectory = relaySession?.getRemoteHomeDirectory()
   const authority = getSshProviderAuthority(targetId)
+  const plainSsh = state.status === 'connected' ? getSshPlainSshMode(targetId) : undefined
   return {
     ...state,
     targetId,
     providerEpoch: authority.providerEpoch,
     connectionGeneration: authority.connectionGeneration,
     ...(remotePlatform ? { remotePlatform } : {}),
-    ...(remoteHomeDirectory ? { remoteHomeDirectory } : {})
+    ...(remoteHomeDirectory ? { remoteHomeDirectory } : {}),
+    ...(plainSsh ? { plainSsh } : {})
   }
 }
 

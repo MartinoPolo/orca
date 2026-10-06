@@ -1,14 +1,15 @@
+import {
+  resolveTerminalNotificationOwner,
+  type TerminalNotificationBinding
+} from '@/attention/notification-subject-owner'
+import { notificationSourceForOwner } from '../../../../shared/notification-source'
 import { useCallback } from 'react'
 import { useAppStore } from '@/store'
 import { resolveCommittedTitleAgentType } from '@/lib/pane-agent-evidence'
-import { playDesktopNotificationSound } from '@/lib/desktop-notification-sound'
-import { resolveEntryIdentity } from '@/store/slices/session-attention-transition'
-import type {
-  NotificationSettings,
-  NotificationSoundCategory
-} from '../../../../shared/notification-settings-types'
-import { showBlockedNotificationFallbackToast } from '@/lib/blocked-notification-fallback'
+import { resolveEntrySessionPriority } from '@/store/slices/session-attention-transition'
+import type { NotificationSoundCategory } from '../../../../shared/notification-settings-types'
 import { buildAgentNotificationId } from '../../../../shared/agent-notification-id'
+import { agentMainAgentVerdict } from '../../../../shared/agent-main-agent-verdict'
 import { shareCompatibleTitleIdentityGroup } from '../../../../shared/agent-title-owner'
 import {
   isFreshNonDoneAgentStatus,
@@ -28,6 +29,7 @@ import {
   resolveAgentAttention,
   type AgentAttentionDeliveryRequest
 } from '@/attention/agent-attention-policy'
+import { deliverAgentAttentionNotification } from '@/attention/agent-attention-notification-delivery'
 
 const AGENT_NOTIFICATION_SNAPSHOT_MAX_AGE_MS = 10_000
 
@@ -43,7 +45,7 @@ function resolveAgentSoundCategory(
   ) {
     return 'needs-input'
   }
-  if (status?.state === 'blocked') {
+  if (status?.state === 'blocked' || (status && agentMainAgentVerdict(status) === 'failure')) {
     return 'failed'
   }
   if (
@@ -56,22 +58,6 @@ function resolveAgentSoundCategory(
     return 'failed'
   }
   return 'done'
-}
-
-function selectAgentSound(
-  settings: NotificationSettings | undefined,
-  category: NotificationSoundCategory
-): { soundId: NotificationSettings['customSoundId']; volume: number | undefined } {
-  if (category === 'needs-input') {
-    return {
-      soundId: settings?.needsInputSoundId ?? 'system',
-      volume: settings?.needsInputSoundVolume
-    }
-  }
-  if (category === 'failed') {
-    return { soundId: settings?.failedSoundId ?? 'system', volume: settings?.failedSoundVolume }
-  }
-  return { soundId: settings?.customSoundId ?? 'system', volume: settings?.customSoundVolume }
 }
 
 function agentSnapshotMatchesExplicitTitle(
@@ -95,10 +81,9 @@ function hasFreshActiveHookStatus(
   return Boolean(isFreshNonDoneAgentStatus(snapshot) && !titleNamesDifferentKnownAgent)
 }
 
-export type TerminalNotificationEvent = {
+export type TerminalNotificationEvent = TerminalNotificationBinding & {
   source: 'terminal-bell' | 'agent-task-complete'
   terminalTitle?: string
-  paneKey?: string
   agentStatusSnapshot?: AgentCompletionStatusSnapshot
   agentCompletionSource?: AgentCompletionDispatchMeta['source']
   desktopOnly?: boolean
@@ -194,8 +179,6 @@ export function dispatchTerminalNotification(
 
   // Desktop settings are applied in main after independent mobile delivery.
 
-  const notificationSettings = state.settings?.notifications
-  const soundSelection = selectAgentSound(notificationSettings, soundCategory)
   const retainedAgentStatus = event.paneKey
     ? state.retainedAgentsByPaneKey[event.paneKey]?.entry
     : undefined
@@ -219,18 +202,7 @@ export function dispatchTerminalNotification(
   } else if (storedAgentStatus?.worktreeId === worktreeId) {
     identityEntry = storedAgentStatus
   }
-  const sessionIdentity = identityEntry ? resolveEntryIdentity(state, identityEntry) : null
-  let priority = 3
-  if (sessionIdentity?.sessionIdentity) {
-    const identities = [sessionIdentity.sessionIdentity, ...sessionIdentity.identityAliases]
-    for (const identity of identities) {
-      const savedPriority = state.sessionAttentionMetadataByIdentity[identity]?.priority
-      if (savedPriority !== undefined) {
-        priority = savedPriority
-        break
-      }
-    }
-  }
+  const priority = identityEntry ? resolveEntrySessionPriority(state, identityEntry) : 3
   // Why: pane keys are reused across turns. A rich OS notification must not
   // expose the previous turn's prompt if the current turn has no fresh hook snapshot yet.
   const agentSnapshot = agentStatus
@@ -241,7 +213,7 @@ export function dispatchTerminalNotification(
         agentToolName: agentStatus.toolName,
         agentToolInput: agentStatus.toolInput,
         agentLastAssistantMessage: agentStatus.lastAssistantMessage,
-        agentInterrupted: agentStatus.interrupted
+        agentTurnOutcome: agentMainAgentVerdict(agentStatus) ?? undefined
       }
     : {}
   const notificationId =
@@ -257,8 +229,8 @@ export function dispatchTerminalNotification(
       : null
 
   const requestDelivery = (request: AgentAttentionDeliveryRequest): void => {
-    void window.api.notifications
-      .dispatch({
+    deliverAgentAttentionNotification(
+      {
         source: event.source,
         ...(event.source === 'agent-task-complete' ? { priority, soundCategory } : {}),
         ...(event.desktopOnly ? { desktopOnly: true } : {}),
@@ -266,37 +238,16 @@ export function dispatchTerminalNotification(
         worktreeId: request.workspaceId,
         paneKey: request.subjectKey ?? undefined,
         ...getNotificationWorkspaceLabels(state, request.workspaceId, event.terminalTitle),
+        notificationSourceId: notificationSourceForOwner(
+          resolveTerminalNotificationOwner(state, worktreeId, event),
+          state
+        ),
         terminalTitle: event.terminalTitle,
         isActiveWorktree: request.workspaceIsActive,
         ...agentSnapshot
-      })
-      .then((result) => {
-        // Why: macOS is silently swallowing notifications (permission off or
-        // prompt unanswered) — surface an in-app pointer at the fix instead of
-        // letting the alert vanish without a trace.
-        if (result.reason === 'blocked-by-system') {
-          showBlockedNotificationFallbackToast()
-        }
-      })
-      .catch((err) => {
-        console.warn('Failed to dispatch notification:', err)
-      })
-    // Sound is an event channel, not an OS delivery receipt. Respect the same
-    // desktop source gates but never suppress it for focus, priority or banner cooldown.
-    if (
-      notificationSettings?.enabled !== false &&
-      (event.source !== 'agent-task-complete' ||
-        notificationSettings?.agentTaskComplete !== false) &&
-      (event.source !== 'terminal-bell' || notificationSettings?.terminalBell !== false)
-    ) {
-      if (event.source === 'agent-task-complete' || soundSelection.soundId !== 'system') {
-        void playDesktopNotificationSound(
-          soundSelection.soundId,
-          soundSelection.volume,
-          soundCategory
-        )
-      }
-    }
+      },
+      state.settings?.notifications
+    )
   }
 
   if (event.desktopOnly) {

@@ -29,9 +29,6 @@ function resolveStructuredSessionId(
   projectedTab: Tab | undefined,
   terminalTabId: string
 ): string | undefined {
-  if (projectedTab?.structuredSessionId?.trim()) {
-    return projectedTab.structuredSessionId.trim()
-  }
   if (projectedTab?.contentType === 'agent-session' && projectedTab.entityId.trim()) {
     return projectedTab.entityId.trim()
   }

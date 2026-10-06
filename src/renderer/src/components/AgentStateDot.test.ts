@@ -47,15 +47,9 @@ describe('AgentStateDot', () => {
   it('renders working as a yellow spinner', () => {
     const markup = renderMarkup('working')
 
-    expect(markup).toContain('border-session-status-working')
-    expect(markup).toContain('border-t-transparent')
-    // Why: rotation must come from the compositor-driven CSS animation, not a
-    // JS clock writing per-element styles on the input thread (STA-3328).
-    expect(markup).toContain('agent-working-spinner')
+    // The spinner's own classes and animation contract belong to AgentWorkingSpinner.test.tsx;
+    // this pins only that 'working' reaches for it.
     expect(markup).toContain('data-agent-spinner')
-    // Why: under reduced motion the top border is filled so the static ring
-    // reads as a complete marker, not a broken partial spinner (#9515).
-    expect(markup).toContain('motion-reduce:border-t-session-status-working')
   })
 
   it('renders monitoring as a static yellow heartbeat glyph', () => {
@@ -101,11 +95,7 @@ describe('AgentStateDot', () => {
     expect(markup).not.toContain('data-agent-spinner')
   })
 
-  it('renders blocked as a violet outcome dot', () => {
-    expect(renderDotClassNames('blocked')).toContain('bg-session-attention-outcome')
-  })
-
-  it.each(['interrupted', 'failed'] satisfies AgentDotState[])(
+  it.each(['blocked', 'failed'] satisfies AgentDotState[])(
     'renders %s as a violet outcome dot',
     (state) => {
       const classNames = renderDotClassNames(state)
@@ -114,6 +104,14 @@ describe('AgentStateDot', () => {
       expect(classNames).not.toContain('bg-amber-500')
     }
   )
+
+  it("renders a user's Stop as a muted dot, neither the fault red nor the idle grey", () => {
+    const classNames = renderDotClassNames('interrupted')
+
+    expect(classNames).toContain('bg-muted-foreground')
+    expect(classNames).not.toContain('bg-red-500')
+    expect(classNames).not.toContain('bg-neutral-500/40')
+  })
 
   const ALL_STATES = [
     'working',
@@ -125,6 +123,7 @@ describe('AgentStateDot', () => {
     'done',
     'idle',
     'unverifiable',
+    'unconfirmed',
     'permission'
   ] satisfies AgentDotState[]
 

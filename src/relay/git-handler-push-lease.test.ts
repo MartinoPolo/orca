@@ -3,7 +3,7 @@ import { GitHandlerSyncOperations } from './git-handler-sync-operations'
 import { GitHandlerWorktreeChangeOperations } from './git-handler-worktree-change-operations'
 import type { GitHandlerOperationHost } from './git-handler-operation-context'
 import { GitCapabilityCache } from '../shared/git-capability-cache'
-import { InFlightPromiseDedupe } from '../shared/in-flight-promise-dedupe'
+import { GitStatusReadLeaseOwner } from '../shared/git-status-read-lease-owner'
 import { createSubmodulePathsCache } from './git-handler-submodule-ops'
 
 function setup() {
@@ -15,7 +15,7 @@ function setup() {
   const host: GitHandlerOperationHost = {
     git,
     gitCapabilities: new GitCapabilityCache(),
-    gitDiffReadDedupe: new InFlightPromiseDedupe(),
+    gitDiffReadDedupe: new GitStatusReadLeaseOwner<unknown>(),
     submodulePathsCache: createSubmodulePathsCache(),
     watcherRegistry: undefined,
     gitBuffer: async () => Buffer.alloc(0),

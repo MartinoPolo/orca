@@ -63,6 +63,7 @@ function targetStoreState(now: number): Record<string, unknown> {
     tabsByWorktree: {
       'wt-1': [{ id: 'tab-1' }]
     },
+    unifiedTabsByWorktree: {},
     terminalLayoutsByTabId: {
       'tab-1': {
         root: {

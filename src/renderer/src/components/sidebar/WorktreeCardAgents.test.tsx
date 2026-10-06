@@ -141,7 +141,6 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
     childAgentCount,
     childAgentsExpanded,
     onToggleChildAgents,
-    reserveDisclosureGutter,
     onActivate
   }: {
     agent: { paneKey: string }
@@ -152,7 +151,6 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
     childAgentCount?: number
     childAgentsExpanded?: boolean
     onToggleChildAgents?: () => void
-    reserveDisclosureGutter?: boolean
     onActivate: (tabId: string, paneKey: string) => void
   }) => {
     capturedRowActivations.push({ paneKey: agent.paneKey, onActivate })
@@ -164,7 +162,6 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
         data-disabled-reason={sendTargetDisabledReason}
         data-has-send-handler={typeof onSendTargetClick === 'function' ? 'true' : 'false'}
         data-pane-key={agent.paneKey}
-        data-reserve-disclosure-gutter={reserveDisclosureGutter ? 'true' : 'false'}
       >
         {agent.paneKey}
         {typeof childAgentCount === 'number' && childAgentCount > 0 ? (
@@ -230,7 +227,7 @@ describe('WorktreeCardAgents', () => {
     expect(markup).not.toContain('data-testid="agent-row"')
   })
 
-  it('dims non-focused compact agent row text', async () => {
+  it('emphasizes unvisited non-focused compact agent row text', async () => {
     mockAgentActivityDisplayMode = 'compact'
     mockAgents = [
       mockAgent({
@@ -244,7 +241,7 @@ describe('WorktreeCardAgents', () => {
 
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
-    expect(markup).toContain('<span class="text-muted-foreground/90">Run tests</span>')
+    expect(markup).toContain('<span class="font-semibold text-foreground">Run tests</span>')
     expect(markup).toContain('<span class="text-muted-foreground/65"> - Inspecting changes</span>')
     expect(markup).not.toContain('data-focused-agent-pane="true"')
     expect(markup).not.toContain('<span class="text-foreground">Run tests</span>')
@@ -266,7 +263,7 @@ describe('WorktreeCardAgents', () => {
     const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-1" />)
 
     expect(markup).toContain('data-focused-agent-pane="true"')
-    expect(markup).toContain('<span class="text-foreground">Focused prompt</span>')
+    expect(markup).toContain('<span class="font-semibold text-foreground">Focused prompt</span>')
     expect(markup).toContain('<span class="text-foreground/70"> - Reading output</span>')
     expect(markup).not.toContain('<span class="text-muted-foreground/90">Focused prompt</span>')
   })
@@ -446,7 +443,6 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toContain('role="tree"')
     expect(markup).toContain('data-pane-key="tab-parent:1"')
     expect(markup).toContain('data-pane-key="tab-child:1"')
-    expect(markup).toContain('data-pane-key="tab-child:1" data-reserve-disclosure-gutter="false"')
     expect(markup).toContain('aria-label="Hide 1 child agent"')
     expect(markup).toContain('aria-expanded="true"')
   })

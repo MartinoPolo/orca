@@ -74,7 +74,7 @@ function renderSidebarRow(compact: boolean): string {
   const view = render(
     <TooltipProvider>
       {compact ? (
-        <CompactAgentRow agent={dashboardAgent()} now={3_000} onActivate={vi.fn()} isUnread />
+        <CompactAgentRow agent={dashboardAgent()} now={3_000} onActivate={vi.fn()} isUnvisited />
       ) : (
         <DashboardAgentRow
           agent={dashboardAgent()}

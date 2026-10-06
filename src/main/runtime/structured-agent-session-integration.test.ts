@@ -6,15 +6,10 @@
 // that ship. The fake app-server answers the same JSON-RPC calls the real one
 // does and pushes the same notifications and blocking requests back.
 
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type {
-  CodexAppServerConnection,
-  CodexAppServerConnectionHandlers,
-  openCodexAppServerConnection
-} from '../codex/codex-app-server-connection'
 import { computeAgentSessionPayloadFingerprint } from '../../shared/agent-session-mutation-envelope'
 import {
   AGENT_SESSION_PENDING_SEND_RESULT_RUNTIME_CAPABILITY,
@@ -30,18 +25,21 @@ import type {
 } from '../../shared/agent-session-wire'
 import { attachFingerprintFields } from '../native-chat/agent-session-wire/structured-agent-session-attach'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
-import { journalDirectoryFor } from '../native-chat/agent-session-journal/journal-paths'
-import { appendLegacyTranscriptMessages } from '../native-chat/agent-session-journal/journal-legacy-import'
+import { importLegacyTranscriptIntoJournal } from '../native-chat/agent-session-journal/journal-legacy-import'
 import type { AgentSessionJournal } from '../native-chat/agent-session-journal/journal-store'
-import { createTrackedJournalOpener } from '../native-chat/agent-session-journal/journal-store-test-open'
+import { createTrackedJournalOpener } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import type { OrcaRuntimeService } from './orca-runtime'
+import { readPersistedTestAgentSessionStoreText } from './agent-session-record-store-test-harness'
 import type { RpcRequest, RpcResponse } from './rpc/core'
 import { RpcDispatcher } from './rpc/dispatcher'
+import type { NativeChatShellEnvironmentPolicy } from '../../shared/native-chat-shell-environment'
 import { STRUCTURED_AGENT_SESSION_METHODS } from './rpc/methods/structured-agent-session'
 import {
   ensureStructuredAgentSessionHost,
   stopStructuredAgentSessionRuntime
 } from './structured-agent-session-runtime'
+import { createStructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
+import { fakeCodex, type FakeCodex } from './structured-codex-session-rpc-test-harness'
 
 vi.mock('./agent-session-process-identity-probe', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -64,103 +62,6 @@ const CLIENT = {
     AGENT_SESSION_PENDING_SEND_RESULT_RUNTIME_CAPABILITY,
     STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
   ]
-}
-
-// ─── the fake `codex app-server` ────────────────────────────────────────────
-
-type CodexScript = {
-  connections: FakeConnection[]
-  openConnection: typeof openCodexAppServerConnection
-  live: () => FakeConnection
-  notify: (method: string, params: unknown) => void
-  ask: (id: number, method: string, params: unknown) => void
-}
-
-// `closed` is readonly on the real connection; the fake flips it so the test can
-// see the takeover reap the previous child.
-type FakeConnection = Omit<CodexAppServerConnection, 'closed'> & {
-  closed: boolean
-  handlers: CodexAppServerConnectionHandlers
-  calls: { method: string; params?: Record<string, unknown> }[]
-  replies: { id: number | string; result?: unknown; code?: number }[]
-  resumedThreadId: string | null
-  launch: Parameters<typeof openCodexAppServerConnection>[0]
-}
-
-const turnProcessBaseline =
-  process.platform === 'win32'
-    ? { platform: 'win32' as const, identities: new Map<number, string>() }
-    : { platform: 'posix' as const, snapshot: { rootPgid: null, descendants: [], capturedAtMs: 0 } }
-const terminateCodexTurnProcesses = vi.fn(async () => true)
-
-function fakeCodex(): CodexScript {
-  const connections: FakeConnection[] = []
-  const openConnection = (async (launch, handlers = {}) => {
-    const connection: FakeConnection = {
-      launch,
-      handlers,
-      calls: [],
-      replies: [],
-      resumedThreadId: null,
-      pid: 4321,
-      closed: false,
-      request: async (method, params) => {
-        connection.calls.push({ method, params })
-        if (method === 'thread/start') {
-          return { thread: { id: THREAD, path: '/rollouts/integration.jsonl' } }
-        }
-        if (method === 'thread/resume') {
-          connection.resumedThreadId = (params as { threadId: string }).threadId
-          return { thread: { id: connection.resumedThreadId } }
-        }
-        if (method === 'turn/start') {
-          return { turn: { id: TURN } }
-        }
-        if (method === 'model/list') {
-          return {
-            data: [
-              {
-                model: 'gpt-live',
-                displayName: 'GPT Live',
-                hidden: false,
-                supportedReasoningEfforts: [
-                  { reasoningEffort: 'medium', description: 'Balanced' },
-                  { reasoningEffort: 'high', description: 'Deep reasoning' }
-                ],
-                defaultReasoningEffort: 'medium',
-                isDefault: true
-              }
-            ],
-            nextCursor: null
-          }
-        }
-        return {}
-      },
-      notify: () => {},
-      respond: (id, result) => connection.replies.push({ id, result }),
-      respondWithError: (id, code) => connection.replies.push({ id, code }),
-      close: async () => {
-        connection.closed = true
-        return true
-      }
-    }
-    connections.push(connection)
-    return connection
-  }) as typeof openCodexAppServerConnection
-  const live = (): FakeConnection => {
-    const connection = connections.at(-1)
-    if (!connection) {
-      throw new Error('no codex app-server has been opened')
-    }
-    return connection
-  }
-  return {
-    connections,
-    openConnection,
-    live,
-    notify: (method, params) => live().handlers.onNotification?.(method, params),
-    ask: (id, method, params) => live().handlers.onServerRequest?.({ id, method, params })
-  }
 }
 
 // ─── the RPC client ─────────────────────────────────────────────────────────
@@ -227,12 +128,18 @@ function createIntentParams() {
   return { envelope: envelope('agentSession.create', fields, null), ...fields }
 }
 
-let codex: CodexScript
+let codex: FakeCodex
+/** Accepted first; the delivery loop hands the send over as `turn/start` after the reply. */
+const handedOverAs = (params: Record<string, unknown>) =>
+  vi.waitFor(() =>
+    expect(codex.live().calls.at(-1)).toMatchObject({ method: 'turn/start', params })
+  )
 let root: string
 let dispatcher: RpcDispatcher
 let bootEnvironmentReads: number
 let codexOverrideReads: number
 let configuredCodexProfile: string
+let shellEnvironmentPolicy: NativeChatShellEnvironmentPolicy
 
 /** Runs a one-shot method and returns its decoded reply. */
 async function call(method: string, params: unknown): Promise<RpcResponse> {
@@ -293,10 +200,10 @@ function textOf(item: AgentJournalRenderItem): string {
 }
 
 /** The durable submission row, which settlement rewrites after the send returns. */
-function submissionOf(clientMessageId: string): AgentJournalSubmission | undefined {
-  return getStructuredAgentSessionHost()
-    ?.journalSnapshot(SESSION)
-    .submissions.find((entry) => entry.clientMessageId === clientMessageId)
+async function submissionOf(clientMessageId: string): Promise<AgentJournalSubmission | undefined> {
+  return (await getStructuredAgentSessionHost()?.journalSnapshot(SESSION))?.submissions.find(
+    (entry) => entry.clientMessageId === clientMessageId
+  )
 }
 
 async function historyPage(
@@ -318,6 +225,7 @@ beforeEach(async () => {
   bootEnvironmentReads = 0
   codexOverrideReads = 0
   configuredCodexProfile = 'configured'
+  shellEnvironmentPolicy = { inheritAll: true, names: [] }
   const runtime = {
     getRuntimeId: () => 'runtime-1',
     getClientSettings: () => ({ experimentalStructuredNativeChat: true }),
@@ -333,6 +241,7 @@ beforeEach(async () => {
     publishStructuredAgentSessionTab: () => {},
     ensureStructuredAgentSessionHost: () =>
       ensureStructuredAgentSessionHost({
+        logger: createStructuredAgentSessionLogger(),
         stateDirectory: root,
         hostId: 'local',
         claimKeyId: 'key-1',
@@ -347,20 +256,17 @@ beforeEach(async () => {
             CODEX_HOME: '/shell/home'
           }
         },
+        resolveShellEnvironmentPolicy: () => shellEnvironmentPolicy,
         resolveCodexOverrides: () => {
           codexOverrideReads += 1
           return { CODEX_PROFILE: configuredCodexProfile }
         },
         openCodexConnection: codex.openConnection,
-        readProcessStartTime: async () => 1_700_000_000_000,
-        captureCodexTurnProcesses: async () => turnProcessBaseline,
-        terminateCodexTurnProcesses
+        readProcessStartTime: async () => 1_700_000_000_000
       }).then(() => undefined),
-    registerOwnedSubscriptionCleanup: vi.fn((_id: string, dispose: () => void) => {
-      return {
-        releaseIfCurrent: dispose
-      }
-    })
+    registerOwnedSubscriptionCleanup: vi.fn((_id: string, dispose: () => void) => ({
+      releaseIfCurrent: dispose
+    }))
   }
   dispatcher = new RpcDispatcher({
     runtime: runtime as unknown as OrcaRuntimeService,
@@ -414,23 +320,26 @@ describe('a structured codex session over agentSession.*', () => {
     }
     const journal = await journals.open({
       identity,
-      journalDir: journalDirectoryFor(root, identity)
+      stateDirectory: root
     })
-    await appendLegacyTranscriptMessages({
+    const rollout = join(root, 'legacy-rollout.jsonl')
+    await writeFile(
+      rollout,
+      `${JSON.stringify({
+        type: 'event_msg',
+        timestamp: '2026-08-05T10:00:02.000Z',
+        payload: { type: 'user_message', message: 'legacy question', kind: 'plain' }
+      })}\n`
+    )
+    await importLegacyTranscriptIntoJournal({
       journal,
       agent: 'codex',
       sessionId: THREAD,
       fence: 0,
-      messages: [
-        {
-          id: 'legacy-user-1',
-          role: 'user',
-          source: 'transcript',
-          timestamp: 1_800_000_000_000,
-          blocks: [{ type: 'text', text: 'legacy question' }]
-        }
-      ]
+      options: { filePath: rollout }
     })
+    // The previous process exits, closing its database.
+    await journals.closeAll()
 
     const created = await ok<{ page: { items: AgentJournalRenderItem[] } }>(
       'agentSession.create',
@@ -457,7 +366,9 @@ describe('a structured codex session over agentSession.*', () => {
       EXAMPLE_GATEWAY_TOKEN: 'shell-exported',
       CODEX_HOME: '/home/dev/.codex'
     })
-    const store = await readFile(join(root, 'agent-sessions', 'agent-sessions.json'), 'utf-8')
+    const store = await readPersistedTestAgentSessionStoreText(root)
+    // The record this create wrote, so the checks below read the runtime's own rows.
+    expect(store).toContain('/home/dev/.codex')
     expect(store).not.toContain('EXAMPLE_GATEWAY_TOKEN')
     expect(store).not.toContain('"launchEnv"')
     const stream = await subscribe('sub-first-send')
@@ -474,10 +385,7 @@ describe('a structured codex session over agentSession.*', () => {
     // send coalesced into a running turn is answered with that turn's id, so
     // which message landed where is knowable only from the echo.
     expect(sent.submission).toMatchObject({ dispatchState: 'pending', providerItemId: null })
-    expect(codex.live().calls.at(-1)).toMatchObject({
-      method: 'turn/start',
-      params: { threadId: THREAD, clientUserMessageId: sent.clientMessageId }
-    })
+    await handedOverAs({ threadId: THREAD, clientUserMessageId: sent.clientMessageId })
 
     codex.notify('turn/started', { turn: { id: TURN } })
     // Codex echoes the message back carrying the `clientId` it was sent under,
@@ -501,8 +409,8 @@ describe('a structured codex session over agentSession.*', () => {
     // The echo is the first item of this turn, so the settled key is ordinal 0 —
     // minted by the same `identityFor` a history replay computes with, rather
     // than guessed from the turn/start response.
-    await vi.waitFor(() =>
-      expect(submissionOf(sent.clientMessageId)).toMatchObject({
+    await vi.waitFor(async () =>
+      expect(await submissionOf(sent.clientMessageId)).toMatchObject({
         dispatchState: 'accepted',
         providerItemId: `codex:${THREAD}:${TURN}:0`
       })
@@ -565,14 +473,11 @@ describe('a structured codex session over agentSession.*', () => {
     // "delivery unconfirmed" — it carries no identity yet, because the response
     // to a coalesced send names the running turn rather than this message.
     expect(sent.submission).toMatchObject({ dispatchState: 'pending', providerItemId: null })
-    expect(codex.live().calls.at(-1)).toMatchObject({
-      method: 'turn/start',
-      params: {
-        threadId: THREAD,
-        clientUserMessageId: sent.clientMessageId,
-        model: 'gpt-live',
-        effort: 'high'
-      }
+    await handedOverAs({
+      threadId: THREAD,
+      clientUserMessageId: sent.clientMessageId,
+      model: 'gpt-live',
+      effort: 'high'
     })
 
     // ── stream ──────────────────────────────────────────────────────────────
@@ -593,8 +498,8 @@ describe('a structured codex session over agentSession.*', () => {
     expect(itemsOf(stream).filter((item) => textOf(item) === 'list files')).toHaveLength(1)
     // Settled from the echo's own journal identity, so it is by construction the
     // key a replay recomputes for this row.
-    await vi.waitFor(() =>
-      expect(submissionOf(sent.clientMessageId)).toMatchObject({
+    await vi.waitFor(async () =>
+      expect(await submissionOf(sent.clientMessageId)).toMatchObject({
         dispatchState: 'accepted',
         providerItemId: `codex:${THREAD}:${TURN}:0`
       })
@@ -657,7 +562,6 @@ describe('a structured codex session over agentSession.*', () => {
       turnId: TURN
     })
     expect(cancelled).toEqual({ turnId: TURN, cancelled: true })
-    expect(terminateCodexTurnProcesses).toHaveBeenCalledWith(4321, turnProcessBaseline)
     expect(codex.live().calls.at(-1)).toMatchObject({
       method: 'turn/interrupt',
       params: { threadId: THREAD, turnId: TURN }
@@ -744,18 +648,24 @@ describe('a structured codex session over agentSession.*', () => {
   })
 
   it('caches shell exports but re-reads configured overrides for a resume', async () => {
+    shellEnvironmentPolicy = { inheritAll: false, names: [] }
     const created = await ok<{ fence: number }>('agentSession.create', createIntentParams())
+    expect(codex.live().launch.env?.EXAMPLE_GATEWAY_TOKEN).toBeUndefined()
     expect({ bootEnvironmentReads, codexOverrideReads }).toEqual({
       bootEnvironmentReads: 1,
       codexOverrideReads: 1
     })
 
     configuredCodexProfile = 'updated'
+    shellEnvironmentPolicy = { inheritAll: false, names: ['EXAMPLE_GATEWAY_TOKEN'] }
     const resumed = await ok<{ fence: number }>('agentSession.ensure', attachParams(created.fence))
 
     expect(resumed.fence).toBe(created.fence + 1)
     expect(codex.live().resumedThreadId).toBe(THREAD)
-    expect(codex.live().launch.env).toMatchObject({ CODEX_PROFILE: 'updated' })
+    expect(codex.live().launch.env).toMatchObject({
+      CODEX_PROFILE: 'updated',
+      EXAMPLE_GATEWAY_TOKEN: 'shell-exported'
+    })
     expect({ bootEnvironmentReads, codexOverrideReads }).toEqual({
       bootEnvironmentReads: 1,
       codexOverrideReads: 2
@@ -831,7 +741,7 @@ describe('a structured codex session over agentSession.*', () => {
     }
     const reopened = await journals.open({
       identity,
-      journalDir: journalDirectoryFor(root, identity)
+      stateDirectory: root
     })
     expect(reopened.snapshot().items.map(textOf)).toContain('Final text before shutdown.')
     expect(

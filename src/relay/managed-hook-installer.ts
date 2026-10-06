@@ -7,7 +7,7 @@ import type { RelayDispatcher, RequestContext } from './dispatcher'
 import type { AgentHookTarget } from '../shared/agent-hook-types'
 import { isManagedAgentHookTarget } from '../shared/managed-agent-hook-targets'
 import { normalizeRemoteAgentDirectory } from '../shared/agent-launch-profiles'
-import { parseClaudeCliVersion } from '../main/claude/claude-session-end-hook-capability'
+import { parseClaudeCliVersion } from '../main/claude/claude-hook-event-versions'
 
 export type ManagedHookInstallSummary = {
   installers: number

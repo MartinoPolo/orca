@@ -13,7 +13,7 @@ import { BranchEntryRow } from './branch-entry-row'
 import { SectionHeader } from './section-header'
 import { formatSourceControlRefLabel } from '../panel/branch-context-stats'
 import { SourceControlBranchTreeDirectoryRow } from './tree-directory-rows'
-import { SourceControlVirtualFileList } from './virtual-file-list'
+import { VirtualizedList } from '../../../virtualized-list'
 
 export function SourceControlBranchSection({
   branchSummary,
@@ -115,7 +115,7 @@ export function SourceControlBranchSection({
       />
       {!collapsedSections.has('branch') &&
         (sourceControlViewMode === 'tree' ? (
-          <SourceControlVirtualFileList
+          <VirtualizedList
             rows={visibleBranchTreeRows}
             scrollElement={fileListScrollElement}
             getRowKey={(node) => node.key}
@@ -147,7 +147,7 @@ export function SourceControlBranchSection({
             }}
           />
         ) : (
-          <SourceControlVirtualFileList
+          <VirtualizedList
             rows={filteredBranchEntries}
             scrollElement={fileListScrollElement}
             getRowKey={(entry) => `branch:${entry.path}`}

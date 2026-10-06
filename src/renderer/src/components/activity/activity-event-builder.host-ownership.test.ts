@@ -161,8 +161,7 @@ describe('activity event host ownership', () => {
       customLabel: null,
       color: null,
       sortOrder: 0,
-      createdAt: 1,
-      structuredSessionId: 'migration-session'
+      createdAt: 1
     }
 
     const result = buildActivityEvents({
@@ -204,23 +203,6 @@ describe('activity event host ownership', () => {
       needsAttention: false,
       statusKind: 'message'
     })
-
-    const identity = buildSessionAttentionIdentity({
-      executionHostId: 'local',
-      workspaceId: worktree.id,
-      agentType: 'unknown',
-      structuredSessionId: 'migration-session'
-    })
-    if (!identity) {
-      throw new Error('structured fixture must have an identity')
-    }
-    const [savedThread] = buildAgentPaneThreads({
-      ...result,
-      sessionAttentionMetadataByIdentity: {
-        [identity]: { priority: 3, savedColor: 'blue', savedAt: 500 }
-      }
-    })
-    expect(savedThread).toMatchObject({ attentionEligible: true, attentionStartedAt: 500 })
   })
 
   it('uses a retained projected host for identity and ownership after the live tab is gone', () => {

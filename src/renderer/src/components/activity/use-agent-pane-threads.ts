@@ -15,7 +15,7 @@ import { collectChildAgentPaneKeys } from './activity-thread-child-agent'
 const EMPTY_PANE_KEYS: ReadonlySet<string> = new Set()
 import { filterThreadsByActivityScope, resolveActivityScopeRepoIds } from './activity-scope-filter'
 import {
-  activityThreadMatchesSearchQuery,
+  createActivityThreadSearchMatcher,
   buildActivityThreadGroups,
   isActivitySearchQueryTooLarge
 } from './activity-thread-grouping'
@@ -132,7 +132,11 @@ export function useAgentPaneThreads(args: {
   const threadReuseCacheRef = useRef<ReturnType<typeof createAgentPaneThreadReuseCache>>(undefined!)
   threadReuseCacheRef.current ??= createAgentPaneThreadReuseCache()
 
-  const { events: allEvents, liveAgentByPaneKey } = useMemo(
+  const {
+    events: allEvents,
+    liveAgentByPaneKey,
+    paneEntryByPaneKey
+  } = useMemo(
     () =>
       buildActivityEvents(
         {
@@ -165,6 +169,7 @@ export function useAgentPaneThreads(args: {
           liveAgentByPaneKey,
           sessionAttentionMetadataByIdentity: storeData.sessionAttentionMetadataByIdentity,
           defaultHostId: storeData.defaultHostId,
+          paneEntryByPaneKey,
           generatedTitlesEnabled: storeData.generatedTitlesEnabled
         },
         threadReuseCacheRef.current
@@ -172,6 +177,7 @@ export function useAgentPaneThreads(args: {
     [
       allEvents,
       liveAgentByPaneKey,
+      paneEntryByPaneKey,
       storeData.defaultHostId,
       storeData.generatedTitlesEnabled,
       storeData.sessionAttentionMetadataByIdentity
@@ -221,6 +227,7 @@ export function useAgentPaneThreads(args: {
     const normalizedQuery = isActivitySearchQueryTooLarge(deferredQuery)
       ? null
       : deferredQuery.trim().toLowerCase()
+    let matchesSearchQuery: ReturnType<typeof createActivityThreadSearchMatcher> | undefined
     return scopeVisibleThreads.filter((thread) => {
       // Why: keep the just-selected thread visible after auto-mark-read flips it to read, else unread-only mode makes the clicked row vanish from the list.
       if (readFilter === 'attention' && !thread.attentionEligible) {
@@ -237,7 +244,8 @@ export function useAgentPaneThreads(args: {
       if (normalizedQuery === null) {
         return false
       }
-      return activityThreadMatchesSearchQuery({ thread, searchQuery: normalizedQuery })
+      matchesSearchQuery ??= createActivityThreadSearchMatcher(normalizedQuery)
+      return matchesSearchQuery(thread)
     })
   }, [
     scopeVisibleThreads,

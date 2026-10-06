@@ -3,6 +3,7 @@ import type { GlobalSettings } from '../../shared/global-settings-types'
 import { AGENT_HOOK_TARGETS, type AgentHookTarget } from '../../shared/agent-hook-types'
 import { normalizeAgentLaunchProfiles } from '../../shared/agent-launch-profiles'
 import { haveSameDisabledTuiAgents } from '../../shared/tui-agent-selection'
+import { isAgentStatusHooksEnabledForAgent } from '../../shared/agent-status-hooks-setting'
 import {
   applyAgentStatusHooksEnabled,
   reconcileClaudeLaunchProfileHooks
@@ -38,10 +39,8 @@ export async function reconcileSettingsManagedHooks(
     userInitiated: true,
     shouldHydrateShellPath: app.isPackaged,
     onInstallError: recordManagedHookInstallFailure,
-    shouldContinue: (agent: AgentHookTarget) => {
-      const current = store.getSettings()
-      return current.agentStatusHooksEnabled !== false && !current.disabledTuiAgents.includes(agent)
-    }
+    shouldContinue: (agent: AgentHookTarget) =>
+      isAgentStatusHooksEnabledForAgent(store.getSettings(), agent)
   }
   const reconciliations: Promise<unknown>[] = []
   if (claudeProfilesChanged) {

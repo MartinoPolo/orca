@@ -1,5 +1,5 @@
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TerminalAgent } from '../../../../shared/terminal-agent'
 import type { TerminalTabActivityStatus } from './terminal-tab-activity-status'
 
 export const TAB_COLOR_VALUES = {
@@ -35,7 +35,7 @@ function manualTint(color: string): TerminalTabTint {
 
 export function resolveTerminalTabIdentityTint(
   tab: TerminalTab,
-  agent: TuiAgent | null
+  agent: TerminalAgent | null
 ): TerminalTabTint | null {
   // Empty string is the explicit neutral choice; null retains automatic coloring.
   if (tab.color !== null) {

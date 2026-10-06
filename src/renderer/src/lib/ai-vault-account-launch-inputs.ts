@@ -1,5 +1,9 @@
-import type { AiVaultAgent } from '../../../shared/ai-vault-types'
+import type { AiVaultAgent, AiVaultSession } from '../../../shared/ai-vault-types'
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
+import {
+  resolveTuiAgentLaunchArgs,
+  resolveTuiAgentLaunchEnv
+} from '../../../shared/tui-agent-launch-defaults'
 import { parseWslUncPath } from '../../../shared/wsl-paths'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { LOCAL_EXECUTION_HOST_ID, parseExecutionHostId } from '../../../shared/execution-host'
@@ -36,6 +40,33 @@ type AiVaultAccountLaunchArgs = {
   commandOverride?: string | null
   agentArgs: string
   agentEnv: Record<string, string>
+}
+
+type AiVaultSessionAccountLaunchArgs = {
+  session: Pick<AiVaultSession, 'agent'> &
+    Partial<Pick<AiVaultSession, 'executionHostId' | 'filePath'>>
+  worktreeId?: string | null
+  state: AgentProfileHostScopeState
+  commandOverride?: string | null
+}
+
+/** Resolves a history session's account launch inputs on top of the configured agent defaults. */
+export function resolveAiVaultSessionAccountLaunchInputs({
+  session,
+  worktreeId,
+  state,
+  commandOverride
+}: AiVaultSessionAccountLaunchArgs): AiVaultAccountLaunchInputs {
+  return resolveAiVaultAccountLaunchInputs({
+    agent: session.agent,
+    transcriptPath: session.filePath,
+    sessionExecutionHostId: session.executionHostId,
+    worktreeId,
+    state,
+    commandOverride,
+    agentArgs: resolveTuiAgentLaunchArgs(session.agent, state.settings?.agentDefaultArgs),
+    agentEnv: resolveTuiAgentLaunchEnv(session.agent, state.settings?.agentDefaultEnv)
+  })
 }
 
 /** Pins a history resume to the account that owns its transcript, or keeps the recorded launch. */

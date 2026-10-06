@@ -61,7 +61,7 @@ export function resolvePaneBuild(
   request: PaneBuildRequest,
   cache: ActivityEventBuildCache | undefined,
   seenCacheKeys: Set<string> | null
-): { events: ActivityEvent[]; live: ActivityLiveAgentSnapshot | null } {
+): { events: ActivityEvent[]; live: ActivityLiveAgentSnapshot | null; rowEntry: AgentStatusEntry } {
   seenCacheKeys?.add(request.cacheKey)
   const cached = cache?.panes.get(request.cacheKey)
   const inputsUnchanged =
@@ -92,7 +92,7 @@ export function resolvePaneBuild(
         cached.live.timestamp === liveTimestamp)
 
   if (inputsUnchanged && liveMatchesCache) {
-    return { events: cached.events, live: cached.live }
+    return { events: cached.events, live: cached.live, rowEntry }
   }
 
   // The live turn is itself an event, so a live change always rebuilds the pane's events.
@@ -139,5 +139,5 @@ export function resolvePaneBuild(
     live,
     rowEntry
   })
-  return { events, live }
+  return { events, live, rowEntry }
 }

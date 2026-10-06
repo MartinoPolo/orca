@@ -8,17 +8,35 @@ import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
 export type LaunchAgentInNewTabArgs = {
   agent: TuiAgent
   worktreeId: string
+  /** Tab group the user launched from; keeps split-group launches in that pane instead of the active group. */
   groupId?: string
+  /** Optional initial prompt; delivery depends on `promptDelivery` and the agent's prompt mode. */
   prompt?: string
+  /** Optional CLI arguments appended to the selected agent command. */
   agentArgs?: string | null
   agentLaunchProfile?: AgentLaunchProfile
   initialCwd?: string | null
+  /** How to deliver the prompt: `draft` leaves it editable, `submit-after-ready` sends it once the TUI is ready. */
   promptDelivery?: 'auto-submit' | 'draft' | 'submit-after-ready'
+  /** Telemetry surface that initiated this launch. Defaults to the tab-bar quick-launch entry point. */
   launchSource?: LaunchSource
+  /** User-authored Quick Command label for local tabs created from the tab bar. */
   quickCommandLabel?: string | null
+  /** Shell platform for the startup command; defaults to renderer OS. SSH/WSL worktrees run Linux even from Windows. */
   launchPlatform?: NodeJS.Platform
+  /** Called after the prompt is actually delivered to the agent input path. */
   onPromptDelivered?: () => void
+  /**
+   * Called before `onPromptDelivered` when the paste was written without ever observing the
+   * agent's composer, so the launch cannot claim the prompt arrived. Fires only on the
+   * terminal route, whose readiness signal the client watches itself.
+   */
+  onPromptDeliveryUnconfirmed?: () => void
+  /** Keeps a preflighted route authoritative across workspace creation. */
   agentSessionLaunchPlan?: AgentSessionLaunchPlan
+  /** The launch seeds a workspace being opened, so its PTY spawn must not reshuffle Recent. */
+  pendingActivationSpawn?: boolean
+  /** Lets a workspace reveal itself before the selected surface opens. */
   beforeSurfaceOpen?: (
     surface:
       | { kind: 'local-terminal' }
@@ -36,9 +54,7 @@ export type LaunchAgentInNewTabResult = {
   surface: AgentLaunchSurface
   startupPlan: AgentStartupPlan
   pasteDraftAfterLaunch: boolean
-  promptDeliveryResult?: Promise<{
-    delivered: boolean
-    failureNotified: boolean
-  }>
+  promptDeliveryResult?: Promise<{ delivered: boolean; failureNotified: boolean }>
+  /** Structured route only: what the launch did once it settled. The call stays synchronous. */
   structuredSettlement?: Promise<StructuredAgentLaunchSettlement>
 } | null

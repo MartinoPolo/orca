@@ -6,9 +6,10 @@
 // snapshot that will be replayed into another terminal must therefore end
 // with an absolute CUP derived from the SOURCE terminal's authoritative
 // cursor position. Snapshot producers that also need the VT100 DECSC
-// saved-cursor register carried across the restore compose it here too.
+// saved-cursor register carried across the restore compose it here too, and
+// the mouse reporting state the addon's mode trailer omits rides beside it.
 
-import { RESET_MOUSE_REPORTING } from './terminal-mode-reset-profiles'
+import { buildMouseReportingRestoreSequence } from './terminal-mouse-encoding'
 
 type SerializeCursorTerminal = {
   cols: number
@@ -40,48 +41,6 @@ type TerminalWithSavedCursorCore = SerializeCursorTerminal & {
       scrollBottom?: number
     }
   }
-}
-
-const MOUSE_PROTOCOL_ENABLE: Readonly<Record<string, string>> = {
-  NONE: '',
-  X10: '\x1b[?9h',
-  VT200: '\x1b[?1000h',
-  DRAG: '\x1b[?1002h',
-  ANY: '\x1b[?1003h'
-}
-
-const MOUSE_ENCODING_ENABLE: Readonly<Record<string, string>> = {
-  DEFAULT: '',
-  SGR: '\x1b[?1006h',
-  SGR_PIXELS: '\x1b[?1016h'
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-function excludesModes(options: unknown): boolean {
-  return isRecord(options) && options.excludeModes === true
-}
-
-function buildMouseModeRestoreSequence(terminal: SerializeCursorTerminal): string {
-  if (!('_core' in terminal) || !isRecord(terminal._core)) {
-    return ''
-  }
-  const mouseStateService = terminal._core.mouseStateService
-  if (
-    !isRecord(mouseStateService) ||
-    typeof mouseStateService.activeProtocol !== 'string' ||
-    typeof mouseStateService.activeEncoding !== 'string'
-  ) {
-    return ''
-  }
-  const protocolEnable = MOUSE_PROTOCOL_ENABLE[mouseStateService.activeProtocol]
-  const encodingEnable = MOUSE_ENCODING_ENABLE[mouseStateService.activeEncoding]
-  if (protocolEnable === undefined || encodingEnable === undefined) {
-    return ''
-  }
-  return `${RESET_MOUSE_REPORTING}${protocolEnable}${encodingEnable}`
 }
 
 /** Reads the source terminal's active-buffer DECSC register, or null when it
@@ -125,8 +84,20 @@ export function serializeWithAbsoluteCursor<TOpts>(
   if (serialized.length === 0) {
     return serialized
   }
-  const mouseModeRestore = excludesModes(opts) ? '' : buildMouseModeRestoreSequence(terminal)
-  return `${serialized}${buildAbsoluteCursorRestoreSequence(terminal, savedCursor)}${mouseModeRestore}`
+  // Why: the addon re-arms mouse tracking but not its encoding; restoring one without the other makes X10 reports.
+  const mouseReportingRestore = serializesModes(opts)
+    ? buildMouseReportingRestoreSequence(terminal)
+    : ''
+  return `${serialized}${mouseReportingRestore}${buildAbsoluteCursorRestoreSequence(terminal, savedCursor)}`
+}
+
+function serializesModes(opts: unknown): boolean {
+  return !(
+    typeof opts === 'object' &&
+    opts !== null &&
+    'excludeModes' in opts &&
+    opts.excludeModes === true
+  )
 }
 
 /** Cursor state appended after serialized modes; safe to replay without the frame body. */

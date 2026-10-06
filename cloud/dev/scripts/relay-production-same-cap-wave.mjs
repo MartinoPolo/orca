@@ -4,14 +4,18 @@ import { requireSameEvidenceCode } from './relay-evidence-code-provenance.mjs'
 
 // Migration-only by policy: zero hosts and no reservation, so a wave rolls one without
 // displacing anybody. It enters and must leave migration-only, never general.
-export const SAME_CAP_MIGRATION_ONLY_CELLS = ['production-gce-c17', 'production-gce-c18']
+// C32 and C33 stay here until each one's canary promotes it; that follow-up moves it to general.
+export const SAME_CAP_MIGRATION_ONLY_CELLS = [
+  'production-gce-c17', 'production-gce-c18', 'production-gce-c32', 'production-gce-c33'
+]
 
 export const SAME_CAP_CELLS = [
   'production-gce-c7', 'production-gce-c8', 'production-gce-c9', 'production-gce-c10',
   'production-gce-c13', 'production-gce-c14', 'production-gce-c15', 'production-gce-c16',
   'production-gce-c19', 'production-gce-c20', 'production-gce-c21', 'production-gce-c22',
   'production-gce-c23', 'production-gce-c24', 'production-gce-c25', 'production-gce-c26',
-  'production-gce-c27', 'production-gce-c28', 'production-gce-c29',
+  'production-gce-c27', 'production-gce-c28', 'production-gce-c29', 'production-gce-c30',
+  'production-gce-c31',
   ...SAME_CAP_MIGRATION_ONLY_CELLS
 ]
 
@@ -34,7 +38,7 @@ function cells(value) {
   const parsed = value.split(',').map((cell) => cell.trim()).filter(Boolean)
   if (
     parsed.length < 1 ||
-    parsed.length > 4 ||
+    parsed.length > 10 ||
     new Set(parsed).size !== parsed.length ||
     parsed.some((cell) => !SAME_CAP_CELLS.includes(cell))
   ) throw new Error('same-cap wave cells are invalid')
@@ -44,25 +48,6 @@ function cells(value) {
     throw new Error('same-cap wave cells must be all general or all migration-only')
   }
   return parsed
-}
-
-// Break-glass: the aggregate 15-minute monitor gate is skipped, nothing else is.
-// Returns null when no override was requested, and throws on a partial or
-// mismatched one so a malformed override can never reach a mutation.
-export function gateOverrideAuthorization(input, targetDigest, mutation) {
-  const reason = input.gateOverrideReason ?? ''
-  const confirmation = input.gateOverrideConfirmation ?? ''
-  if (!reason && !confirmation) return null
-  if (!mutation) throw new Error('verify does not accept a monitor gate override')
-  if (confirmation !== `SKIP_RELAY_MONITOR_GATE ${targetDigest}`) {
-    throw new Error('gate override confirmation does not match the exact target digest')
-  }
-  // Printable single-line only: this reason is rendered into the run summary and
-  // sealed into the canary artifact.
-  if (!/^[\x20-\x7e]{12,500}$/.test(reason)) {
-    throw new Error('gate override reason must be 12 to 500 printable characters on one line')
-  }
-  return { reason, confirmation }
 }
 
 export function validateSameCapWave(input) {
@@ -76,8 +61,9 @@ export function validateSameCapWave(input) {
   if (input.mode === 'canary-apply' && selected.length !== 1) {
     throw new Error('canary mode requires exactly one cell')
   }
-  if (input.mode === 'batch-apply' && (selected.length < 2 || selected.length > 4)) {
-    throw new Error('batch mode requires two to four cells')
+  // Ten is the wave workflow's statically declared serial cell-job chain, cell_1..cell_10.
+  if (input.mode === 'batch-apply' && (selected.length < 2 || selected.length > 10)) {
+    throw new Error('batch mode requires two to ten cells')
   }
   // Later waves expect the selector to advance by exactly 2 per predecessor,
   // which a resumed rollback cell (isolate skipped, +1) violates.
@@ -92,14 +78,13 @@ export function validateSameCapWave(input) {
     throw new Error('same-cap confirmation does not match the exact digest and cells')
   }
   if (!mutation && input.confirmation) throw new Error('verify does not accept confirmation')
-  const gateOverride = gateOverrideAuthorization(input, targetDigest, mutation)
   if (input.mode === 'batch-apply' && !/^[1-9][0-9]*$/.test(input.canaryRunId ?? '')) {
     throw new Error('batch mode requires a canary run ID')
   }
   if (input.mode !== 'batch-apply' && input.canaryRunId) {
     throw new Error('only batch mode accepts a canary run ID')
   }
-  return { cells: selected, targetDigest, rollbackDigest, gateOverride }
+  return { cells: selected, targetDigest, rollbackDigest }
 }
 
 export function canaryAuthority(input) {
@@ -122,13 +107,7 @@ export function canaryAuthority(input) {
     targetDigest: wave.targetDigest,
     rollbackDigest: wave.rollbackDigest,
     selectorGeneration: selectorGeneration + selectorWaveDelta(wave.cells[0]),
-    rehomeGeneration,
-    // Audit trail, not authority: a batch reusing this canary is authorized by
-    // its own confirmation, so verification below neither requires nor forbids it.
-    gateOverride: wave.gateOverride === null ? null : {
-      ...wave.gateOverride,
-      actor: input.actor ?? ''
-    }
+    rehomeGeneration
   }
 }
 
@@ -188,9 +167,7 @@ export function main(argv = process.argv.slice(2)) {
       targetDigest: input['target-digest'],
       rollbackDigest: input['rollback-digest'],
       confirmation: input.confirmation,
-      canaryRunId: input['canary-run-id'],
-      gateOverrideReason: input['gate-override-reason'],
-      gateOverrideConfirmation: input['gate-override-confirmation']
+      canaryRunId: input['canary-run-id']
     })
     process.stdout.write(`${JSON.stringify(wave.cells)}\n`)
     return
@@ -205,10 +182,7 @@ export function main(argv = process.argv.slice(2)) {
       commitSha: input['commit-sha'],
       runId: input['run-id'],
       selectorGeneration: input['selector-generation'],
-      rehomeGeneration: input['rehome-generation'],
-      gateOverrideReason: input['gate-override-reason'],
-      gateOverrideConfirmation: input['gate-override-confirmation'],
-      actor: input.actor
+      rehomeGeneration: input['rehome-generation']
     }))}\n`)
     return
   }

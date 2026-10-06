@@ -62,14 +62,14 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-function renderRow(agent: DashboardAgentRowData, isUnread = false): HTMLElement {
+function renderRow(agent: DashboardAgentRowData, isUnvisited = false): HTMLElement {
   const container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
   act(() => {
     root!.render(
       <TooltipProvider>
-        <CompactAgentRow agent={agent} now={2000} onActivate={() => {}} isUnread={isUnread} />
+        <CompactAgentRow agent={agent} now={2000} onActivate={() => {}} isUnvisited={isUnvisited} />
       </TooltipProvider>
     )
   })

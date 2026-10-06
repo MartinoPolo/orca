@@ -1,12 +1,17 @@
 import { useShallow } from 'zustand/react/shallow'
 import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
 import { isFloatingWorkspacePanelFocused } from '@/lib/floating-workspace-terminal-actions'
+import { hasVisibleOverlay } from '@/lib/visible-overlay'
 import { requestScrollToCurrentWorkspaceRevealAndRename } from '@/lib/scroll-to-current-workspace-status'
+import { requestVirtualizedScrollAnchorRecord } from '@/hooks/requestVirtualizedScrollAnchorRecord'
 import { showTerminalShortcutCaptureNotification } from '@/lib/terminal-shortcut-capture-notification'
 import { shouldShowWorktreeHistoryControls } from '../lib/titlebar-worktree-history-controls'
 import { TOGGLE_WORKSPACE_BOARD_EVENT } from '../components/sidebar/useWorkspaceBoardPanel'
+import {
+  getRenderedLineageChipKeys,
+  resolveChildWorkspacesToggleGroupKey
+} from '../components/sidebar/child-workspaces-toggle-target'
 import { requestTerminalTabRename } from '../components/tab-bar/terminal-tab-rename-request'
-import { moveActiveTabInDirection } from '../components/tab-bar/tab-move-to-pane-column'
 import {
   deleteHoveredWorkspaceImmediately,
   resolveHoveredWorkspaceDeleteTarget
@@ -14,15 +19,13 @@ import {
 import { useAppStore } from '../store'
 import type { usePluginCommands } from '@/store/plugin-panels'
 import { isGitRepoKind } from '../../../shared/repo-kind'
-import {
-  TAB_MOVE_ACTIONS,
-  type KeybindingActionId,
-  type KeybindingContext,
-  type PhysicalModifierToken,
-  type TabMoveDirection
+import type {
+  KeybindingActionId,
+  KeybindingContext,
+  PhysicalModifierToken
 } from '../../../shared/keybindings'
 import { shortcutPlatform } from './app-window-chrome'
-import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
+import { createTabMoveCommandHandlers } from './app-tab-move-command-handlers'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
@@ -139,17 +142,6 @@ export function createAppCommandHandlers(
     run()
     return true
   }
-  const moveActiveTab = (actionId: KeybindingActionId, direction: TabMoveDirection): boolean => {
-    const worktreeId = floatingWorkspaceFocused
-      ? FLOATING_TERMINAL_WORKTREE_ID
-      : workspaceChromeActive
-        ? activeWorktreeId
-        : null
-    if (!worktreeId || !moveActiveTabInDirection(worktreeId, direction)) {
-      return false
-    }
-    return claim(actionId, () => {})
-  }
   const revealRightSidebarTab = (
     actionId: KeybindingActionId,
     tab: Parameters<AppShortcutActions['setRightSidebarTab']>[0]
@@ -194,6 +186,36 @@ export function createAppCommandHandlers(
         })
     ],
     [
+      'sidebar.childWorkspaces.toggle',
+      () => {
+        const store = useAppStore.getState()
+        // Locally controlled dialogs do not set activeModal.
+        if (
+          store.activeModal !== 'none' ||
+          floatingWorkspaceFocused ||
+          hasVisibleOverlay({ ignoreMatches: '[role="listbox"], [role="menu"]' })
+        ) {
+          return false
+        }
+        const groupKey = resolveChildWorkspacesToggleGroupKey(
+          store,
+          getRenderedLineageChipKeys(store)
+        )
+        if (!groupKey) {
+          return false
+        }
+        return claim('sidebar.childWorkspaces.toggle', () => {
+          const expanding = store.collapsedGroups.has(groupKey)
+          // Why: same scroll anchoring as the chip click, so the viewport does not jump.
+          requestVirtualizedScrollAnchorRecord('[data-worktree-sidebar]')
+          store.toggleCollapsedGroup(groupKey)
+          if (expanding) {
+            store.setSidebarOpen(true)
+          }
+        })
+      }
+    ],
+    [
       'floatingWorkspace.maximize',
       () => {
         if (floatingTerminalOpen || !floatingTerminalEnabled) {
@@ -217,9 +239,7 @@ export function createAppCommandHandlers(
         return claim('tab.rename', () => requestTerminalTabRename(tabId))
       }
     ],
-    ...TAB_MOVE_ACTIONS.map(
-      ({ actionId, direction }) => [actionId, () => moveActiveTab(actionId, direction)] as const
-    ),
+    ...createTabMoveCommandHandlers({ ...state, floatingWorkspaceFocused, claim }),
     [
       'workspace.rename',
       () => {

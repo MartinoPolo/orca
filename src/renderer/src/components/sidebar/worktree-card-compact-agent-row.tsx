@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { DashboardAgentChildDisclosure } from '@/components/dashboard/DashboardAgentChildDisclosure'
 import { AgentStateDot, agentStateLabel } from '@/components/AgentStateDot'
+import { AgentChildRowContent } from '@/components/AgentChildRowContent'
 import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { agentTypeToIconAgent, formatAgentTypeLabel } from '@/lib/agent-status'
 import { cn } from '@/lib/utils'
 import { getAgentDotState } from './worktree-card-agent-summary'
-import { translate } from '@/i18n/i18n'
 import { getAgentRowPrimaryText } from '@/lib/agent-row-primary-text'
 import { formatAgentToolPreview } from '@/lib/agent-row-tool-preview'
 import { agentNoUpdateLabel } from '@/lib/agent-row-decay-state'
@@ -14,6 +14,7 @@ import { useAgentRowConversationName } from '@/components/dashboard/use-agent-ro
 import { lastEnteredDoneAt } from '@/components/dashboard/agent-finished-timestamp'
 import CacheTimer, { usePromptCacheCountdownForPane } from './CacheTimer'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
+import { agentVerdictStatusLine } from '@/lib/agent-verdict-status-line'
 import { useAgentRowSessionAttention } from '@/attention/use-agent-row-session-attention'
 import {
   SessionAttentionContextMenu,
@@ -38,8 +39,9 @@ export function getCompactAgentSecondary(
   now: number,
   lastAssistantMessageOverride?: string
 ): string {
-  if (agent.entry.interrupted === true) {
-    return 'Interrupted by user'
+  const verdictLine = agentVerdictStatusLine(agent.entry)
+  if (verdictLine) {
+    return verdictLine
   }
   // Why: the only honest thing to say about a pane Orca still holds but no longer hears
   // from is how long the silence has run; the user supplies the meaning.
@@ -75,14 +77,6 @@ function getCompactAgentTime(agent: DashboardAgentRowData, now: number): string 
   return startedAt > 0 ? formatShortTimeAgo(startedAt, now) : null
 }
 
-function stopActivationKeyPropagation(e: React.KeyboardEvent): void {
-  // Why: the surrounding worktree list handles Enter/Space as row activation.
-  // Focused nested buttons need those keys to stay local.
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.stopPropagation()
-  }
-}
-
 type CompactAgentRowProps = {
   agent: DashboardAgentRowData
   now: number
@@ -95,11 +89,10 @@ type CompactAgentRowProps = {
   childAgentCount?: number
   childAgentsExpanded?: boolean
   onToggleChildAgents?: () => void
-  reserveDisclosureGutter?: boolean
   isFocusedPane?: boolean
-  isUnread?: boolean
   hideIdentityIcon?: boolean
   cacheTimerActive?: boolean
+  isUnvisited?: boolean
 }
 
 export const CompactAgentRow = React.memo(function CompactAgentRow({
@@ -112,11 +105,10 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   childAgentCount,
   childAgentsExpanded = false,
   onToggleChildAgents,
-  reserveDisclosureGutter = false,
   isFocusedPane = false,
-  isUnread = false,
   hideIdentityIcon = false,
-  cacheTimerActive = true
+  cacheTimerActive = true,
+  isUnvisited = false
 }: CompactAgentRowProps) {
   const hasChildDisclosure =
     typeof childAgentCount === 'number' &&
@@ -127,7 +119,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   // "?" glyph. Nesting under the parent already conveys identity.
   const hideIcon = hideIdentityIcon || agent.rowSource === 'subagent'
   const dotState = getAgentDotState(agent)
-  const attention = useAgentRowSessionAttention(agent, dotState, isUnread)
+  const attention = useAgentRowSessionAttention(agent, dotState, isUnvisited)
   const attentionMetadataClass = sessionAttentionMetadataClass(attention.tone)
   const setSessionPriority = useAppStore((state) => state.setSessionPriority)
   const setSessionSavedMarker = useAppStore((state) => state.setSessionSavedMarker)
@@ -195,83 +187,67 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
     },
     [agent.paneKey, onSendTargetClick, sendTargetStatus]
   )
-  const handleToggleChildren = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      onToggleChildAgents?.()
-    },
-    [onToggleChildAgents]
+  const timestamp = shortTime ? (
+    <span
+      className={cn(
+        'shrink-0 text-[10px] tabular-nums',
+        isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/60',
+        !isFocusedPane && attentionMetadataClass
+      )}
+    >
+      {shortTime}
+    </span>
+  ) : null
+
+  // Why: the selected-row fill is strong enough to wash out the dimmed prompt/secondary text, so
+  // lift the lead toward full foreground when focused; an unvisited row stays bold either way.
+  const leadClassName = cn(
+    isUnvisited ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground/90',
+    isFocusedPane && !isUnvisited && 'text-foreground',
+    !isFocusedPane && attentionMetadataClass
+  )
+  const trailClassName = cn(
+    isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/65',
+    !isFocusedPane && attentionMetadataClass
   )
 
   const rowBody = (
     <>
-      {hasChildDisclosure ? (
-        <button
-          type="button"
-          className="compact-agent-child-disclosure-button flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-worktree-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
-          aria-label={translate(
-            'auto.components.sidebar.worktree.card.compact.agents.a128d7006b',
-            '{{value0}} {{value1}} child {{value2}}',
-            {
-              value0: childAgentsExpanded ? 'Hide' : 'Show',
-              value1: childAgentCount,
-              value2: childAgentCount === 1 ? 'agent' : 'agents'
-            }
-          )}
-          aria-expanded={childAgentsExpanded}
-          onClick={handleToggleChildren}
-          onKeyDown={stopActivationKeyPropagation}
-        >
-          <ChevronRight
-            className={cn(
-              'size-3 transition-transform duration-150',
-              childAgentsExpanded && 'rotate-90'
-            )}
-            aria-hidden
+      {agent.childRow ? (
+        // Why: a child row reads through the piece the chat strip renders, so both say the same.
+        <AgentChildRowContent
+          row={agent.childRow}
+          now={now}
+          leadClassName={leadClassName}
+          trailClassName={trailClassName}
+          separator=" - "
+          dotTitle={sendTargetDisabledReason ? null : undefined}
+          tooltipSide="right"
+          lineTitle={!sendTargetDisabledReason}
+        />
+      ) : (
+        <>
+          {/* Why: the row's actionable disabled reason must win on every hit area. */}
+          <AgentStateDot
+            state={dotState}
+            size="sm"
+            title={sendTargetDisabledReason ? null : undefined}
+            tooltipSide="right"
           />
-        </button>
-      ) : reserveDisclosureGutter ? (
-        <span className="size-4 shrink-0" aria-hidden />
-      ) : null}
-      {/* Why: the row's actionable disabled reason must win on every hit area. */}
-      <AgentStateDot
-        state={dotState}
-        size="sm"
-        title={sendTargetDisabledReason ? null : undefined}
-        tooltipSide="right"
-      />
-      {!hideIcon && (
-        <span className="inline-flex shrink-0" title={formatAgentTypeLabel(agent.agentType)}>
-          <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={13} />
-        </span>
-      )}
-      <span
-        className="min-w-0 flex-1 truncate"
-        title={sendTargetDisabledReason ? undefined : rowTitle}
-      >
-        {/* Why: the selected-row fill is strong enough to wash out the dimmed
-            prompt/secondary text, so lift both toward full foreground when focused. */}
-        <span
-          className={cn(
-            isFocusedPane ? 'text-foreground' : 'text-muted-foreground/90',
-            !isFocusedPane && attentionMetadataClass
+          {!hideIcon && (
+            <span className="inline-flex shrink-0" title={formatAgentTypeLabel(agent.agentType)}>
+              <AgentIcon agent={agentTypeToIconAgent(agent.agentType)} size={13} />
+            </span>
           )}
-        >
-          {leadingText}
-        </span>
-        {trailingText && (
           <span
-            className={cn(
-              isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/65',
-              !isFocusedPane && attentionMetadataClass
-            )}
+            className="min-w-0 flex-1 truncate"
+            title={sendTargetDisabledReason ? undefined : rowTitle}
           >
-            {' '}
-            - {trailingText}
+            <span className={leadClassName}>{leadingText}</span>
+            {trailingText && <span className={trailClassName}> - {trailingText}</span>}
           </span>
-        )}
-      </span>
+        </>
+      )}
       {model && (
         <span
           className={cn(
@@ -296,7 +272,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         </span>
       )}
       <span className="flex w-16 shrink-0 items-center justify-end gap-1">
-        {isUnread ? (
+        {isUnvisited ? (
           <SessionUnreadDot
             sessionName={primary}
             onMarkRead={() => acknowledgeAgents([agent.paneKey])}
@@ -306,17 +282,15 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         {attention.savedColor ? <SessionSavedMarker color={attention.savedColor} /> : null}
       </span>
       {cacheTimer && <CacheTimer startedAt={cacheTimer.startedAt} ttlMs={cacheTimer.ttlMs} />}
-      {shortTime && (
-        <span
-          className={cn(
-            'shrink-0 text-[10px] tabular-nums',
-            // Why: the muted timestamp drops out against the selected-row fill.
-            isFocusedPane ? 'text-foreground/70' : 'text-muted-foreground/60',
-            !isFocusedPane && attentionMetadataClass
-          )}
-        >
-          {shortTime}
-        </span>
+      {hasChildDisclosure ? (
+        <DashboardAgentChildDisclosure
+          childAgentCount={childAgentCount}
+          childAgentsExpanded={childAgentsExpanded}
+          onToggleChildAgents={onToggleChildAgents}
+          timestamp={timestamp}
+        />
+      ) : (
+        timestamp
       )}
     </>
   )
@@ -333,12 +307,12 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
       }}
       draggable={false}
       className={cn(
-        'compact-agent-row group/compact-agent-row min-w-0 overflow-hidden cursor-pointer rounded-sm px-1 text-[11px] leading-none',
+        'compact-agent-row agent-disclosure-row group/compact-agent-row min-w-0 cursor-pointer rounded-sm px-1 text-[11px] leading-none',
         'text-muted-foreground worktree-agent-row-hover',
         hasChildDisclosure && 'worktree-agent-lineage-parent-row',
         isLineageChild && 'worktree-agent-lineage-child-row',
         'flex h-6 items-center gap-1',
-        sessionAttentionSurfaceClass(attention.tone, isUnread),
+        sessionAttentionSurfaceClass(attention.tone, isUnvisited),
         isFocusedPane && 'bg-worktree-sidebar-accent',
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
         sendTargetStatus === 'disabled' && 'cursor-default opacity-60'
@@ -368,7 +342,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
       sessionName={primary}
       priority={attention.priority}
       savedColor={attention.savedColor}
-      unread={isUnread}
+      unread={isUnvisited}
       onPriorityChange={setSessionPriority}
       onSavedColorChange={setSessionSavedMarker}
       onMarkRead={() => acknowledgeAgents([agent.paneKey])}

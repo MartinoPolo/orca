@@ -49,7 +49,7 @@ describe('Claude profile hook lifecycle', () => {
     const service = new ClaudeHookService()
     expect(service.install({ configDirectory }).state).toBe('installed')
     expect(service.install({ configDirectory }).state).toBe('installed')
-    expect(service.getStatus(configDirectory)).toMatchObject({ state: 'installed', configPath })
+    expect(service.getStatus({ configDirectory })).toMatchObject({ state: 'installed', configPath })
     const installed = JSON.parse(readFileSync(configPath, 'utf8'))
     expect(installed.hooks.Stop).toHaveLength(2)
     expect(installed.hooks.Stop).toContainEqual(userHook)
@@ -80,7 +80,7 @@ describe('Claude profile hook lifecycle', () => {
     expect(existsSync(markerPath)).toBe(true)
     expect(service.remove(retiredDirectory).state).toBe('not_installed')
     expect(service.getStatus().state).toBe('installed')
-    expect(service.getStatus(activeDirectory).state).toBe('installed')
+    expect(service.getStatus({ configDirectory: activeDirectory }).state).toBe('installed')
     expect(existsSync(markerPath)).toBe(true)
   })
 
@@ -99,7 +99,7 @@ describe('Claude profile hook lifecycle', () => {
   it('refuses relative config roots before accessing any config', () => {
     const service = new ClaudeHookService()
     expect(() => service.install({ configDirectory: 'relative/account' })).toThrow(/absolute/i)
-    expect(() => service.getStatus('relative/account')).toThrow(/absolute/i)
+    expect(() => service.getStatus({ configDirectory: 'relative/account' })).toThrow(/absolute/i)
     expect(() => service.remove('relative/account')).toThrow(/absolute/i)
     expect(readFileSync).not.toHaveBeenCalled()
     expect(writeFileSync).not.toHaveBeenCalled()

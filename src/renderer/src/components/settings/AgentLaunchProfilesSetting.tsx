@@ -15,6 +15,7 @@ import {
   type ProfileAgent
 } from '../../../../shared/agent-launch-profile-agents'
 import { translate } from '@/i18n/i18n'
+import { createBrowserUuid } from '@/lib/browser-uuid'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
@@ -53,10 +54,6 @@ const EMPTY_DRAFT: ProfileDraft = {
   command: '',
   agentDirectory: '',
   remoteAgentDirectory: ''
-}
-
-function createProfileId(agent: ProfileAgent): string {
-  return globalThis.crypto?.randomUUID?.() ?? `${agent}-profile-${Date.now().toString(36)}`
 }
 
 export function AgentLaunchProfilesSetting({
@@ -116,7 +113,7 @@ export function AgentLaunchProfilesSetting({
     }
     const profile = normalizeAgentLaunchProfile({
       ...draft,
-      id: draft.id ?? createProfileId(agent)
+      id: draft.id ?? createBrowserUuid()
     })
     if (!profile) {
       setError(
