@@ -466,7 +466,7 @@ describe('ClaudeHookService.install', () => {
       vi.stubEnv('HOME', tmpHome)
       vi.stubEnv('USERPROFILE', tmpHome)
       try {
-        expect(new ClaudeHookService().install().state).toBe('installed')
+        expect(new ClaudeHookService().install(CURRENT_CLAUDE).state).toBe('installed')
 
         const settings = JSON.parse(
           readFileSync(join(tmpHome, '.claude', 'settings.json'), 'utf-8')
@@ -607,15 +607,15 @@ describe('ClaudeHookService.install', () => {
           'utf-8'
         )
 
-        expect(new ClaudeHookService().getStatus().state).toBe('not_installed')
-        expect(new ClaudeHookService().install().state).toBe('installed')
+        expect(new ClaudeHookService().getStatus(CURRENT_CLAUDE).state).toBe('not_installed')
+        expect(new ClaudeHookService().install(CURRENT_CLAUDE).state).toBe('installed')
 
         const settings = JSON.parse(readFileSync(settingsPath, 'utf-8')) as {
           hooks: Record<string, { hooks: TestHook[] }[]>
         }
         expect(JSON.stringify(settings.hooks)).not.toContain('someone-else')
         expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe(scriptPath.replaceAll('\\', '/'))
-        expect(new ClaudeHookService().getStatus().state).toBe('installed')
+        expect(new ClaudeHookService().getStatus(CURRENT_CLAUDE).state).toBe('installed')
       } finally {
         vi.unstubAllEnvs()
         rmSync(tmpHome, { recursive: true, force: true })
