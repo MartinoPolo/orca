@@ -560,7 +560,9 @@ describe('WorktreeCardAgents', () => {
     for (let index = 0; index < count; index++) {
       expect(markup).toContain(`Agent ${index + 1}`)
     }
-    expect(markup.match(/compact-agent-row group\/compact-agent-row/g)).toHaveLength(count)
+    expect(
+      markup.match(/compact-agent-row agent-disclosure-row group\/compact-agent-row/g)
+    ).toHaveLength(count)
     expect(markup).not.toContain('compact-agent-summary-button')
   })
 

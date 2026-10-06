@@ -148,6 +148,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           surface: 'agent-session',
           worktreeId: 'repo::wt1',
           paneKey
@@ -195,6 +196,7 @@ describe('registerNotificationHandlers', () => {
       {},
       {
         source: 'agent-task-complete',
+        priority: 4,
         surface: 'agent-session',
         worktreeId: 'folder:fw-1',
         paneKey: structuredAgentSessionPaneKey('chat-tab', 'session-abc')

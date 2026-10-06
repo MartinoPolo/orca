@@ -57,10 +57,12 @@ describe('pane serializer mouse encoding', () => {
     expect(data.endsWith(`${ESC}[?1006l`)).toBe(true)
   })
 
-  it('adds nothing when no program tracks the mouse', async () => {
+  // Why disarm only: the fork clears a reused destination's stale mouse modes before re-arming none.
+  it('arms nothing when no program tracks the mouse', async () => {
     const data = await serializePaneAfter('plain shell')
-    expect(data).not.toContain(`${ESC}[?1006`)
-    expect(data).not.toContain(`${ESC}[?1016`)
+    for (const mode of [9, 1000, 1002, 1003, 1006, 1016]) {
+      expect(data).not.toContain(`${ESC}[?${mode}h`)
+    }
   })
 
   it('keeps an empty snapshot empty', async () => {

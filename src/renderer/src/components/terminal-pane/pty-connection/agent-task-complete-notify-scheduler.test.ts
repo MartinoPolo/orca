@@ -36,6 +36,7 @@ function installedSession() {
   const session = {
     cacheKey: 'tab:leaf',
     deps: { dispatchNotification },
+    transport: { getPtyId: () => 'pty-1' },
     disposed: false,
     requiresFreshWorkingForAgentTaskCompleteNotification: false,
     agentTaskCompleteNotificationGeneration: 0,

@@ -139,8 +139,9 @@ describe.each(punctuation)('Option+$base punctuation ($code)', ({ code, key, bas
     }
   )
 
-  it('leaves non-Mac input and additional command modifiers untouched', () => {
-    for (const overrides of [{ isMac: false }, { isMac: true }]) {
+  // Why no Kitty flags off Mac: the fork reports negotiated Alt text there, as Option does on Mac.
+  it('leaves non-negotiated non-Mac input and additional command modifiers untouched', () => {
+    for (const overrides of [{ isMac: false, getKittyKeyboardFlags: () => 0 }, { isMac: true }]) {
       const context = optionContext(overrides)
       const events =
         overrides.isMac === false

@@ -66,6 +66,7 @@ describe('notifications:dismiss by acknowledged subject', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           paneKey: PANE,
           notificationId: 'agent:minted'
@@ -98,6 +99,7 @@ describe('notifications:dismiss by acknowledged subject', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           paneKey: PANE,
           notificationId: 'agent:phone-only',
@@ -118,6 +120,7 @@ describe('notifications:dismiss by acknowledged subject', () => {
       {},
       {
         source: 'agent-task-complete',
+        priority: 4,
         worktreeId: 'repo::wt1',
         paneKey: 'tab-0:first',
         notificationId: 'agent:first'
@@ -129,6 +132,7 @@ describe('notifications:dismiss by acknowledged subject', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           paneKey: PANE,
           notificationId: 'agent:quiet'

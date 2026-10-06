@@ -25,7 +25,13 @@ vi.mock('@/store', () => ({
       agentSendPopoverTargetMode: null,
       dropAgentStatus: vi.fn(),
       dismissRetainedAgent: vi.fn(),
-      sendPromptToSidebarAgentTarget: vi.fn()
+      sendPromptToSidebarAgentTarget: vi.fn(),
+      retainedAgentsByPaneKey: {},
+      sessionAttentionMetadataByIdentity: {},
+      unifiedTabsByWorktree: {},
+      repos: [],
+      getKnownWorktreeById: () => undefined,
+      settings: null
     })
 }))
 vi.mock('./useWorktreeAgentRows', () => ({ useWorktreeAgentRows: () => [] }))
@@ -95,7 +101,9 @@ function expectEmphasis(label: HTMLElement | undefined, unvisited: boolean): voi
   expect(label).toBeDefined()
   expect(label?.classList.contains('font-semibold')).toBe(unvisited)
   expect(label?.classList.contains('font-normal')).toBe(!unvisited)
-  expect(label?.classList.contains('text-foreground')).toBe(unvisited)
+  // Why: fork attention surfaces color all row text with their metadata token; weight carries unread.
+  const usesAttentionColor = label?.classList.contains('text-session-attention-metadata') ?? false
+  expect(label?.classList.contains('text-foreground')).toBe(unvisited && !usesAttentionColor)
 }
 
 beforeEach(() => {

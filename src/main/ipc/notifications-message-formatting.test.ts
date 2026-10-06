@@ -385,7 +385,12 @@ describe('registerNotificationHandlers', () => {
     const handler = getDispatchHandler()
     await handler(
       {},
-      { source: 'agent-task-complete', worktreeLabel: 'feat/notis', agentTurnOutcome: 'success' }
+      {
+        source: 'agent-task-complete',
+        priority: 4,
+        worktreeLabel: 'feat/notis',
+        agentTurnOutcome: 'success'
+      }
     )
 
     expect(notificationCtorMock).toHaveBeenCalledWith(
