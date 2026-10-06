@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { getDefaultPersistedState } from '../../../shared/constants'
 import type { Repo } from '../../../shared/repo-types'
@@ -14,7 +15,7 @@ vi.mock('./write-scheduling', async (importOriginal) => ({
 
 const REPO: Repo = {
   id: 'repo-1',
-  path: '/workspace/repo',
+  path: resolve('/workspace/repo'),
   displayName: 'repo',
   badgeColor: '#000',
   addedAt: 0
@@ -43,7 +44,8 @@ describe('MetadataLineageOperations batch metadata pruning', () => {
     state.repos = [REPO]
     const staleIds = Array.from(
       { length: 2_709 },
-      (_, index) => `${REPO.id}::/workspace/stale-${index}`
+      // Why: pruning refuses paths that are not absolute for the host, so fixtures are rooted per platform.
+      (_, index) => `${REPO.id}::${resolve(`/workspace/stale-${index}`)}`
     )
     for (const worktreeId of staleIds) {
       state.worktreeMeta[worktreeId] = makeMeta(worktreeId)
