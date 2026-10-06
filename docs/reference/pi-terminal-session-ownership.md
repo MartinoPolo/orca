@@ -93,9 +93,11 @@ reload, intentional session changes, and noninteractive runtime compatibility.
 
 A desktop test requires disposable user data **and** disposable agent homes. The
 E2E home helper does not remove every inherited agent-directory variable; explicitly
-isolate Pi/OMP/Prime directories and hook endpoints as well as HOME, USERPROFILE,
-APPDATA, and LOCALAPPDATA. Always set `ORCA_BACKGROUND_LAUNCH=1`. Never reuse a live
-transcript for a disposable-session test.
+isolate Pi/OMP/Prime directories and hook endpoints as well as the test home.
+Packaged Lab GUI probes use the Lab environment builder and explicit account roots;
+preserve Windows known-folder variables so Electron can resolve `appData`.
+Always set `ORCA_BACKGROUND_LAUNCH=1`. Never reuse a live transcript for a
+disposable-session test.
 
 An unpacked build is preferable to installer validation on a working desktop. An
 alternate installer directory does not isolate Windows registration or shortcuts.
