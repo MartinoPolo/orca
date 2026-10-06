@@ -111,6 +111,7 @@
     "reclaim:dev-bundles": "node config/scripts/reclaim-dev-electron-bundles.mjs",
     "rebuild:node": "pnpm rebuild node-pty",
     "build:fork": "node config/scripts/build-fork.mjs",
+    "build:fork:installer": "node config/scripts/build-fork.mjs --installer",
     "build:unpack": "pnpm run build && pnpm run ensure:electron-runtime && electron-builder --config config/electron-builder.config.cjs --dir",
     "build:win": "pnpm run build:desktop && pnpm run ensure:electron-runtime && electron-builder --config config/electron-builder.config.cjs --win",
     "build:icons": "bash resources/icon-source/generate.sh",

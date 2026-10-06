@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -8,6 +9,22 @@ const { assertForkReleaseSource } = require('./fork-release-policy.cjs')
 const { writeForkBuildSource } = require('./fork-build-source.cjs')
 const { runProcess } = require('./fork-process-runtime.cjs')
 const root = path.resolve(import.meta.dirname, '../..')
+const INSTALLER_FLAG = '--installer'
+
+function parseTarget(args) {
+  const unknown = args.filter((argument) => argument !== INSTALLER_FLAG)
+  if (unknown.length > 0) {
+    throw new Error(`Unknown build:fork arguments: ${unknown.join(' ')}`)
+  }
+  // Why: the package is identity-neutral; only the Lab launcher's runtime ORCA_LAB_ROOT selects Lab.
+  return args.includes(INSTALLER_FLAG)
+    ? { name: 'installer', appRoot: 'Orca-Stable', builderArgs: [] }
+    : { name: 'lab', appRoot: 'Orca-Lab', builderArgs: ['--dir'] }
+}
+
+function sha256(filePath) {
+  return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
+}
 
 async function execute(stage, program, args, env, logDirectory) {
   const logPath = path.join(logDirectory, `${stage}.log`)
@@ -37,7 +54,9 @@ async function main() {
   if (!process.env.MPX_APPS) {
     throw new Error('MPX_APPS is required')
   }
+  const target = parseTarget(process.argv.slice(2))
   const labRoot = path.join(process.env.MPX_APPS, 'Orca-Lab')
+  const targetRoot = path.join(process.env.MPX_APPS, target.appRoot)
   const manifestPath = path.join(labRoot, 'verified-build.json')
   const source = assertForkReleaseSource({ cwd: root, manifestPath })
   const timestamp = new Date()
@@ -46,7 +65,7 @@ async function main() {
     .slice(0, 14)
   const baseVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version
   const version = `${baseVersion}-local.${timestamp}.g${source.commit.slice(0, 8)}`
-  const output = path.join(labRoot, 'builds', version)
+  const output = path.join(targetRoot, 'builds', version)
   if (fs.existsSync(output)) {
     throw new Error(`Build directory already exists: ${output}`)
   }
@@ -57,7 +76,8 @@ async function main() {
     ORCA_LOCAL_BUILD_VERSION: version,
     ORCA_BUILD_COMMIT: source.commit
   }
-  const logDirectory = path.join(labRoot, 'logs', version)
+  delete env.ORCA_LAB_ROOT
+  const logDirectory = path.join(targetRoot, 'logs', version)
   fs.mkdirSync(logDirectory, { recursive: true })
   const proofPath = path.join(root, 'out', 'fork-build-source.json')
   fs.rmSync(proofPath, { force: true })
@@ -83,7 +103,7 @@ async function main() {
       path.join(root, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js'),
       '--win',
       '--x64',
-      '--dir',
+      ...target.builderArgs,
       '--config',
       'config/electron-builder.config.cjs',
       `--config.directories.output=${output}`
@@ -99,12 +119,18 @@ async function main() {
   if (fs.existsSync(path.join(output, 'source-provenance.json'))) {
     throw new Error('Build provenance already exists')
   }
+  const installerPath = path.join(output, 'orca-windows-setup.exe')
+  if (target.name === 'installer' && !fs.existsSync(installerPath)) {
+    throw new Error(`Installer is missing: ${installerPath}`)
+  }
   fs.writeFileSync(
     path.join(output, 'source-provenance.json'),
     `${JSON.stringify(
       {
         ...completed,
         version,
+        target: target.name,
+        ...(target.name === 'installer' ? { installerSha256: sha256(installerPath) } : {}),
         builtAt: new Date().toISOString()
       },
       null,
@@ -112,7 +138,11 @@ async function main() {
     )}\n`,
     { flag: 'wx' }
   )
-  console.log(`Fork Lab build: ${path.join(output, 'win-unpacked')}`)
+  console.log(
+    target.name === 'installer'
+      ? `Fork installer: ${installerPath}`
+      : `Fork Lab build: ${path.join(output, 'win-unpacked')}`
+  )
 }
 
 main().catch((error) => {

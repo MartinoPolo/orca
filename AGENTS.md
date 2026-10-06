@@ -5,7 +5,7 @@
 ## Fork Patches
 
 - **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
-- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build.
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build, or `pnpm run build:fork:installer` for the same build as a normal NSIS installer under `MPX_APPS/Orca-Stable`.
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Add bindable directional tab moves that merge into direct neighboring tab groups or create splits; move-right defaults to `Mod+Alt+ArrowRight` (`Ctrl+Alt+Right` on Windows and Linux).
@@ -31,7 +31,7 @@ Add or update a one-to-three-sentence entry here for every fork-only patch.
 
 ## Installation
 
-Run `pnpm run build:fork` from a clean, published fork `main`, validate the generated unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and stage the replacement. Updates are manual; never replace a running installation without approval.
+Run `pnpm run build:fork:installer` from a clean, published fork `main`, validate its unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and run the installer. The package carries no Lab identity; only the Lab launcher's runtime `ORCA_LAB_ROOT` selects Lab. Updates are manual; never replace a running installation without approval.
 
 # Design System
 
