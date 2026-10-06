@@ -63,7 +63,11 @@ command override. Leave the implicit default config directory unpinned: exportin
 `CLAUDE_CONFIG_DIR` even for `~/.claude` changes its OAuth Keychain identity. Local-native
 targets offer every profile. SSH targets offer only profiles with a remote directory,
 resolved against the home the host reported, so a remote launch never receives a
-local path. WSL, paired runtime, and ephemeral-VM targets offer none. Tab launch
+local path. Retained SSH state admission must preserve the optional, bounded
+`remoteHomeDirectory` through preload and authority reconciliation; omit invalid
+or oversized paths rather than truncating them. Without that metadata profiles
+remain unavailable, including when an older host omits it. WSL, paired runtime,
+and ephemeral-VM targets offer none. Tab launch
 menus, quick launch, and new worktree or folder creation share this scoping; a
 pending linked creation is reused only when its captured command and account root
 match the selection.

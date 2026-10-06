@@ -8,6 +8,7 @@ import {
 } from './composer-agent-profile-target'
 import { CLIENT_PLATFORM } from '@/lib/new-workspace'
 import type { ProjectGroup } from '../../../shared/project-group-types'
+import { admitSshConnectionState } from '../../../shared/ssh-retained-payload-admission'
 
 const piProfile = {
   id: 'work',
@@ -119,6 +120,44 @@ describe('composer agent profiles', () => {
         agent: 'claude',
         profile: { ...claudeProfile, agentDirectory: '/home/agent/.claude-work' }
       }
+    ])
+  })
+
+  it('offers both account profiles after SSH connection state crosses admission', () => {
+    const admitted = admitSshConnectionState(
+      {
+        targetId: 'ssh-1',
+        status: 'connected',
+        error: null,
+        reconnectAttempt: 0,
+        remotePlatform: 'linux',
+        remoteHomeDirectory: '/home/agent'
+      },
+      'ssh-1'
+    )
+    if (!admitted) {
+      throw new Error('Valid SSH state was rejected')
+    }
+    const scope = resolveComposerRepoProfileHostScope({
+      ...sshTarget,
+      settings: { activeRuntimeEnvironmentId: null },
+      ephemeralVmRecipeId: null,
+      sshConnectionStates: new Map([['ssh-1', admitted]])
+    })
+    const remotePiProfile = { ...piProfile, remoteAgentDirectory: '~/.pi/agent-work' }
+
+    expect(
+      getComposerAgentProfiles(
+        { piLaunchProfiles: [remotePiProfile], claudeLaunchProfiles: [claudeProfile] },
+        scope,
+        []
+      )
+    ).toEqual([
+      {
+        agent: 'pi',
+        profile: { ...remotePiProfile, agentDirectory: '/home/agent/.pi/agent-work' }
+      },
+      { agent: 'claude', profile: { ...claudeProfile, agentDirectory: '/home/agent/.claude-work' } }
     ])
   })
 
