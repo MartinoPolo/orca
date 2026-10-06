@@ -177,6 +177,13 @@ export function setHostWorkspaceSession(
 ): void {
   const prior =
     owner[sessionHostPartitionOperationsContext].runtime.state.workspaceSessionsByHostId?.[hostId]
+  // Why: renderer host slices carry only fields routed to that host, so a host without terminal
+  // tabs omits the containers every terminal rebase below indexes.
+  session = {
+    ...session,
+    tabsByWorktree: session.tabsByWorktree ?? {},
+    terminalLayoutsByTabId: session.terminalLayoutsByTabId ?? {}
+  }
   // Why here and not at the callers: the before-unload stage path writes the renderer's payload
   // straight through, so a per-caller guard leaves the quit write erasing runtime-authored rows.
   session = preserveRuntimeAuthoredWorkspaceSessionFields(session, prior)
