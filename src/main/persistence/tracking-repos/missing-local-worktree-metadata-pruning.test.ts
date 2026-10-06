@@ -56,7 +56,8 @@ function pruneCaptured(
   state: PersistedState,
   scan: ReturnType<typeof capture>,
   ids: readonly string[],
-  platform?: NodeJS.Platform
+  // Why: POSIX fixtures are only removable candidates on a POSIX host.
+  platform: NodeJS.Platform = 'linux'
 ): string[] {
   const wanted = new Set(ids)
   return pruneSessionlessMissingLocalWorktreeMetadataForRepo(

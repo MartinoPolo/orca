@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { WorktreeMeta } from '../../../shared/worktree/meta-types'
 import { WORKTREE_META_PERSISTED_DEFAULTS } from '../../../shared/worktree/meta-persisted-defaults'
@@ -149,7 +150,8 @@ describe('normalizeWorktreeLinkedItemMetadata', () => {
 
 describe('gcStaleWorktreeMeta', () => {
   it('reclaims the identity rows of a collected worktree', () => {
-    const worktreeId = 'r1::/definitely/missing/orca/path'
+    // Why: GC skips paths that are not absolute for the host, so the fixture is rooted per platform.
+    const worktreeId = `r1::${resolve('/definitely/missing/orca/path')}`
     const identityKey = 'wt2:local:dead'
     const remoteIdentityKey = 'wt2:ssh:live'
     const state = makeState({
