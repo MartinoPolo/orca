@@ -59,7 +59,8 @@ function makeCanonicalOnlyState(): {
 
 function pruneCaptured(state: PersistedState): string[] {
   const scan = captureNativeLocalWorktreeMetadataScanExpectation(state, state.repos[0]!)
-  return pruneSessionlessMissingLocalWorktreeMetadataForRepo(state, scan, scan.metadata)
+  // Why: POSIX fixtures are only removable candidates on a POSIX host.
+  return pruneSessionlessMissingLocalWorktreeMetadataForRepo(state, scan, scan.metadata, 'linux')
 }
 
 describe('local worktree metadata scan expectations', () => {
