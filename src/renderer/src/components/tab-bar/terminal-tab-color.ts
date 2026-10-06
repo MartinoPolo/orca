@@ -16,21 +16,22 @@ export const TAB_COLOR_VALUES = {
 
 export type TerminalTabTint = {
   color: string
-  inactiveMixPercent: number
-  activeMixPercent: number
+  mixPercent: number
 }
 
-// Why: sky and green need a stronger mix than violet or the warm state hues to stay apart on dark surfaces.
+// Why: mixes stay light enough to read as color yet keep white text above 5.5:1 on the dark card.
 export const TERMINAL_TAB_TINTS = {
-  pi: { color: 'var(--tab-tint-pi)', inactiveMixPercent: 24, activeMixPercent: 34 },
-  claude: { color: 'var(--tab-tint-claude)', inactiveMixPercent: 28, activeMixPercent: 40 },
-  command: { color: 'var(--tab-tint-command)', inactiveMixPercent: 28, activeMixPercent: 40 },
-  unread: { color: 'var(--tab-tint-unread)', inactiveMixPercent: 26, activeMixPercent: 36 },
-  attention: { color: 'var(--tab-tint-attention)', inactiveMixPercent: 30, activeMixPercent: 40 }
+  pi: { color: 'var(--tab-tint-pi)', mixPercent: 48 },
+  claude: { color: 'var(--tab-tint-claude)', mixPercent: 46 },
+  command: { color: 'var(--tab-tint-command)', mixPercent: 40 },
+  unread: { color: 'var(--tab-tint-unread)', mixPercent: 42 },
+  attention: { color: 'var(--tab-tint-attention)', mixPercent: 48 }
 } as const satisfies Record<string, TerminalTabTint>
 
+const INACTIVE_UNDERLINE_MIX_PERCENT = 70
+
 function manualTint(color: string): TerminalTabTint {
-  return { color, inactiveMixPercent: 22, activeMixPercent: 34 }
+  return { color, mixPercent: 40 }
 }
 
 export function resolveTerminalTabIdentityTint(
@@ -65,7 +66,24 @@ export function resolveTerminalTabStateTintName(
   return showUnreadActivity ? 'unread' : null
 }
 
-export function getTerminalTabTintBackground(tint: TerminalTabTint, isActive: boolean): string {
-  const mixPercent = isActive ? tint.activeMixPercent : tint.inactiveMixPercent
-  return `color-mix(in srgb, ${tint.color} ${mixPercent}%, var(--card))`
+// Why: an inactive background always means the tab needs the user; identity fills only the selected tab.
+export function resolveTerminalTabBackgroundTint(
+  identityTint: TerminalTabTint | null,
+  stateTintName: TerminalTabStateTintName | null,
+  isActive: boolean
+): TerminalTabTint | null {
+  if (stateTintName) {
+    return TERMINAL_TAB_TINTS[stateTintName]
+  }
+  return isActive ? identityTint : null
+}
+
+export function getTerminalTabTintBackground(tint: TerminalTabTint): string {
+  return `color-mix(in srgb, ${tint.color} ${tint.mixPercent}%, var(--card))`
+}
+
+export function getTerminalTabUnderlineColor(tint: TerminalTabTint, isActive: boolean): string {
+  return isActive
+    ? tint.color
+    : `color-mix(in srgb, ${tint.color} ${INACTIVE_UNDERLINE_MIX_PERCENT}%, var(--card))`
 }

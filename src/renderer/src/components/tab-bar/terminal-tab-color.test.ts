@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import {
   getTerminalTabTintBackground,
+  getTerminalTabUnderlineColor,
+  resolveTerminalTabBackgroundTint,
   resolveTerminalTabIdentityTint,
-  resolveTerminalTabStateTintName
+  resolveTerminalTabStateTintName,
+  TERMINAL_TAB_TINTS
 } from './terminal-tab-color'
 
 const expectedTintColor = {
@@ -62,13 +65,24 @@ describe('terminal tab state tint', () => {
     expect(resolveTerminalTabStateTintName('working', false)).toBeNull()
     expect(resolveTerminalTabStateTintName('done', false)).toBeNull()
   })
-  it('mixes a stronger tint into the card for the active tab', () => {
-    const tint = { color: '#123456', inactiveMixPercent: 20, activeMixPercent: 30 }
-    expect(getTerminalTabTintBackground(tint, false)).toBe(
-      'color-mix(in srgb, #123456 20%, var(--card))'
+  it('fills inactive tabs only for state and active tabs with identity', () => {
+    const identity = { color: '#123456', mixPercent: 30 }
+    expect(resolveTerminalTabBackgroundTint(identity, null, false)).toBeNull()
+    expect(resolveTerminalTabBackgroundTint(identity, null, true)).toBe(identity)
+    expect(resolveTerminalTabBackgroundTint(null, null, true)).toBeNull()
+    expect(resolveTerminalTabBackgroundTint(identity, 'unread', false)).toBe(
+      TERMINAL_TAB_TINTS.unread
     )
-    expect(getTerminalTabTintBackground(tint, true)).toBe(
-      'color-mix(in srgb, #123456 30%, var(--card))'
+    expect(resolveTerminalTabBackgroundTint(identity, 'attention', true)).toBe(
+      TERMINAL_TAB_TINTS.attention
+    )
+  })
+  it('mixes the tint into the card and softens inactive underlines', () => {
+    const tint = { color: '#123456', mixPercent: 30 }
+    expect(getTerminalTabTintBackground(tint)).toBe('color-mix(in srgb, #123456 30%, var(--card))')
+    expect(getTerminalTabUnderlineColor(tint, true)).toBe('#123456')
+    expect(getTerminalTabUnderlineColor(tint, false)).toBe(
+      'color-mix(in srgb, #123456 70%, var(--card))'
     )
   })
 })

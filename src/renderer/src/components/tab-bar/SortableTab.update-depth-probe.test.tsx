@@ -183,20 +183,19 @@ afterEach(() => {
 })
 
 describe('SortableTab update-depth probe', () => {
-  it('uses foreground text on inactive colored tabs while keeping neutral tabs muted', () => {
+  it('keeps inactive identity tabs muted with an underline and neutral tabs bare', () => {
     const { container } = render(
       <>
         <Harness tab={makeTab({ color: '#3b82f6' })} isActive={false} />
         <Harness tab={makeTab({ id: 'terminal-tab-2', color: '' })} isActive={false} />
       </>
     )
-    const colored = container.querySelector('[data-tab-color="#3b82f6"]')
-    const neutral = container.querySelector('[data-tab-color="none"]')
+    const [colored, neutral] = container.querySelectorAll('[data-testid="sortable-tab"]')
 
-    expect(colored?.classList.contains('text-foreground')).toBe(true)
-    expect(colored?.classList.contains('text-muted-foreground')).toBe(false)
-    expect(neutral?.classList.contains('text-muted-foreground')).toBe(true)
-    expect(neutral?.classList.contains('text-foreground')).toBe(false)
+    expect(colored.classList.contains('text-muted-foreground')).toBe(true)
+    expect(colored.querySelector('.bottom-0')).not.toBeNull()
+    expect(neutral.classList.contains('text-muted-foreground')).toBe(true)
+    expect(neutral.querySelector('.bottom-0')).toBeNull()
   })
 
   it('lets unread state own the background while keeping manual identity', () => {
