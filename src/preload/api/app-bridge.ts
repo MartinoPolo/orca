@@ -35,9 +35,15 @@ export const appApi = {
       awaitBeforeUnloadCheckpoint
     ),
   stageBeforeUnloadSync: (args: Parameters<PreloadApi['app']['stageBeforeUnloadSync']>[0]) => {
-    const result = ipcRenderer.sendSync('app:stage-before-unload-sync', args) as { ok?: unknown }
-    if (result?.ok !== true) {
-      throw new Error('Failed to stage renderer state before unload.')
+    const result: unknown = ipcRenderer.sendSync('app:stage-before-unload-sync', args)
+    const reply = typeof result === 'object' && result !== null ? result : {}
+    if (!('ok' in reply) || reply.ok !== true) {
+      const reason = 'reason' in reply && typeof reply.reason === 'string' ? reply.reason : null
+      throw new Error(
+        reason
+          ? `Failed to stage renderer state before unload: ${reason}`
+          : 'Failed to stage renderer state before unload.'
+      )
     }
   },
   awaitBeforeUnloadCheckpoint: () => awaitBeforeUnloadCheckpoint(),

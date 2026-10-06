@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { recordDurableCrashBreadcrumb } = vi.hoisted(() => ({
+  recordDurableCrashBreadcrumb: vi.fn()
+}))
+
+vi.mock('../crash-reporting/durable-crash-breadcrumb', () => ({ recordDurableCrashBreadcrumb }))
+
 const { syncHandlers, invokeHandlers } = vi.hoisted(() => ({
   syncHandlers: new Map<
     string,
@@ -36,6 +42,7 @@ describe('registerRendererShutdownCheckpointHandler', () => {
     syncHandlers.clear()
     invokeHandlers.clear()
     vi.restoreAllMocks()
+    recordDurableCrashBreadcrumb.mockClear()
   })
 
   it('stages every shutdown mutation before queueing persistence', () => {
@@ -90,13 +97,46 @@ describe('registerRendererShutdownCheckpointHandler', () => {
       }),
       flushPendingOrThrowAsync: vi.fn(() => Promise.resolve())
     }
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     registerRendererShutdownCheckpointHandler(store as never)
 
     const handler = syncHandlers.get('app:stage-before-unload-sync')
     const event: { returnValue?: unknown } = {}
     handler?.(event, { sessions: [], ui: { activeView: 'settings' } })
 
-    expect(event.returnValue).toEqual({ ok: false })
+    expect(event.returnValue).toEqual({ ok: false, reason: 'ui: disk full' })
+  })
+
+  it('names the failing session host and records the stack durably', () => {
+    const failure = new TypeError('layout.root is undefined')
+    const store = {
+      stageWorkspaceSessionBeforeUnload: vi.fn((_state, hostId?: string) => {
+        if (hostId === 'ssh:target-1') {
+          throw failure
+        }
+      }),
+      updateUI: vi.fn(),
+      flushPendingOrThrowAsync: vi.fn(() => Promise.resolve())
+    }
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    registerRendererShutdownCheckpointHandler(store as never)
+
+    const event: { returnValue?: unknown } = {}
+    syncHandlers.get('app:stage-before-unload-sync')?.(event, {
+      sessions: [{ state: {} }, { state: {}, hostId: 'ssh:target-1' }],
+      ui: {}
+    })
+
+    expect(event.returnValue).toEqual({
+      ok: false,
+      reason: 'session ssh:target-1: layout.root is undefined'
+    })
+    expect(store.updateUI).not.toHaveBeenCalled()
+    expect(recordDurableCrashBreadcrumb).toHaveBeenCalledWith(
+      'renderer_shutdown_stage_failed',
+      { stage: 'session ssh:target-1' },
+      failure.stack
+    )
   })
 
   it('does not queue persistence when staging is incomplete', async () => {
@@ -115,7 +155,7 @@ describe('registerRendererShutdownCheckpointHandler', () => {
     handler?.(event, { sessions: [], ui: { activeView: 'settings' } })
 
     expect(store.flushPendingOrThrowAsync).not.toHaveBeenCalled()
-    expect(event.returnValue).toEqual({ ok: false })
+    expect(event.returnValue).toEqual({ ok: false, reason: 'ui: invalid state' })
     await expect(invokeHandlers.get(AWAIT_CHANNEL)?.()).resolves.toEqual({ ok: false })
   })
 

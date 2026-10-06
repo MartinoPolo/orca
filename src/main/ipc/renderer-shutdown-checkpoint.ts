@@ -1,13 +1,17 @@
 import { ipcMain } from 'electron'
-import type { ExecutionHostId } from '../../shared/execution-host'
+import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../shared/execution-host'
 import type { PersistedUIState } from '../../shared/persisted-ui-state-types'
+import { formatShutdownCheckpointFailureReason } from '../../shared/renderer-shutdown-events'
 import type { WorkspaceSessionState } from '../../shared/workspace-session-state-types'
+import { recordDurableCrashBreadcrumb } from '../crash-reporting/durable-crash-breadcrumb'
 import type { Store } from '../persistence'
 
 type StageBeforeUnloadSyncArgs = {
   sessions: { state: WorkspaceSessionState; hostId?: ExecutionHostId }[]
   ui: Partial<PersistedUIState>
 }
+
+type StageBeforeUnloadSyncReply = { ok: true } | { ok: false; reason: string }
 
 export type ShutdownCheckpointResult = { ok: boolean }
 
@@ -46,18 +50,30 @@ export function registerRendererShutdownCheckpointHandler(store: Store): void {
   let pendingCheckpoint: Promise<ShutdownCheckpointResult> = Promise.resolve({ ok: true })
 
   ipcMain.on('app:stage-before-unload-sync', (event, args: StageBeforeUnloadSyncArgs) => {
-    let ok = true
+    let stage = 'sessions'
+    let reply: StageBeforeUnloadSyncReply = { ok: true }
     try {
       for (const { state, hostId } of args.sessions) {
+        stage = `session ${hostId ?? LOCAL_EXECUTION_HOST_ID}`
         store.stageWorkspaceSessionBeforeUnload(state, hostId)
       }
+      stage = 'ui'
       store.updateUI(args.ui)
     } catch (error) {
-      console.error('[app] Failed to stage renderer state before unload:', error)
-      ok = false
+      console.error(`[app] Failed to stage renderer state before unload (${stage}):`, error)
+      const reason = `${stage}: ${formatShutdownCheckpointFailureReason(error)}`
+      // Why: packaged builds discard main stdout, so the stack must reach the durable trace.
+      recordDurableCrashBreadcrumb(
+        'renderer_shutdown_stage_failed',
+        { stage },
+        error instanceof Error && error.stack ? error.stack : reason
+      )
+      reply = { ok: false, reason }
     }
-    pendingCheckpoint = ok ? flushStagedStateWithDeadline(store) : Promise.resolve({ ok: false })
-    event.returnValue = { ok }
+    pendingCheckpoint = reply.ok
+      ? flushStagedStateWithDeadline(store)
+      : Promise.resolve({ ok: false })
+    event.returnValue = reply
   })
 
   ipcMain.handle(
