@@ -65,6 +65,13 @@ The job **is** the right boundary. With breakaway denied it holds the whole MSYS
 tree, including the child that detached from the console, and one
 `terminateJob` reaps all of it. No alternative tracking mechanism is needed.
 
+The same holds for foreground detection. A command typed into the pane that is a
+script (for example a launcher like `mpx launch claude`) is parented to the
+shell's fork, and that fork exits, so the agent below it is not a ppid
+descendant of the pane root. `queryWindowsPaneProcessInventory` therefore also
+takes job members as candidates; the console-attachment filter still drops a
+member that detached.
+
 Denying breakaway did not break ordinary launches from the pane: `git`,
 `cmd //c`, an absolute-path `node`, a `&`-backgrounded job with `disown`, and
 `where.exe` all returned 0 with no `Access is denied`, identically to the

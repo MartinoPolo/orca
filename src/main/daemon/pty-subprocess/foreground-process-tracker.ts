@@ -140,6 +140,7 @@ export function createPtyForegroundProcessTracker(args: {
     const anchor = cachedAgentForeground
     void resolveAgentForegroundProcessWithAvailability(proc.pid, fallbackProcess, {
       contextPaths,
+      readWindowsPaneJobProcessIds: () => readWindowsPtyJobProcessIds(proc),
       ...(anchor?.pid != null
         ? { anchorProcessId: anchor.pid, anchorProcessName: anchor.processName }
         : {})
@@ -288,6 +289,7 @@ export function createPtyForegroundProcessTracker(args: {
             ...(process.platform === 'win32'
               ? {
                   forceProcessScan: true,
+                  readWindowsPaneJobProcessIds: () => readWindowsPtyJobProcessIds(proc),
                   readWindowsConsoleAttachedProcessIds: () =>
                     readWindowsConsoleAttachedProcessIds(proc.pid)
                 }

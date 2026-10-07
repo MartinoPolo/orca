@@ -17,6 +17,7 @@ import {
   readWindowsProcessIdentityTable
 } from '../windows/windows-process-table'
 import {
+  queryWindowsPaneProcessInventory,
   queryWindowsProcessDescendants,
   queryWindowsProcessLinksFresh,
   queryWindowsProcessRowsFresh,
@@ -74,6 +75,31 @@ describe('windows process rows', () => {
   it('walks descendants from the native snapshot', async () => {
     const candidates = await queryWindowsProcessDescendants(100)
     expect(candidates?.[0]?.pid).toBe(200)
+  })
+
+  it('adds job members orphaned from the ppid walk at their chain depth', async () => {
+    getAllProcessesMock.mockImplementation((cb: (rows: unknown) => void) => {
+      cb(
+        withSelf([
+          ...NATIVE_ROWS,
+          { pid: 300, ppid: 299, name: 'bash.exe', commandLine: 'bash launch' },
+          { pid: 301, ppid: 300, name: 'node.exe', commandLine: 'node cli.js' },
+          { pid: 400, ppid: 1, name: 'unrelated.exe', commandLine: 'unrelated' }
+        ])
+      )
+    })
+    resetWindowsProcessRowsSnapshotForTests()
+
+    const inventory = await queryWindowsPaneProcessInventory(100, {
+      // 999 exited between the job read and the table scan.
+      jobProcessIds: new Set([100, 200, 300, 301, 999])
+    })
+
+    expect(inventory?.candidates.map(({ pid, depth }) => ({ pid, depth }))).toEqual([
+      { pid: 301, depth: 2 },
+      { pid: 200, depth: 1 },
+      { pid: 300, depth: 1 }
+    ])
   })
 
   it('rejects a snapshot that does not contain the querying process', async () => {

@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { removeTreeSync } from '../../shared/windows-transient-lock-removal'
 import { resolveGitBashPath } from '../git-bash'
 import { quotePosixShell } from '../../shared/wsl-login-shell-command'
+import { queryWindowsPaneProcessInventory } from '../providers/windows-foreground-process-rows'
+import { readWindowsPtyJobProcessIds } from '../providers/windows-pty-job-membership'
 import { listPtyJobProcessIds, terminatePtyJob } from './windows-pty-job'
 
 const describeOnWindows = process.platform === 'win32' ? describe : describe.skip
@@ -55,6 +57,53 @@ describeOnWindows('MSYS terminal job ownership', () => {
       await vi.waitFor(() => expect(isAlive(childPid!)).toBe(false), { timeout: 5_000 })
     } finally {
       // The failing baseline can leave this exact fixture child outside the job.
+      if (childPid && isAlive(childPid)) {
+        process.kill(childPid)
+      }
+      proc.kill()
+      removeTreeSync(directory)
+    }
+  }, 30_000)
+
+  it('keeps a script-launched child in the pane inventory after its creator exits', async () => {
+    const shell = resolveGitBashPath()
+    expect(shell, 'Git for Windows must be installed on the native test runner').not.toBeNull()
+    const directory = mkdtempSync(join(tmpdir(), 'orca-msys-inventory-'))
+    const child = join(directory, 'owned-child.js')
+    const launcher = join(directory, 'launch')
+    writeFileSync(
+      child,
+      "console.log('MSYS_SCRIPT_CHILD=' + process.pid); setInterval(() => {}, 1000)\n"
+    )
+    writeFileSync(
+      launcher,
+      `#!/usr/bin/env bash\nexec ${quotePosixShell(process.execPath.replace(/\\/g, '/'))} ${quotePosixShell(child.replace(/\\/g, '/'))}\n`
+    )
+    const pty = await import('node-pty')
+    const proc = pty.spawn(shell!, ['-c', 'exec "$BASH" --noprofile --norc -i'], {
+      cwd: tmpdir(),
+      cols: 120,
+      rows: 30,
+      useConptyDll: true
+    })
+    let output = ''
+    let childPid: number | undefined
+    proc.onData((chunk) => {
+      output += chunk
+      const match = /MSYS_SCRIPT_CHILD=(\d+)/.exec(output)
+      if (match) {
+        childPid = Number(match[1])
+      }
+    })
+    try {
+      proc.write(`${quotePosixShell(launcher.replace(/\\/g, '/'))}\r`)
+      await vi.waitFor(() => expect(childPid).toBeDefined(), { timeout: 15_000 })
+      const inventory = await queryWindowsPaneProcessInventory(proc.pid, {
+        fresh: true,
+        jobProcessIds: readWindowsPtyJobProcessIds(proc)
+      })
+      expect(inventory?.candidates.map((candidate) => candidate.pid)).toContain(childPid)
+    } finally {
       if (childPid && isAlive(childPid)) {
         process.kill(childPid)
       }

@@ -153,6 +153,7 @@ export async function getLocalPtyForegroundProcess(id: string): Promise<string |
       fallbackProcess,
       {
         contextPaths: ptyAgentForegroundContextPaths.get(id),
+        readWindowsPaneJobProcessIds: () => readWindowsPtyJobProcessIds(proc),
         ...(cachedEntry?.pid != null
           ? { anchorProcessId: cachedEntry.pid, anchorProcessName: cachedEntry.name }
           : {})
@@ -242,6 +243,7 @@ export async function confirmLocalPtyForegroundProcess(id: string): Promise<stri
         ...(process.platform === 'win32'
           ? {
               forceProcessScan: true,
+              readWindowsPaneJobProcessIds: () => readWindowsPtyJobProcessIds(proc),
               readWindowsConsoleAttachedProcessIds: () =>
                 readWindowsConsoleAttachedProcessIds(proc.pid)
             }
