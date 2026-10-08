@@ -35,9 +35,17 @@ export function ptyProcessNameIsSpawnFile(proc: IPty): boolean {
 export function createPtyForegroundResolver(
   proc: IPty
 ): typeof resolveAgentForegroundProcessWithAvailability {
-  return ptyProcessNameIsSpawnFile(proc)
+  const resolve: typeof resolveAgentForegroundProcessWithAvailability = ptyProcessNameIsSpawnFile(
+    proc
+  )
     ? (_pid, fallback, options) => resolveSpawnFileForegroundProcess(proc, fallback, options)
     : resolveAgentForegroundProcessWithAvailability
+  // The pane's job members: an agent orphaned from the shell's process tree is still a candidate.
+  return (pid, fallback, options = {}) =>
+    resolve(pid, fallback, {
+      readWindowsPaneJobProcessIds: () => readWindowsPtyJobProcessIds(proc),
+      ...options
+    })
 }
 
 export function shouldCachePtyForeground(name: string | null, staticName: boolean): name is string {

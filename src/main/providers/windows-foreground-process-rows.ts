@@ -1,4 +1,8 @@
-import { collectDescendantsFromIndex, getProcessTableIndex } from '../../shared/process-table-index'
+import {
+  collectDescendantsFromIndex,
+  getProcessTableIndex,
+  type ProcessTableIndexOf
+} from '../../shared/process-table-index'
 import {
   readWindowsProcessIdentityTableFresh,
   readWindowsProcessTable,
@@ -79,7 +83,12 @@ export type WindowsPaneProcessInventory = {
 
 export async function queryWindowsPaneProcessInventory(
   rootPid: number,
-  options: { fresh?: boolean; anchorPid?: number } = {}
+  options: {
+    fresh?: boolean
+    anchorPid?: number
+    /** The pane's job members, which still hold a chain whose creator exited. */
+    jobProcessIds?: ReadonlySet<number> | null
+  } = {}
 ): Promise<WindowsPaneProcessInventory | null> {
   let rows: WindowsProcessRow[]
   try {
@@ -100,10 +109,53 @@ export async function queryWindowsPaneProcessInventory(
   if (!index.byPid.has(rootPid)) {
     return null
   }
+  const descendants = collectDescendantsFromIndex(index, rootPid)
   return {
-    candidates: collectDescendantsFromIndex(index, rootPid).sort((a, b) => b.depth - a.depth),
+    candidates: [
+      ...descendants,
+      ...collectOrphanedJobMembers(index, rootPid, descendants, options.jobProcessIds)
+    ].sort((a, b) => b.depth - a.depth),
     anchorRow: options.anchorPid !== undefined ? (index.byPid.get(options.anchorPid) ?? null) : null
   }
+}
+
+/**
+ * Job members the ppid walk cannot reach, each at its depth within the orphaned chain.
+ *
+ * Why: when MSYS runs a script, the forking process exits and leaves the script's
+ * children parented to a dead pid, so an agent launched through a Git Bash wrapper
+ * is no descendant of the pane root. The per-PTY job still contains it
+ * (docs/reference/windows-msys-job-breakaway.md).
+ */
+function collectOrphanedJobMembers(
+  index: ProcessTableIndexOf<WindowsProcessRow>,
+  rootPid: number,
+  descendants: readonly WindowsProcessCandidate[],
+  jobProcessIds: ReadonlySet<number> | null | undefined
+): WindowsProcessCandidate[] {
+  if (!jobProcessIds) {
+    return []
+  }
+  const reachedProcessIds = new Set(descendants.map((descendant) => descendant.pid))
+  reachedProcessIds.add(rootPid)
+  const orphanedRows = new Map<number, WindowsProcessRow>()
+  for (const processId of jobProcessIds) {
+    const row = index.byPid.get(processId)
+    if (row && !reachedProcessIds.has(processId)) {
+      orphanedRows.set(processId, row)
+    }
+  }
+  return [...orphanedRows.values()].map((row) => {
+    let depth = 1
+    const visited = new Set([row.pid])
+    let parent = orphanedRows.get(row.ppid)
+    while (parent && !visited.has(parent.pid)) {
+      visited.add(parent.pid)
+      depth += 1
+      parent = orphanedRows.get(parent.ppid)
+    }
+    return { ...row, depth }
+  })
 }
 
 /**

@@ -24,6 +24,8 @@ export type AgentForegroundResolutionOptions = {
   forceProcessScan?: boolean
   /** Lazily proves which global descendants still belong to this ConPTY. */
   readWindowsConsoleAttachedProcessIds?: () => Promise<ReadonlySet<number> | null>
+  /** The pane's job members: candidates beyond the ppid walk, never a filter. */
+  readWindowsPaneJobProcessIds?: () => ReadonlySet<number> | null
   /**
    * A caller's cached liveness anchor. When a scan row holds this pid but no
    * longer recognizes as the cached agent, the pid was recycled by a different
@@ -79,7 +81,8 @@ export async function resolveWindowsAgentForegroundProcessWithAvailability(
 ): Promise<WindowsAgentForegroundResolution> {
   const inventory = await queryWindowsPaneProcessInventory(shellPid, {
     ...(options.fresh === true ? { fresh: true } : {}),
-    ...(options.anchorProcessId !== undefined ? { anchorPid: options.anchorProcessId } : {})
+    ...(options.anchorProcessId !== undefined ? { anchorPid: options.anchorProcessId } : {}),
+    jobProcessIds: options.readWindowsPaneJobProcessIds?.() ?? null
   })
   if (!inventory) {
     return { available: false, processName: null }
