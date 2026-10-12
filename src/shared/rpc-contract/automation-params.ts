@@ -14,6 +14,7 @@ import {
   MAX_AUTOMATION_PRECHECK_TIMEOUT_SECONDS,
   normalizeAutomationPrecheckTimeoutSeconds
 } from '../automation-precheck'
+import { LaunchPreferences } from './agent-session-params'
 
 export const TuiAgent = requiredString('Missing provider').refine(isTuiAgent, {
   message: 'Unknown provider'
@@ -189,6 +190,8 @@ export const AutomationCreate = z.object({
   prompt: requiredString('Missing automation prompt'),
   precheck: AutomationPrecheck,
   agentId: TuiAgent,
+  agentProfileId: OptionalString,
+  launchPreferences: LaunchPreferences.optional(),
   runContext: WorkspaceRunContext,
   sourceContext: TaskSourceContext,
   repo: OptionalString,
@@ -210,6 +213,9 @@ export const AutomationUpdateFields = z.object({
   prompt: OptionalString,
   precheck: AutomationPrecheck,
   agentId: TuiAgent.optional(),
+  // Why: null clears a saved account or model so the agent's own default applies again.
+  agentProfileId: OptionalNullablePlainString,
+  launchPreferences: LaunchPreferences.nullable().optional(),
   runContext: WorkspaceRunContext,
   sourceContext: TaskSourceContext,
   repo: OptionalString,

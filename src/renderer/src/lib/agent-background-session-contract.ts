@@ -3,11 +3,15 @@ import type { LaunchSource } from '../../../shared/telemetry-events'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { AgentStartupPlan } from '@/lib/tui-agent-startup'
 import type { AutomationTerminalOwnership } from '@/lib/automation-terminal-ownership'
+import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
+import type { SessionOptionValue } from '../../../shared/native-chat-session-options'
 
 export type LaunchAgentBackgroundSessionArgs = {
   agent: TuiAgent
   worktreeId: string
   prompt?: string
+  agentLaunchProfile?: AgentLaunchProfile
+  sessionOptions?: Record<string, SessionOptionValue>
   launchSource?: LaunchSource
   title?: string
   onData?: (chunk: string) => void

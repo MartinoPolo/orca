@@ -11,6 +11,7 @@ import type { OrcaHooks } from '../../../../shared/orca-yaml-hook-types'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { AgentLaunchPreferences } from '../../../../shared/agent-session-host-authority'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { closeUnfocusedMonacoFindOrPreventDialogDismiss } from '@/components/editor/monaco-find-widget'
@@ -38,6 +39,10 @@ export type AutomationDraft = {
   name: string
   prompt: string
   agentId: TuiAgent
+  /** Absent launches the agent's configured command. */
+  agentProfileId?: string
+  /** Absent leaves model and effort to the agent's own config. */
+  launchPreferences?: AgentLaunchPreferences
   projectId: string
   workspaceMode: AutomationWorkspaceMode
   workspaceId: string

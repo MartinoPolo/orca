@@ -8,6 +8,7 @@ import type {
 } from '../../../shared/automations-types'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import { normalizeAutomationPrecheck } from '../../../shared/automation-precheck'
+import { normalizeAutomationAgentLaunch } from '../../../shared/automation-agent-launch'
 import { nextAutomationOccurrenceAfter } from '../../../shared/automation-schedule-occurrences'
 import {
   applyAutomationExecutionTarget,
@@ -81,13 +82,15 @@ export function createAutomation(
   }
   const schedulerOwner = getAutomationSchedulerOwner(repo)
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
-  const automation: Automation = {
+  const automation = normalizeAutomationAgentLaunch<Automation>({
     id: randomUUID(),
     ...(input.creationKey ? { creationKey: input.creationKey } : {}),
     name: input.name.trim() || 'Untitled automation',
     prompt: input.prompt,
     precheck: normalizeAutomationPrecheck(input.precheck),
     agentId: input.agentId,
+    agentProfileId: input.agentProfileId,
+    launchPreferences: input.launchPreferences,
     // Why own contexts win: a wire context speaks the client's perspective —
     // 'runtime:<id>' is a client-assigned name this store cannot interpret, and
     // persisting it makes the projection orphan a record this authority owns.
@@ -113,7 +116,7 @@ export function createAutomation(
     missedRunGraceMinutes: input.missedRunGraceMinutes ?? 720,
     createdAt: now,
     updatedAt: now
-  }
+  })
   operations.state.automations = [...(operations.state.automations ?? []), automation]
   operations.recordCreated()
   operations.flush()
@@ -161,7 +164,7 @@ export function updateAutomation(
   const dtstart = updates.dtstart ?? current.dtstart
   const scheduleChanged = updates.rrule !== undefined || updates.dtstart !== undefined
   const workspaceMode = updates.workspaceMode ?? current.workspaceMode
-  const merged: Automation = {
+  const merged = normalizeAutomationAgentLaunch<Automation>({
     ...current,
     ...definedUpdates,
     name: updates.name !== undefined ? updates.name.trim() || 'Untitled automation' : current.name,
@@ -217,7 +220,7 @@ export function updateAutomation(
       ? nextAutomationOccurrenceAfter(rrule, dtstart, Date.now())
       : current.nextRunAt,
     updatedAt: Date.now()
-  }
+  })
   const previousPin = automationWorkspaceSshPin(operations.state, current.workspaceId)
   const workspaceSshPin = automationWorkspaceSshPin(operations.state, merged.workspaceId)
   const workspaceSshPinMoved = previousPin?.targetId !== workspaceSshPin?.targetId

@@ -22,3 +22,11 @@ export function toAgentLaunchPreferences(
   }
   return Object.keys(preferences).length > 0 ? preferences : undefined
 }
+
+/** The inverse direction: picks as the session options a launch command applies. */
+export function toAgentSessionOptions(
+  preferences: AgentLaunchPreferences | null | undefined
+): Record<string, string> | undefined {
+  const sessionOptions = toAgentLaunchPreferences(preferences)
+  return sessionOptions ? { ...sessionOptions } : undefined
+}

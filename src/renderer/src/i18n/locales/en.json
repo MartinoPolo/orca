@@ -19018,5 +19018,15 @@
   },
   "fileSearch": {
     "failed": "Search failed. Try again."
+  },
+  "automations": {
+    "agentLaunch": {
+      "missingProfile": "Deleted profile",
+      "account": "Account",
+      "defaultAccount": "Default command",
+      "model": "Model",
+      "agentDefault": "Agent default",
+      "effort": "Effort"
+    }
   }
 }

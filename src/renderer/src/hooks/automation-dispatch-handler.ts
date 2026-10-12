@@ -2,6 +2,8 @@ import { listAutomationRunsForTarget } from '@/components/automations/automation
 import { translate } from '@/i18n/i18n'
 import { submitPromptToAgentPty } from '@/lib/agent-paste-draft'
 import { launchAgentBackgroundSession } from '@/lib/launch-agent-background-session'
+import { planAgentBackgroundSession } from '@/lib/agent-background-session-startup'
+import { resolveAutomationAgentLaunchInputs } from '@/lib/automation-agent-launch-inputs'
 import { observeExistingAutomationSession } from '@/lib/automation-session-observer'
 import { findReusableAutomationSession } from '@/lib/automation-session-reuse'
 import type { AutomationTerminalOwnership } from '@/lib/automation-terminal-ownership'
@@ -92,12 +94,22 @@ export async function handleAutomationDispatchRequest({
       finalizeTerminalOwnership
     })
     const dispatchStartedAt = Date.now()
+    const launchInputs = resolveAutomationAgentLaunchInputs(
+      useAppStore.getState().settings,
+      automation
+    )
     if (automation.reuseSession) {
       const reusableSession = findReusableAutomationSession({
         automationId: automation.id,
         agentId: automation.agentId,
         worktreeId: worktree.id,
         currentRunId: run.id,
+        expectedLaunchConfig: planAgentBackgroundSession({
+          agent: automation.agentId,
+          worktreeId: worktree.id,
+          prompt: automation.prompt,
+          ...launchInputs
+        })?.startupPlan.launchConfig,
         // Why: the dispatch loop only ever executes for the desktop authority,
         // so its history read addresses the local runtime explicitly.
         runs: await listAutomationRunsForTarget({ kind: 'local' }, automation.id),
@@ -168,6 +180,7 @@ export async function handleAutomationDispatchRequest({
       agent: automation.agentId,
       worktreeId: worktree.id,
       prompt: automation.prompt,
+      ...launchInputs,
       launchSource: 'unknown',
       title: run.title,
       onData: completion.appendOutput,

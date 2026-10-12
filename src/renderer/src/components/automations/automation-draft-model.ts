@@ -2,6 +2,7 @@ import { getAgentCatalog } from '@/lib/agent-catalog'
 import type { AutomationPrecheck } from '../../../../shared/automations-types'
 import { buildAutomationCronSchedule } from '../../../../shared/automation-schedule-occurrences'
 import type { Worktree } from '../../../../shared/worktree/types'
+import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { AutomationDraft } from './AutomationEditorDialog'
 
 export const AUTOMATION_DEFAULT_TIME = '09:00'
@@ -45,6 +46,16 @@ export function buildHermesCronSchedule(draft: AutomationDraft): string {
     minute,
     dayOfWeek: Number(draft.dayOfWeek)
   })
+}
+
+/** Account and model picks belong to one agent, so switching agents clears them. */
+export function withAutomationDraftAgent(
+  draft: AutomationDraft,
+  agentId: TuiAgent
+): AutomationDraft {
+  return agentId === draft.agentId
+    ? draft
+    : { ...draft, agentId, agentProfileId: undefined, launchPreferences: undefined }
 }
 
 export function getAgentLabel(agentId: string): string {

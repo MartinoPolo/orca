@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
+import { planAgentBackgroundSession } from '@/lib/agent-background-session-startup'
 import type {
   LaunchAgentBackgroundSessionArgs,
   LaunchAgentBackgroundSessionResult
@@ -7,12 +7,6 @@ import type {
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { scheduleAgentBackgroundDraft } from '@/lib/agent-background-draft-delivery'
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
-import {
-  resolveTuiAgentLaunchArgs,
-  resolveTuiAgentLaunchEnv
-} from '../../../shared/tui-agent-launch-defaults'
-import { requireTuiAgentConfig } from '../../../shared/require-tui-agent-config'
-import { resolveAgentBackgroundLaunchHost } from '@/lib/agent-background-session-launch-host'
 import { makePaneKey } from '../../../shared/stable-pane-id'
 import {
   registerEagerPtyBuffer,
@@ -33,7 +27,6 @@ import {
   sshBackgroundLaunchWaitsForShellReady
 } from '@/lib/ssh-background-startup-delivery'
 import { isMainTerminalSideEffectAuthorityForPty } from '@/components/terminal-pane/terminal-side-effect-facts-handler'
-import { resolveLocalWindowsAgentStartupShell } from '../../../shared/windows-terminal-shell'
 import { runBestEffortAgentBackgroundCleanups } from '@/lib/agent-background-session-cleanup'
 import type { bindAutomationTerminal } from '@/lib/automation-terminal-ownership'
 import {
@@ -47,49 +40,15 @@ import { runtimeWaitExitCode, settleTabPtyBinding } from '@/lib/agent-background
 export async function launchAgentBackgroundSession(
   args: LaunchAgentBackgroundSessionArgs
 ): Promise<LaunchAgentBackgroundSessionResult | null> {
-  const { agent, worktreeId, prompt, launchSource, title, onData, onExit, onAgentStatus } = args
+  const { agent, worktreeId, launchSource, title, onData, onExit, onAgentStatus } = args
   const store = useAppStore.getState()
-  // Folder workspaces exist only in getKnownWorktreeById (#2989).
-  const worktree = store.getKnownWorktreeById(worktreeId)
-  const repo = worktree ? store.repos.find((entry) => entry.id === worktree.repoId) : null
-  if (!worktree) {
-    throw new Error('The target workspace is no longer available.')
-  }
-  const cmdOverrides = store.settings?.agentCmdOverrides ?? {}
-  const agentArgs = resolveTuiAgentLaunchArgs(agent, store.settings?.agentDefaultArgs)
-  const agentEnv = resolveTuiAgentLaunchEnv(agent, store.settings?.agentDefaultEnv)
-  // Folder launch ownership cannot be derived from a repo row (#2989).
-  const launchHost = resolveAgentBackgroundLaunchHost({
-    store,
-    worktreeId,
-    worktreePath: worktree.path,
-    repo
-  })
-  const { platform: launchPlatform, isRemote } = launchHost
-  const startupShell = resolveLocalWindowsAgentStartupShell({
-    platform: launchPlatform,
-    isRemote,
-    terminalWindowsShell: store.settings?.terminalWindowsShell
-  })
-  const trimmedPrompt = prompt?.trim() ?? ''
-  const hasPrompt = trimmedPrompt.length > 0
-  const isFollowupPath = requireTuiAgentConfig(agent).promptInjectionMode === 'stdin-after-start'
-
-  const pasteDraftAfterLaunch = hasPrompt && isFollowupPath ? trimmedPrompt : null
-  const startupPlan = buildAgentStartupPlan({
-    agent,
-    prompt: hasPrompt && !isFollowupPath ? trimmedPrompt : '',
-    cmdOverrides,
-    agentArgs,
-    agentEnv,
-    platform: launchPlatform,
-    shell: startupShell,
-    isRemote,
-    allowEmptyPromptLaunch: !hasPrompt || isFollowupPath
-  })
-  if (!startupPlan) {
+  const startup = planAgentBackgroundSession(args)
+  if (!startup) {
     return null
   }
+  const { worktreePath, launchHost, startupPlan, trimmedPrompt, hasPrompt, isFollowupPath } =
+    startup
+  const pasteDraftAfterLaunch = hasPrompt && isFollowupPath ? trimmedPrompt : null
 
   // A hidden run tab must never be store-visible without its PTY (#2989).
   const { reservedTabId, leafId, launchToken, launchRegistration, paneEnv } =
@@ -187,9 +146,9 @@ export async function launchAgentBackgroundSession(
       const result = await window.api.pty.spawn({
         cols: 120,
         rows: 40,
-        cwd: worktree.path,
+        cwd: worktreePath,
         command: startupPlan.launchCommand,
-        ...(!sshConnectionId && isWslUncPath(worktree.path) ? { shellOverride: 'wsl.exe' } : {}),
+        ...(!sshConnectionId && isWslUncPath(worktreePath) ? { shellOverride: 'wsl.exe' } : {}),
         ...(!startupPlan.startupCommandDelivery
           ? {}
           : { startupCommandDelivery: startupPlan.startupCommandDelivery }),

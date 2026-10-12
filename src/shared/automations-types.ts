@@ -1,4 +1,5 @@
 import type { TuiAgent } from './tui-agent'
+import type { AutomationAgentLaunchSelection } from './automation-agent-launch'
 import type { SetupDecision } from './worktree/create-types'
 import type { TaskSourceContext, WorkspaceRunContext } from './task-source-context'
 
@@ -88,7 +89,7 @@ export type AutomationPrecheckResult = {
   completedAt: number
 }
 
-export type Automation = {
+export type Automation = AutomationAgentLaunchSelection & {
   id: string
   /** Optional client request key used to make cross-authority creates retry-safe. */
   creationKey?: string
@@ -176,7 +177,7 @@ export type AutomationRunsPage = {
   nextCursor: string | null
 }
 
-export type AutomationCreateInput = {
+export type AutomationCreateInput = AutomationAgentLaunchSelection & {
   /** Optional idempotency key; repeated creates return the original record. */
   creationKey?: string
   name: string
@@ -207,6 +208,8 @@ export type AutomationUpdateInput = Partial<
     | 'prompt'
     | 'precheck'
     | 'agentId'
+    | 'agentProfileId'
+    | 'launchPreferences'
     | 'runContext'
     | 'sourceContext'
     | 'projectId'

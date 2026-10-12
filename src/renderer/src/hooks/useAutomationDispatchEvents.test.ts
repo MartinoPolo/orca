@@ -130,6 +130,9 @@ vi.mock('@/lib/launch-agent-background-session', () => ({
   launchAgentBackgroundSession: mockLaunchAgentBackgroundSession
 }))
 
+// Reuse matching is mocked below, so the launch it compares against is irrelevant here.
+vi.mock('@/lib/agent-background-session-startup', () => ({ planAgentBackgroundSession: vi.fn() }))
+
 vi.mock('@/lib/launch-worktree-background-terminals', () => ({
   launchWorktreeBackgroundTerminals: mockLaunchWorktreeBackgroundTerminals
 }))

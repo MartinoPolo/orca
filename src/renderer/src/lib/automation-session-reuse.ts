@@ -1,4 +1,9 @@
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
+import {
+  AGENT_LAUNCH_PROFILE_AGENTS,
+  isProfileAgent
+} from '../../../shared/agent-launch-profile-agents'
 import type { AutomationRun } from '../../../shared/automations-types'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
@@ -10,18 +15,24 @@ export type ReusableAutomationSession = {
   paneKey: string
 }
 
+type ReusablePaneState = Pick<
+  AppState,
+  'agentStatusByPaneKey' | 'ptyIdsByTabId' | 'terminalLayoutsByTabId'
+> &
+  Partial<Pick<AppState, 'agentLaunchConfigByPaneKey'>>
+
 export function findReusableAutomationSession(args: {
   automationId: string
   agentId: TuiAgent
   worktreeId: string
   currentRunId: string
   runs: AutomationRun[]
-  state: Pick<
-    AppState,
-    'agentStatusByPaneKey' | 'ptyIdsByTabId' | 'terminalLayoutsByTabId' | 'unifiedTabsByWorktree'
-  >
+  /** The config a fresh launch would use; a pane launched under another account is not reused. */
+  expectedLaunchConfig?: SleepingAgentLaunchConfig
+  state: ReusablePaneState & Pick<AppState, 'unifiedTabsByWorktree'>
 }): ReusableAutomationSession | null {
-  const { automationId, agentId, worktreeId, currentRunId, runs, state } = args
+  const { automationId, agentId, worktreeId, currentRunId, runs, expectedLaunchConfig, state } =
+    args
   const worktreeTabs = state.unifiedTabsByWorktree[worktreeId] ?? []
   const terminalTabIds = new Set(
     worktreeTabs.filter((tab) => tab.contentType === 'terminal').map((tab) => tab.entityId)
@@ -39,7 +50,13 @@ export function findReusableAutomationSession(args: {
     .sort((left, right) => right.createdAt - left.createdAt)
 
   for (const run of candidates) {
-    const exactPane = findReusableExactRunPane({ state, terminalTabIds, agentId, run })
+    const exactPane = findReusableExactRunPane({
+      state,
+      terminalTabIds,
+      agentId,
+      expectedLaunchConfig,
+      run
+    })
     if (exactPane) {
       return exactPane
     }
@@ -51,11 +68,13 @@ function findReusableExactRunPane({
   state,
   terminalTabIds,
   agentId,
+  expectedLaunchConfig,
   run
 }: {
-  state: Pick<AppState, 'agentStatusByPaneKey' | 'ptyIdsByTabId' | 'terminalLayoutsByTabId'>
+  state: ReusablePaneState
   terminalTabIds: Set<string>
   agentId: TuiAgent
+  expectedLaunchConfig: SleepingAgentLaunchConfig | undefined
   run: AutomationRun
 }): ReusableAutomationSession | null {
   if (!run.terminalPaneKey || !run.terminalPtyId) {
@@ -69,6 +88,9 @@ function findReusableExactRunPane({
   if (!entry || !isReusableAgentStatus(entry, agentId)) {
     return null
   }
+  if (!launchAccountMatches(state, run.terminalPaneKey, agentId, expectedLaunchConfig)) {
+    return null
+  }
   if (!isRunPtyLiveInPane(state, parsed.tabId, parsed.leafId, run.terminalPtyId)) {
     return null
   }
@@ -80,6 +102,24 @@ function isReusableAgentStatus(entry: AgentStatusEntry, agentId: TuiAgent): bool
     return false
   }
   return !entry.agentType || entry.agentType === 'unknown' || entry.agentType === agentId
+}
+
+function launchAccountMatches(
+  state: ReusablePaneState,
+  paneKey: string,
+  agentId: TuiAgent,
+  expectedLaunchConfig: SleepingAgentLaunchConfig | undefined
+): boolean {
+  if (!expectedLaunchConfig || !isProfileAgent(agentId)) {
+    return true
+  }
+  const accountEnvironmentName = AGENT_LAUNCH_PROFILE_AGENTS[agentId].accountEnvironmentName
+  const expectedAccount = expectedLaunchConfig.agentEnv[accountEnvironmentName]
+  const recorded = state.agentLaunchConfigByPaneKey?.[paneKey]?.launchConfig
+  // Why: without a recorded launch only the default account can be assumed.
+  return recorded
+    ? recorded.agentEnv[accountEnvironmentName] === expectedAccount
+    : expectedAccount === undefined
 }
 
 function isRunPtyLiveInPane(

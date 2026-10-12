@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import type { AutomationTemplate } from './automation-templates'
 import type { AutomationCreateTarget } from './AutomationEditorDialog'
 import { getAutomationCreateRepos } from './automation-create-projects'
-import { getDefaultWorktree } from './automation-draft-model'
+import { getDefaultWorktree, withAutomationDraftAgent } from './automation-draft-model'
 import type { AutomationsPageDestinationState } from './use-automations-page-destination-state'
 import type { AutomationsPageDestinationFormState } from './use-automations-page-destination-form'
 import type { AutomationsPageLocalState } from './use-automations-page-local-state'
@@ -125,14 +125,13 @@ export function useAutomationDraftEffects({
   const applyTemplateToDraft = useCallback(
     (template: AutomationTemplate): void => {
       setDraft((current) => ({
-        ...current,
+        ...withAutomationDraftAgent(current, template.agentId ?? current.agentId),
         name: template.name,
         prompt: template.prompt,
         preset: template.preset,
         time: template.time ?? current.time,
         dayOfWeek: template.dayOfWeek ?? current.dayOfWeek,
         customSchedule: '',
-        agentId: template.agentId ?? current.agentId,
         missedRunGraceMinutes: template.missedRunGraceMinutes ?? current.missedRunGraceMinutes,
         scheduleWarning: null
       }))
@@ -160,8 +159,7 @@ export function useAutomationDraftEffects({
           ? getDefaultWorktree(worktreesByRepo[nextRepo.id] ?? [])
           : null
         return {
-          ...current,
-          agentId: 'hermes',
+          ...withAutomationDraftAgent(current, 'hermes'),
           projectId: nextRepo?.id ?? '',
           workspaceId: nextWorkspace?.id ?? '',
           workspaceMode: 'existing',
