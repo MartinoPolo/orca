@@ -3,10 +3,8 @@
 Terminal applications negotiate input protocols independently of their painted screen. A restored
 frame must retain those protocols; repainting alone does not renegotiate them.
 
-- Renderer snapshots carry mouse encoding through
-  `src/shared/terminal-serialize-absolute-cursor.ts`, including encoding enabled while tracking is
-  disabled. Tracking and SGR cell/pixel encoding are separate state. Standard ANSI sequences keep
-  this compatible with existing desktop, SSH, and mobile snapshot consumers.
+- Renderer snapshots restore mouse encoding separately from tracking (upstream,
+  `src/shared/terminal-serialize-absolute-cursor.ts`).
 - Mobile must not turn an unencodable mouse-wheel report into an arrow key: that can edit a TUI's
   input instead of scrolling its transcript. Alternate-screen applications without wheel tracking
   retain their existing arrow-scroll behavior.
