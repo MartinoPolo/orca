@@ -111,7 +111,7 @@ describe('hasCtrlEnterCsiUAuthorityForPane', () => {
       hasCtrlEnterCsiUAuthorityForPane(
         {
           paneForegroundAgentByPaneKey: {
-            [PANE_KEY]: { agent: 'claude', routingTrusted: true, shellForeground: false }
+            [PANE_KEY]: { agent: 'codex', routingTrusted: true, shellForeground: false }
           }
         },
         PANE_KEY

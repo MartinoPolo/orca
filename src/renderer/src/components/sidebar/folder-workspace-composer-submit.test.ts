@@ -740,7 +740,7 @@ describe('submitFolderWorkspaceCreate native-chat launch draft', () => {
     expect(seededDraftFor('tab-1')?.text).toBe(ISSUE_URL)
   })
 
-  it('uses the same configured Pi template for native prefill and transported draft', async () => {
+  it('uses the configured Pi template for native prefill', async () => {
     const configuredDraft = `/skill:mpx-execute ${ISSUE_URL}`
     await submitFolderWorkspaceCreate({
       projectGroup: makeProjectGroup(),
@@ -758,7 +758,6 @@ describe('submitFolderWorkspaceCreate native-chat launch draft', () => {
 
     const startup = mocks.activateAndRevealFolderWorkspace.mock.calls[0]?.[1]?.startup
     expect(startup?.env?.ORCA_PI_PREFILL).toBe(configuredDraft)
-    expect(startup?.launchDraftText).toBe(configuredDraft)
   })
 
   it('mirrors an argv-prefill draft, which never lands in startupPlan.draftPrompt', async () => {

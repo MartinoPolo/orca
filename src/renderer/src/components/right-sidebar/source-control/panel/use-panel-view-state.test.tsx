@@ -3,7 +3,6 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SOURCE_CONTROL_AREAS } from '../listing/section-order'
 import { useSourceControlPanelViewState } from './use-panel-view-state'
 
 let container: HTMLDivElement
@@ -46,9 +45,6 @@ describe('useSourceControlPanelViewState section disclosure', () => {
   it('starts with branch and history collapsed while live groups remain open', () => {
     render('wt-a')
     expect([...collapsed].sort()).toEqual(['branch', 'history'])
-    for (const area of SOURCE_CONTROL_AREAS) {
-      expect(collapsed.has(area)).toBe(false)
-    }
   })
 
   it('keeps a worktree choice across remount without leaking it to another worktree', () => {

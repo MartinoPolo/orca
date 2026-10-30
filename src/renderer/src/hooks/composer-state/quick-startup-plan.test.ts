@@ -6,11 +6,11 @@ const LINKED_ISSUE_URL = 'https://github.com/stablyai/orca/issues/42'
 
 describe('buildQuickComposerStartup linked work-item drafts', () => {
   it.each([
-    ['local', false, null],
-    ['remote', true, 'ssh-1']
+    ['local', false, 'local'],
+    ['remote', true, 'ssh']
   ] as const)(
     'transports a configured Pi template for %s targets',
-    (_target, isRemote, repoConnectionId) => {
+    (_target, isRemote, hostKind) => {
       const resolvedPrompt = resolveQuickCreateLinkedWorkItemPrompt(
         {
           provider: 'github',
@@ -26,8 +26,7 @@ describe('buildQuickComposerStartup linked work-item drafts', () => {
         prompt: resolvedPrompt.prompt,
         draftPrompt: resolvedPrompt.draftPrompt,
         settings: undefined,
-        repoConnectionId,
-        platform: 'linux',
+        launchHost: { kind: 'known', platform: 'linux', hostKind },
         shell: undefined,
         isRemote,
         telemetrySource: 'sidebar'
