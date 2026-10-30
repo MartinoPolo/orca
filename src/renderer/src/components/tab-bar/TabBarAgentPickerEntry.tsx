@@ -1,10 +1,8 @@
-import { useMemo } from 'react'
-import { useAppStore } from '@/store'
 import {
   useAgentPickerInventoryEntries,
   type AgentPickerInventorySource
 } from '../agent/use-agent-launch-picker-inventory'
-import { buildAgentPickerLaunchOptions } from './tab-agent-launch-options'
+import { useTabAgentLaunchOptions } from './use-tab-agent-launch-options'
 import TabBarCreateEntry from './TabBarCreateEntry'
 import type { TabBarCreateEntryProps } from './tab-create-entry-props'
 
@@ -16,10 +14,6 @@ export function TabBarAgentPickerEntry({
   inventory: AgentPickerInventorySource
 }): React.JSX.Element {
   const entries = useAgentPickerInventoryEntries(inventory)
-  const commandOverrides = useAppStore((state) => state.settings?.agentCmdOverrides)
-  const launchOptions = useMemo(
-    () => buildAgentPickerLaunchOptions(entries, commandOverrides),
-    [entries, commandOverrides]
-  )
+  const launchOptions = useTabAgentLaunchOptions(props.worktreeId, entries)
   return <TabBarCreateEntry {...props} agentPickerEntries={entries} agentOptions={launchOptions} />
 }

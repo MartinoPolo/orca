@@ -12,6 +12,12 @@ import {
   isAgentStatusHooksEnabled,
   isAgentStatusHooksEnabledForAgent
 } from '../../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
+import {
+  getLocalClaudeConfigDirectories,
+  getRetiredClaudeConfigDirectories,
+  removeClaudeProfileHooks
+} from './local-claude-profile-hooks'
+import { errorStatus, skippedStatus } from './managed-hook-control-status'
 import { probeClaudeCliVersion } from '../../claude/cli-capabilities/claude-hook-event-versions'
 import { detectLocalManagedAgentCliPresence } from './local-agent-cli-presence'
 import {
@@ -25,7 +31,10 @@ import {
 } from './managed-agent-hook-registry'
 
 type ManagedHookSettings = Partial<
-  Pick<GlobalSettings, 'agentCmdOverrides' | 'agentStatusHooksEnabled' | 'disabledTuiAgents'>
+  Pick<
+    GlobalSettings,
+    'agentCmdOverrides' | 'agentStatusHooksEnabled' | 'disabledTuiAgents' | 'claudeLaunchProfiles'
+  >
 > | null
 
 type InstallOptions = {
@@ -44,6 +53,8 @@ type ApplyOptions = InstallOptions & {
 
 type RemoveOptions = {
   agents?: readonly AgentHookTarget[]
+  /** Names the Claude launch profile roots whose hooks go with the default ones. */
+  settings?: ManagedHookSettings
 }
 
 export type StartupManagedHookAction = 'install' | 'skip'
@@ -61,31 +72,6 @@ export function shouldContinueManagedHookStartup(
   agent: AgentHookTarget
 ): boolean {
   return !isQuitting && isAgentStatusHooksEnabledForAgent(settings, agent)
-}
-
-function errorStatus(agent: AgentHookTarget, error: unknown): AgentHookInstallStatus {
-  return {
-    agent,
-    state: 'error',
-    configPath: '',
-    managedHooksPresent: false,
-    detail: error instanceof Error ? error.message : String(error)
-  }
-}
-
-function skippedStatus(
-  agent: AgentHookTarget,
-  skipReason: NonNullable<AgentHookInstallStatus['skipReason']>,
-  detail: string
-): AgentHookInstallStatus {
-  return {
-    agent,
-    state: 'skipped',
-    configPath: '',
-    managedHooksPresent: false,
-    detail,
-    skipReason
-  }
 }
 
 function selectedInstallers(options: InstallOptions): readonly ManagedAgentHookInstaller[] {
@@ -188,12 +174,21 @@ export async function installManagedAgentHooks(
       agent === 'claude' && presence.executablePath
         ? await probeClaudeCliVersion(presence.executablePath)
         : null
-    results.push(
-      await runInstaller(entry, options.onInstallError, {
-        ...(options.userInitiated !== undefined ? { userInitiated: options.userInitiated } : {}),
-        ...(cliVersion ? { cliVersion } : {})
-      })
-    )
+    const installOptions = {
+      ...(options.userInitiated !== undefined ? { userInitiated: options.userInitiated } : {}),
+      ...(cliVersion ? { cliVersion } : {})
+    }
+    results.push(await runInstaller(entry, options.onInstallError, installOptions))
+    if (agent === 'claude') {
+      for (const configDirectory of getLocalClaudeConfigDirectories(settings)) {
+        if (options.shouldContinue && !options.shouldContinue(agent)) {
+          break
+        }
+        results.push(
+          await runInstaller(entry, options.onInstallError, { ...installOptions, configDirectory })
+        )
+      }
+    }
   }
   return results
 }
@@ -213,7 +208,29 @@ export async function removeManagedAgentHooks(
       results.push(errorStatus(agent, error))
     }
   }
+  if (allowed === null || allowed.has('claude')) {
+    results.push(
+      ...(await removeClaudeProfileHooks(getLocalClaudeConfigDirectories(options.settings ?? null)))
+    )
+  }
   return results
+}
+
+/** Unhooks retired Claude profile roots, then reinstalls Claude hooks for the current ones. */
+export async function reconcileClaudeLaunchProfileHooks(
+  previousSettings: ManagedHookSettings,
+  settings: ManagedHookSettings,
+  options: InstallOptions = {}
+): Promise<AgentHookInstallStatus[]> {
+  const removed = await removeClaudeProfileHooks(
+    getRetiredClaudeConfigDirectories(previousSettings, settings)
+  )
+  const reconciled = await applyAgentStatusHooksEnabled(
+    isAgentStatusHooksEnabled(settings),
+    settings,
+    { ...options, agents: ['claude'] }
+  )
+  return [...removed, ...reconciled]
 }
 
 export async function removeManagedAgentHooksAsync(
@@ -251,7 +268,7 @@ export async function applyAgentStatusHooksEnabled(
   if (!enabled) {
     return options.keepSharedEntries
       ? getManagedAgentHookStatuses()
-      : await removeManagedAgentHooks()
+      : await removeManagedAgentHooks({ agents: options.agents, settings })
   }
   const disabled = normalizeDisabledTuiAgents(settings?.disabledTuiAgents).filter(
     isManagedAgentHookTarget
@@ -264,7 +281,7 @@ export async function applyAgentStatusHooksEnabled(
     return installed
   }
   const removed = new Map(
-    (await removeManagedAgentHooks({ agents: disabledToRemove })).map((status) => [
+    (await removeManagedAgentHooks({ agents: disabledToRemove, settings })).map((status) => [
       status.agent,
       status
     ])

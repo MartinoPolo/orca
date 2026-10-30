@@ -24,6 +24,8 @@ import { launchAgentInWebHostTab } from '@/lib/agent-session/launch/new-tab/laun
 import { resolveAgentStartupPlanInputs } from '../../../../../../shared/agent-launch/startup/agent-startup-plan-inputs'
 import { readAgentLaunchPreferencesForWorktree } from '@/runtime/agent-launch-settings/use-host-agent-launch-preferences'
 import { TUI_AGENT_CONFIG } from '../../../../../../shared/agent-launch/catalog/tui-agent-config'
+import { resolveAgentProfileLaunchInputs } from '@/lib/agent-profile-launch-inputs'
+import { CLIENT_PLATFORM } from '@/lib/workspace/creation/new-workspace'
 import {
   agentTabLaunchStore,
   resolveAgentLaunchExecutionContext
@@ -68,6 +70,7 @@ function openAgentInNewTab(
     groupId,
     prompt,
     agentArgs,
+    agentLaunchProfile,
     sessionOptions,
     initialCwd,
     trustWorktreeId,
@@ -91,7 +94,8 @@ function openAgentInNewTab(
   // Resolve structured ownership first; only terminal routes plan CLI arguments.
   const route = routeNewTabLaunch(store, args, {
     agent,
-    requestedSurface: args.requestedSurface,
+    // A chat cannot run a profile's own command and account root.
+    requestedSurface: agentLaunchProfile ? 'terminal' : args.requestedSurface,
     preferredSurface: args.preferredSurface,
     selectedExecutionHostId: args.selectedExecutionHostId,
     workspace: { kind: workspaceKindForWorktreeId(worktreeId), worktreeId },
@@ -114,7 +118,7 @@ function openAgentInNewTab(
     )
   }
   const { plan } = route
-  if (plan?.route === 'structured-native-chat') {
+  if (plan?.route === 'structured-native-chat' && !agentLaunchProfile) {
     const structured = launchStructuredAgentFromNewTab({
       plan,
       worktreeId,
@@ -159,24 +163,47 @@ function openAgentInNewTab(
   if (argsProblem) {
     return refuseAgentTabLaunch(args, argsProblem, () => toast.error(argsProblem), notifyFailure)
   }
+  const agentProfileInputs = resolveAgentProfileLaunchInputs({
+    agent,
+    profile: agentLaunchProfile,
+    state: store,
+    worktreeId,
+    resolvedLaunchPlatform,
+    clientPlatform: CLIENT_PLATFORM,
+    commandOverrides: {},
+    environment: {}
+  })
+  if (!agentProfileInputs.ok) {
+    args.focusIntent?.cancel()
+    return null
+  }
   const buildStartup = (
     agentLaunchChoices = readAgentLaunchPreferencesForWorktree(store, worktreeId).agentLaunchChoices
-  ) =>
-    planLaunchAgentStartupPrompt({
-      base: resolveAgentStartupPlanInputs({
-        agent,
-        settings: { ...store.settings, agentLaunchChoices },
-        agentArgs,
-        sessionOptions,
-        sessionOptionsYieldToAgentArgs: args.sessionOptionsYieldToAgentArgs,
-        platform: resolvedLaunchPlatform,
-        shell: queuedShell,
-        isRemote
-      }),
+  ) => {
+    const base = resolveAgentStartupPlanInputs({
+      agent,
+      settings: {
+        ...store.settings,
+        agentLaunchChoices,
+        agentCmdOverrides: {
+          ...store.settings?.agentCmdOverrides,
+          ...agentProfileInputs.commandOverrides
+        }
+      },
+      agentArgs,
+      sessionOptions,
+      sessionOptionsYieldToAgentArgs: args.sessionOptionsYieldToAgentArgs,
+      platform: resolvedLaunchPlatform,
+      shell: queuedShell,
+      isRemote
+    })
+    return planLaunchAgentStartupPrompt({
+      base: { ...base, agentEnv: { ...base.agentEnv, ...agentProfileInputs.environment } },
       prompt: trimmedPrompt,
       promptDelivery,
       isFollowupPath
     })
+  }
   args.focusIntent?.cancel()
   const runtimeEnvironmentId = runtimeEnvironmentIdOrLocalUnlessTwin(store, worktreeId)
   if (isWebRuntimeSessionActive(runtimeEnvironmentId)) {
@@ -222,6 +249,8 @@ function openAgentInNewTab(
   }
   if (
     pasteDraftAfterLaunch !== null &&
+    // The host builds its own command, which would drop the profile's command and root.
+    !agentLaunchProfile &&
     newTabPromptLaunchesThroughHost({ promptDelivery, pastesPrompt: true, isRemote })
   ) {
     const launched = launchNewTabPromptThroughHost({

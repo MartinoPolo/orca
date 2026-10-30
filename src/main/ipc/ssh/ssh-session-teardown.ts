@@ -1,6 +1,7 @@
 import type { DirectSshAuthority } from '../../../shared/remote-runtime/ssh/ssh-types'
 import { getSshTargetRegistryStore } from '../../ssh/targets/ssh-target-registry'
 import { clearSshHostServerStatus } from '../../ssh/host-server/ssh-host-server-status'
+import { forgetSshRemoteHome } from '../../ssh/ssh-remote-home-memo'
 import { isSshConnectionSolelyOwnedBy } from '../../ssh/connection/ssh-connection-attribution'
 import {
   connectInFlight,
@@ -47,6 +48,7 @@ export async function removeRegisteredSshTarget(targetId: string): Promise<void>
     }
     persistedStore?.removeSshRemotePtyLeases(targetId)
     forgetLegacyRelayTarget(targetId)
+    forgetSshRemoteHome(targetId)
     store.removeTarget(targetId)
     // Target removal also retires its scoped browser cookie storage.
     try {

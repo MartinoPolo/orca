@@ -16,6 +16,7 @@ import {
   sanitizeAgentPermissionUpdates
 } from '../permissions/tui-agent-permission-choice'
 import { projectAgentLaunchProfile } from './agent-launch-profile'
+import { normalizeAgentLaunchProfiles } from './agent-launch-profiles'
 import {
   resolveStartupShell,
   tokenizeStartupCommand,
@@ -163,6 +164,12 @@ export function sanitizeAgentLaunchProfileUpdates(
     target.agentLaunchChoices = normalizeAgentLaunchChoices(updates.agentLaunchChoices)
   }
   sanitizeAgentPermissionUpdates(target, updates)
+  if ('piLaunchProfiles' in updates) {
+    target.piLaunchProfiles = normalizeAgentLaunchProfiles(updates.piLaunchProfiles)
+  }
+  if ('claudeLaunchProfiles' in updates) {
+    target.claudeLaunchProfiles = normalizeAgentLaunchProfiles(updates.claudeLaunchProfiles)
+  }
 }
 
 export function getTuiAgentDefaultArgs(agent: string): string {

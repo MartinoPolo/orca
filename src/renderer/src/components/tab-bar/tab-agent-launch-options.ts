@@ -15,6 +15,11 @@ import { normalizeMatchQuery, tokenizeMatchValue } from './query-token-match'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { Translate } from '@/i18n/use-translate'
 import type { ActiveOption } from './tab-create-entry-active-option'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import {
+  PROFILE_AGENTS,
+  type AgentLaunchProfilesByAgent
+} from '../../../../shared/agent-launch-profile-agents'
 
 export type TabAgentLaunchOption = {
   agent: TuiAgent
@@ -28,6 +33,8 @@ export type TabAgentLaunchOption = {
   preset?: AgentPickerSetupIdentity
   pickerEntry?: AgentPickerEntry
   reason?: string
+  /** Named account profile the option launches in a terminal. */
+  agentProfile?: AgentLaunchProfile
 }
 
 function normalizeAgentAlias(value: string): string {
@@ -87,6 +94,28 @@ export function buildTabAgentLaunchOptions(
       label
     }
   })
+}
+
+/** Searchable by agent, profile name or the profile's own command. */
+export function buildAgentLaunchProfileOptions(
+  profilesByAgent: AgentLaunchProfilesByAgent
+): TabAgentLaunchOption[] {
+  return PROFILE_AGENTS.flatMap((agent) =>
+    (profilesByAgent[agent] ?? []).map((profile) => ({
+      id: `${agent}-profile:${profile.id}`,
+      agent,
+      aliases: [
+        agent,
+        normalizeAgentAlias(profile.name),
+        compactAgentAlias(profile.name),
+        normalizeAgentAlias(profile.command),
+        compactAgentAlias(profile.command)
+      ],
+      label: profile.name,
+      row: { kind: 'terminal' as const, agent },
+      agentProfile: profile
+    }))
+  )
 }
 
 export function buildTabAgentLaunchOptionsFromRows(

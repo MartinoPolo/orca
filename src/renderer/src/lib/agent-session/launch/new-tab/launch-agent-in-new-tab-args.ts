@@ -5,6 +5,7 @@ import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { StructuredLaunchTerminal } from '@/lib/agent-session/launch/structured-agent-session-launch-admission'
 import type { LaunchAgentInNewTabRequest } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab-host-agents'
 import type { NativeChatComposerFocusIntent } from '@/components/native-chat/composer/focus/native-chat-composer-focus-intent'
+import type { AgentLaunchProfile } from '../../../../../../shared/agent-launch-profiles'
 
 export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   requestedSurface?: AgentSessionLaunchRequest['requestedSurface']
@@ -26,6 +27,8 @@ export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   agentArgs?: string | null
   /** Raw action Arguments replace configured Arguments while inheriting host permission. */
   actionAgentArgs?: string
+  /** Named account profile; pins the launch to a terminal running the profile's command and root. */
+  agentLaunchProfile?: AgentLaunchProfile
   /** The launch's saved choice; a chat seeds it and a terminal applies it as flags. */
   sessionOptions?: Readonly<Record<string, string>>
   chatSessionOptions?: Readonly<Record<string, string>>

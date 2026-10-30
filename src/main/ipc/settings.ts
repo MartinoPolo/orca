@@ -1,7 +1,7 @@
 import { sanitizeRendererSettingsUpdate } from './renderer-settings-update'
 import { confirmBrowserPasswordOwner } from '../browser-passwords/browser-password-reauth'
 import { getClaudeAgentViewService } from '../claude/agent-view/agent-view-service'
-import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import type { PersistedState } from '../../shared/persisted-state-types'
@@ -17,9 +17,7 @@ import {
 } from '../../shared/telemetry/schemas/telemetry-property-schemas'
 import type { AgentAwakeService } from '../power/agent-awake-service'
 import { sanitizeFloatingWorkspaceDirectorySetting } from './floating-workspace-directory'
-import { applyAgentStatusHooksEnabled } from '../agent-hooks/installation/managed-agent-hook-controls'
-import { isAgentStatusHooksEnabledForAgent } from '../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
-import { recordManagedHookInstallFailure } from '../agent-hooks/installation/install-telemetry'
+import { reconcileSettingsManagedHooks } from './settings-managed-hook-reconciliation'
 import { applyElectronProxySettings } from '../network/proxy-settings'
 import { applyBrowserSessionProxies } from '../browser/sessions/proxy/browser-session-proxy'
 import { applyProxyToElectronUpdaterSession } from '../updater/lifecycle/electron-updater-proxy-session'
@@ -37,7 +35,6 @@ import { scheduleCurrentWorktreeBaseDirectoryWatcherSync } from './worktrees/cre
 import { applyPRBotAuthorOverride } from '../../shared/source-control/review-comments/pr-bot-author-overrides'
 import { resolveEnvironment } from '../../shared/remote-runtime/host-store/runtime-environment-store'
 import { readSettingsWithRuntimeEnvironmentPreference } from './runtime-environments/catalog/runtime-environment-preference'
-import { haveSameDisabledTuiAgents } from '../../shared/agent-launch/catalog/tui-agent-selection'
 import {
   normalizeMobilePairingCustomAddress,
   normalizeMobilePairingCustomAddresses
@@ -228,23 +225,7 @@ export function registerSettingsHandlers(
       )
     }
     await getClaudeAgentViewService().reconcile(result)
-    const hookSettingChanged =
-      ('agentStatusHooksEnabled' in sanitizedArgs &&
-        before.agentStatusHooksEnabled !== result.agentStatusHooksEnabled) ||
-      ('disabledTuiAgents' in sanitizedArgs &&
-        !haveSameDisabledTuiAgents(before.disabledTuiAgents, result.disabledTuiAgents))
-    if (hookSettingChanged) {
-      try {
-        await applyAgentStatusHooksEnabled(result.agentStatusHooksEnabled, result, {
-          userInitiated: true,
-          shouldHydrateShellPath: app.isPackaged,
-          onInstallError: recordManagedHookInstallFailure,
-          shouldContinue: (agent) => isAgentStatusHooksEnabledForAgent(store.getSettings(), agent)
-        })
-      } catch (error) {
-        console.warn('[settings] failed to reconcile managed agent hooks:', error)
-      }
-    }
+    await reconcileSettingsManagedHooks(store, before, result, sanitizedArgs)
     if ('uiLanguage' in sanitizedArgs && before.uiLanguage !== result.uiLanguage) {
       await setMainUiLanguage(result.uiLanguage)
       rebuildAppMenu()

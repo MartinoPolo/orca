@@ -17,6 +17,7 @@ import {
   clearSshHostServerStatus,
   getSshHostServerStatus
 } from '../../ssh/host-server/ssh-host-server-status'
+import { knownSshRemoteHome } from '../../ssh/ssh-remote-home-memo'
 import { getSshTargetRegistryStore } from '../../ssh/targets/ssh-target-registry'
 import {
   connectionManager,
@@ -53,12 +54,14 @@ export function broadcastSshState(
 function withSshRemotePlatform(targetId: string, state: SshConnectionState): SshConnectionState {
   const authority = getSshProviderAuthority(targetId)
   const managedServer = state.managedServer ?? getSshHostServerStatus(targetId)
+  const remoteHomeDirectory = knownSshRemoteHome(targetId)
   return {
     ...state,
     targetId,
     providerEpoch: authority.providerEpoch,
     connectionGeneration: authority.connectionGeneration,
-    ...(managedServer ? { managedServer } : {})
+    ...(managedServer ? { managedServer } : {}),
+    ...(remoteHomeDirectory ? { remoteHomeDirectory } : {})
   }
 }
 

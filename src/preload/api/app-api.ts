@@ -89,6 +89,8 @@ export type PlatformApi = {
     arch: string
     /** Login shell or ComSpec when available. */
     shell: string
+    /** Trusted local login home from the preload environment, when available. */
+    homeDirectory?: string
     displayServer: 'wayland' | 'x11' | null
     /** Material this window was created with; secondary windows and the web client are 'off'. */
     windowMaterial: WindowMaterial

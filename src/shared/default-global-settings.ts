@@ -254,6 +254,8 @@ export function buildDefaultSettings(args: {
     geminiCliOAuthEnabled: false,
     claudeOAuthUsageEnabled: true,
     agentCmdOverrides: {},
+    piLaunchProfiles: [],
+    claudeLaunchProfiles: [],
     // Arguments hold only the user's own text; the permission flag comes from the choice below.
     agentDefaultArgs: {},
     agentLinkedWorkItemPromptTemplates: {},

@@ -11,6 +11,7 @@ import { normalizeAppIconId } from '../../../../shared/app-lifecycle/identity/ap
 import { normalizeTerminalCustomThemes } from '../../../../shared/terminal-themes/terminal-custom-themes'
 import { normalizePluginOwnedSettings } from '../../../../shared/plugins/capabilities/plugin-owned-settings'
 import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../../shared/agent-linked-work-item-prompt-templates'
+import { normalizeAgentLaunchProfiles } from '../../../../shared/agent-launch-profiles'
 import {
   hasLegacyMatchTerminalSidebar,
   syncLegacyMatchTerminalSidebar
@@ -193,6 +194,8 @@ export function normalizeLoadedGlobalSettings(
     agentLinkedWorkItemPromptTemplates: normalizeAgentLinkedWorkItemPromptTemplates(
       parsed.settings?.agentLinkedWorkItemPromptTemplates
     ),
+    piLaunchProfiles: normalizeAgentLaunchProfiles(parsed.settings?.piLaunchProfiles),
+    claudeLaunchProfiles: normalizeAgentLaunchProfiles(parsed.settings?.claudeLaunchProfiles),
     claudeAgentTeamsDefaultDisabledMigrated: true,
     sshRemoteCliControlExistingHostsMigrated: true,
     agentWorkspaceTrustExistingReposMigrated: true,

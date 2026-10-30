@@ -21,6 +21,7 @@ import {
 import { SettingsSwitchRow } from '../form-controls/SettingsFormControls'
 import { isPairedWebClientWindow } from '@/app-shell/chrome/desktop-window-chrome'
 import { AgentLaunchSettingsSection } from './launch/AgentLaunchSettingsSection'
+import { AgentLaunchProfilesSetting } from './launch/AgentLaunchProfilesSetting'
 import {
   AgentPermissionsSetting,
   type AgentPermissionsSettingProps
@@ -54,6 +55,9 @@ export function AgentsPane({
   wslCapabilitiesLoading
 }: AgentsPaneProps): React.JSX.Element {
   const t = useTranslate()
+  const updateSettingsOrThrow = useAppStore((state) => state.updateSettingsOrThrow)
+  const showsLaunchProfiles =
+    !isPairedWebClientWindow() && !settings.activeRuntimeEnvironmentId?.trim()
   return (
     <div className="space-y-8">
       <AgentLaunchSettingsSection
@@ -83,6 +87,20 @@ export function AgentsPane({
           wslDistros={wslDistros}
           wslCapabilitiesLoading={wslCapabilitiesLoading}
         />
+        {showsLaunchProfiles ? (
+          <>
+            <AgentLaunchProfilesSetting
+              agent="pi"
+              settings={settings}
+              updateSettings={updateSettingsOrThrow}
+            />
+            <AgentLaunchProfilesSetting
+              agent="claude"
+              settings={settings}
+              updateSettings={updateSettingsOrThrow}
+            />
+          </>
+        ) : null}
         <AgentStatusHooksSetting settings={settings} updateSettings={updateSettings} />
         <SettingsSwitchRow
           label={getClaudeSubagentNavigationTitle(t)}

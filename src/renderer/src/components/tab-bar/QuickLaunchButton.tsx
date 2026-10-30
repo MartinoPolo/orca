@@ -41,6 +41,8 @@ import type { NewTabAgentMenuRow } from '../../../../shared/agent-launch/picker/
 import { useNewTabAgentMenuRows, type NewTabAgentMenuModel } from './use-new-tab-agent-menu-rows'
 import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTarget'
 import { chatUnavailableLabel, rowTitle, rowLabel, rowId } from './tab-agent-row-presentation'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { AgentLaunchProfileMenuItems } from './AgentLaunchProfileMenuItems'
 
 export type QuickLaunchAgentMenuItemsProps = {
   worktreeId: string
@@ -85,7 +87,12 @@ export function useTabAgentMenuLaunch({
   onFocusChat?: (tabId: string) => void
 }) {
   const runLaunch = useCallback(
-    (row: NewTabAgentMenuRow, draft?: AgentPickerDraft, pickerEntry?: AgentPickerEntry) => {
+    (
+      row: NewTabAgentMenuRow,
+      draft?: AgentPickerDraft,
+      pickerEntry?: AgentPickerEntry,
+      agentLaunchProfile?: AgentLaunchProfile
+    ) => {
       if (
         disabled ||
         row.kind === 'chat-unavailable' ||
@@ -95,8 +102,7 @@ export function useTabAgentMenuLaunch({
         return false
       }
       const { agent } = row
-      const entry = getCatalogEntry(agent)
-      const label = entry?.label ?? agent
+      const label = agentLaunchProfile?.name ?? getCatalogEntry(agent)?.label ?? agent
       const result = launchAgentInNewTabWithOutcome({
         requestId: createNonSecureContextUuid(),
         focusIntent: captureNativeChatComposerFocusIntent(),
@@ -117,6 +123,7 @@ export function useTabAgentMenuLaunch({
               pickerEntry
             )
           : {}),
+        ...(agentLaunchProfile ? { agentLaunchProfile } : {}),
         worktreeId,
         groupId,
         // A caller's prompt (notes) owns the launch; otherwise the picker panel's typed one.
@@ -183,7 +190,20 @@ function QuickLaunchAgentMenuItemsInner(props: QuickLaunchAgentMenuItemsProps): 
   const detectionTarget = useAgentDetectionTargetForWorktree(props.worktreeId)
   const model = useNewTabAgentMenuRows(props.worktreeId, true, detectionTarget)
   const runLaunch = useTabAgentMenuLaunch(props)
-  return <ProjectedAgentMenuItems {...props} model={model} runLaunch={runLaunch} />
+  return (
+    <ProjectedAgentMenuItems
+      {...props}
+      model={model}
+      runLaunch={runLaunch}
+      profileItems={
+        <AgentLaunchProfileMenuItems
+          worktreeId={props.worktreeId}
+          disabled={props.disabled}
+          runLaunch={runLaunch}
+        />
+      }
+    />
+  )
 }
 
 export function ProjectedAgentMenuItems({
@@ -192,7 +212,8 @@ export function ProjectedAgentMenuItems({
   runLaunch,
   pickerInventory,
   onSelectPickerAgent,
-  hidePickerSearch
+  hidePickerSearch,
+  profileItems
 }: {
   disabled?: boolean
   model: NewTabAgentMenuModel
@@ -200,6 +221,8 @@ export function ProjectedAgentMenuItems({
   pickerInventory?: AgentPickerInventorySource
   onSelectPickerAgent?: (agent: AgentPickerEntry['agent']) => void
   hidePickerSearch?: boolean
+  /** Named launch profile rows, listed after the agents. */
+  profileItems?: React.ReactNode
 }): React.JSX.Element {
   const t = useTranslate()
   const desktopDefaultAgent = useAppStateValue((s) => s.settings?.defaultTuiAgent)
@@ -335,6 +358,7 @@ export function ProjectedAgentMenuItems({
           )
         })
       )}
+      {profileItems}
       <AgentSettingsMenuItem onSelect={openAgentSettings} />
     </>
   )
