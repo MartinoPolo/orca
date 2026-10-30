@@ -38,11 +38,25 @@ export function normalizeNotificationSettings(value: unknown): NotificationSetti
           : typeof candidate.customSoundPath === 'string'
             ? 'custom'
             : defaults.customSoundId
-  const rawVolume = candidate.customSoundVolume
-  const customSoundVolume =
-    typeof rawVolume === 'number' && Number.isFinite(rawVolume)
-      ? Math.min(100, Math.max(0, rawVolume))
-      : defaults.customSoundVolume
+  const normalizeVolume = (raw: unknown, fallback: number): number =>
+    typeof raw === 'number' && Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : fallback
+  const normalizeSoundId = (
+    raw: unknown,
+    fallback: NotificationSettings['customSoundId']
+  ): NotificationSettings['customSoundId'] =>
+    raw === 'system' ||
+    raw === 'custom' ||
+    raw === 'two-tone' ||
+    raw === 'bong' ||
+    raw === 'thump' ||
+    raw === 'blip' ||
+    raw === 'sonar' ||
+    raw === 'blop' ||
+    raw === 'ding' ||
+    raw === 'clack' ||
+    raw === 'beep'
+      ? raw
+      : fallback
   // Validate fields individually: spreading disk JSON can admit truthy strings and invalid paths.
   const booleanOr = (raw: unknown, fallback: boolean): boolean =>
     typeof raw === 'boolean' ? raw : fallback
@@ -56,7 +70,24 @@ export function normalizeNotificationSettings(value: unknown): NotificationSetti
       typeof candidate.customSoundPath === 'string'
         ? candidate.customSoundPath
         : defaults.customSoundPath,
-    customSoundVolume,
+    customSoundVolume: normalizeVolume(candidate.customSoundVolume, defaults.customSoundVolume),
+    needsInputSoundId: normalizeSoundId(
+      candidate.needsInputSoundId,
+      defaults.needsInputSoundId ?? 'system'
+    ),
+    needsInputSoundPath:
+      typeof candidate.needsInputSoundPath === 'string' ? candidate.needsInputSoundPath : null,
+    needsInputSoundVolume: normalizeVolume(
+      candidate.needsInputSoundVolume,
+      defaults.needsInputSoundVolume ?? 100
+    ),
+    failedSoundId: normalizeSoundId(candidate.failedSoundId, defaults.failedSoundId ?? 'system'),
+    failedSoundPath:
+      typeof candidate.failedSoundPath === 'string' ? candidate.failedSoundPath : null,
+    failedSoundVolume: normalizeVolume(
+      candidate.failedSoundVolume,
+      defaults.failedSoundVolume ?? 100
+    ),
     mutedNotificationSourceIds: normalizeMutedNotificationSourceIds(
       candidate.mutedNotificationSourceIds
     ),

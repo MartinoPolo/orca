@@ -153,7 +153,9 @@ describe('registerNotificationHandlers', () => {
     } as never)
 
     const handler = getDispatchHandler()
-    expect(await handler({}, { source: 'agent-task-complete', isActiveWorktree: true })).toEqual({
+    expect(
+      await handler({}, { source: 'agent-task-complete', priority: 4, isActiveWorktree: true })
+    ).toEqual({
       delivered: false,
       reason: 'suppressed-focus'
     })
@@ -313,7 +315,9 @@ describe('registerNotificationHandlers', () => {
 
     const handler = getDispatchHandler()
 
-    expect(await handler({}, { source: 'agent-task-complete', worktreeId: 'repo::wt1' })).toEqual({
+    expect(
+      await handler({}, { source: 'agent-task-complete', priority: 4, worktreeId: 'repo::wt1' })
+    ).toEqual({
       delivered: true
     })
     expect(await handler({}, { source: 'terminal-bell', worktreeId: 'repo::wt1' })).toEqual({
@@ -340,7 +344,7 @@ describe('registerNotificationHandlers', () => {
       readAuthorizationStatusMock.mockResolvedValue('denied')
 
       const handler = getDispatchHandler()
-      expect(await handler({}, { source: 'agent-task-complete' })).toEqual({
+      expect(await handler({}, { source: 'agent-task-complete', priority: 4 })).toEqual({
         delivered: false,
         reason: 'blocked-by-system'
       })

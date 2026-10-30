@@ -19,11 +19,9 @@ import {
 } from '../../../../shared/agent-session-attention'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
 import { applyAgentAttention, resolveAgentAttention } from '@/attention/agent-attention-policy'
-import {
-  deliverAgentAttentionNotification,
-  readAgentAttentionNotificationSound
-} from '@/attention/agent-attention-notification-delivery'
+import { deliverAgentAttentionNotification } from '@/attention/agent-attention-notification-delivery'
 import { useAppStore } from '@/store'
+import { resolveEntrySessionPriority } from '@/store/slices/agent-status/session-attention-transition'
 import { getNotificationWorkspaceLabels } from '../terminal-pane/terminal-notification-state'
 import { createStructuredAttentionSurface } from './structured-attention-surface'
 import type { StructuredTab } from './structured-agent-session-tabs'
@@ -88,7 +86,9 @@ function dispatchStructuredAttention(
     return
   }
   const row = state.agentStatusByPaneKey[paneKey]
-  const sound = readAgentAttentionNotificationSound(state.settings ?? {})
+  const priority = row ? resolveEntrySessionPriority(state, row) : 3
+  const soundCategory =
+    news.agentState === 'blocked' ? 'needs-input' : news.outcome === 'failure' ? 'failed' : 'done'
   applyAgentAttention(decision, {
     unread: state.markAgentAttentionUnread,
     requestDelivery: (request) => {
@@ -106,6 +106,8 @@ function dispatchStructuredAttention(
         {
           source: 'agent-task-complete',
           surface: 'agent-session',
+          priority,
+          soundCategory,
           // Shared phone/desktop ids let subject-based acknowledgment retire both notifications.
           notificationId: attentionKey,
           attentionKey,
@@ -127,7 +129,7 @@ function dispatchStructuredAttention(
             ? { agentLastAssistantMessage: row.lastAssistantMessage }
             : {})
         },
-        sound
+        state.settings?.notifications
       )
     }
   })

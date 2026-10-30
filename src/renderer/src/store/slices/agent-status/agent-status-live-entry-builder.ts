@@ -215,6 +215,7 @@ export function buildAgentStatusLiveEntry(
     toolName: payload.toolName,
     toolInput: payload.toolInput,
     interactivePrompt: payload.interactivePrompt,
+    requiresInput: payload.requiresInput,
     lastAssistantMessage: payload.lastAssistantMessage,
     lastAssistantMessageIsToolOutput: payload.lastAssistantMessageIsToolOutput,
     ...(lastCompletedAssistantMessage ? { lastCompletedAssistantMessage } : {}),

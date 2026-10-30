@@ -22,11 +22,20 @@ export type NotificationDispatchMockState = {
   groupsByWorktree: Record<string, TabGroup[]>
   unifiedTabsByWorktree: Record<string, Tab[]>
   tabsByWorktree: Record<string, { id: string; ptyId?: string | null }[]>
+  sessionAttentionMetadataByIdentity: Record<string, { priority: number }>
   ptyIdsByTabId: Record<string, string[]>
   suppressedPtyExitIds: Record<string, boolean>
   terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>
   browserTabsByWorktree: Record<string, unknown[]>
-  retainedAgentsByPaneKey: Record<string, { worktreeId: string }>
+  retainedAgentsByPaneKey: Record<
+    string,
+    {
+      worktreeId: string
+      entry: AgentStatusEntry
+      executionHostId?: string
+      tab?: { id: string; ptyId: string | null }
+    }
+  >
   agentLaunchConfigByPaneKey: Record<
     string,
     { launchConfig: { agentArgs: string }; identity: { agentType?: string } }
@@ -51,6 +60,11 @@ export type NotificationDispatchMockState = {
       customSoundPath?: string | null
       customSoundId?: string | null
       notifyHiddenWorkspaces?: boolean
+      needsInputSoundId?: string | null
+      needsInputSoundVolume?: number
+      failedSoundId?: string | null
+      failedSoundVolume?: number
+      customSoundVolume?: number
     }
   }
   markAgentAttentionUnread: ReturnType<typeof vi.fn>
@@ -87,6 +101,7 @@ function buildNotificationDispatchMockState(): NotificationDispatchMockState {
     groupsByWorktree: {},
     unifiedTabsByWorktree: {},
     tabsByWorktree: { 'wt-primary': [{ id: 'tab-1', ptyId: 'pty-1' }] },
+    sessionAttentionMetadataByIdentity: {},
     ptyIdsByTabId: { 'tab-1': ['pty-1'] },
     suppressedPtyExitIds: {},
     terminalLayoutsByTabId: {

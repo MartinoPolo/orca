@@ -68,6 +68,7 @@ function dispatchStructured(): unknown {
     {},
     {
       source: 'agent-task-complete',
+      priority: 4,
       surface: 'agent-session',
       worktreeId: 'repo::remote',
       paneKey: PANE,
@@ -96,7 +97,7 @@ describe('macOS Notification Center removal', () => {
   })
 
   it.each([
-    { source: 'agent-task-complete', notificationId: 'agent:turn-1' },
+    { source: 'agent-task-complete', priority: 4, notificationId: 'agent:turn-1' },
     { source: 'terminal-bell' }
   ])('posts a $source notification in its pane thread with no id', async (request) => {
     register()
@@ -156,6 +157,7 @@ describe('macOS Notification Center removal', () => {
       {},
       {
         source: 'agent-task-complete',
+        priority: 4,
         worktreeId: 'repo::wt1',
         paneKey: PANE,
         notificationId: 'agent:turn-1'

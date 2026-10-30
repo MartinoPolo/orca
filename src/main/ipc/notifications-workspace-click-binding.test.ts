@@ -79,7 +79,10 @@ describe('terminal notification clicks in repo-less workspaces', () => {
   ])('focuses the %s workspace pane without activating a repo', async (_kind, worktreeId) => {
     const webContentsSend = registerWithMainWindow()
 
-    await getDispatchHandler()({}, { source: 'agent-task-complete', worktreeId, paneKey: PANE_KEY })
+    await getDispatchHandler()(
+      {},
+      { source: 'agent-task-complete', priority: 4, worktreeId, paneKey: PANE_KEY }
+    )
     getNotificationEventHandler('click')()
 
     expect(webContentsSend).toHaveBeenCalledWith('ui:focusTerminal', {
@@ -98,7 +101,7 @@ describe('terminal notification clicks in repo-less workspaces', () => {
 
     await getDispatchHandler()(
       {},
-      { source: 'agent-task-complete', worktreeId: FLOATING_TERMINAL_WORKTREE_ID }
+      { source: 'agent-task-complete', priority: 4, worktreeId: FLOATING_TERMINAL_WORKTREE_ID }
     )
 
     expect(clickHandlerBound()).toBe(false)

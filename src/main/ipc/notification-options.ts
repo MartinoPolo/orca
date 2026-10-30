@@ -77,6 +77,9 @@ function formatAgentNotificationStatusText(
   args: NotificationDispatchRequest,
   translate: NotificationTranslator
 ): string {
+  if (args.soundCategory === 'failed') {
+    return translate('notifications.agentStatus.failed', 'failed')
+  }
   if (args.agentState === 'blocked' || args.agentState === 'waiting') {
     return translate('notifications.agentStatus.needsInput', 'needs input')
   }
@@ -180,7 +183,9 @@ function buildAgentTaskCompleteFallbackNotificationOptions(
 } {
   return {
     title: fillNotificationPlaceholders(
-      translate('notifications.taskComplete.title', 'Task complete in {{worktree}}'),
+      args.soundCategory === 'failed'
+        ? translate('notifications.taskFailed.title', 'Task failed in {{worktree}}')
+        : translate('notifications.taskComplete.title', 'Task complete in {{worktree}}'),
       { worktree: args.worktreeLabel ?? translateWorkspace(translate) }
     ),
     body: buildAgentTaskCompleteFallbackBody(args, translate)

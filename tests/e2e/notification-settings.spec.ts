@@ -2,6 +2,14 @@ import { test, expect } from './helpers/orca-app'
 import { waitForSessionReady } from './helpers/store'
 import type { GlobalSettings } from '../../src/shared/global-settings-types'
 
+test.use({
+  orcaAppExtraArgs: [
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--disable-background-timer-throttling'
+  ]
+})
+
 async function getSettings(
   page: Parameters<typeof waitForSessionReady>[0]
 ): Promise<GlobalSettings> {
@@ -29,8 +37,15 @@ async function openNotificationSettings(
 }
 
 test.describe('Notification settings', () => {
-  test.beforeEach(async ({ orcaPage }) => {
+  test.beforeEach(async ({ electronApp, orcaPage }) => {
     await waitForSessionReady(orcaPage)
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0]
+      if (!window) {
+        throw new Error('Notification settings window is unavailable')
+      }
+      window.webContents.setBackgroundThrottling(false)
+    })
   })
 
   test('can be toggled from settings and disables child controls', async ({ orcaPage }) => {

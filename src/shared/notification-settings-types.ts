@@ -3,6 +3,8 @@ import type { AgentStatusState, AgentType } from './agent-status-types'
 import type { AgentTurnOutcome } from './agent-turn-outcome'
 import type { NotificationSourceId } from './notification-source'
 
+export type NotificationSoundCategory = 'done' | 'needs-input' | 'failed'
+
 export type NotificationSettings = {
   enabled: boolean
   agentTaskComplete: boolean
@@ -26,6 +28,12 @@ export type NotificationSettings = {
   mutedNotificationSourceIds: NotificationSourceId[]
   /** Off silences every notification from a workspace the sidebar's Filters switches hide. Local only. */
   notifyHiddenWorkspaces: boolean
+  needsInputSoundId?: NotificationSettings['customSoundId']
+  needsInputSoundPath?: string | null
+  needsInputSoundVolume?: number
+  failedSoundId?: NotificationSettings['customSoundId']
+  failedSoundPath?: string | null
+  failedSoundVolume?: number
 }
 
 export type NotificationEventSource = 'agent-task-complete' | 'terminal-bell' | 'test'
@@ -36,6 +44,11 @@ export type StructuredNotificationRead = StructuredAttentionRead & {
 
 export type NotificationDispatchRequest = {
   source: NotificationEventSource
+  /** Session priority resolved from the existing host/workspace identity. Absent means P3. */
+  priority?: number
+  soundCategory?: NotificationSoundCategory
+  /** Local presentation alert, not a new agent completion for paired mobile clients. */
+  desktopOnly?: boolean
   notificationId?: string
   /** Why: useful for fast native failures, but macOS can still drop notifications after 'show'. */
   requireDisplayConfirmation?: boolean
@@ -78,6 +91,7 @@ export type NotificationDispatchResult = {
     | 'host-muted'
     | 'suppressed-focus'
     | 'cooldown'
+    | 'priority'
     | 'not-supported'
     | 'not-displayed'
     | 'blocked-by-system'

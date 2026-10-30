@@ -25,7 +25,16 @@ export function deliverNativeNotification(
   notificationOptions: ReturnType<typeof buildNotificationOptions>,
   settings: NotificationSettings
 ): NotificationDispatchResult | Promise<NotificationDispatchResult> {
-  if (getEffectiveNotificationSoundId(settings) !== 'system') {
+  const selectedSoundId =
+    args.soundCategory === 'needs-input'
+      ? settings.needsInputSoundId
+      : args.soundCategory === 'failed'
+        ? settings.failedSoundId
+        : getEffectiveNotificationSoundId(settings)
+  if (
+    selectedSoundId !== 'system' ||
+    (args.source === 'agent-task-complete' && args.soundCategory !== undefined)
+  ) {
     notificationOptions.silent = true
   }
   const notification = new Notification({

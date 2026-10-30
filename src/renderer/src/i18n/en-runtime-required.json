@@ -638,6 +638,9 @@
           "detectedServers_one": "{{detected}} detected · {{count}} server",
           "detectedServers_other": "{{detected}} detected · {{count}} servers"
         },
+        "NotificationsPane": {
+          "88686e6ca8": "Notification Sound"
+        },
         "OrchestrationPane": {
           "chatErrorEscalationKeywordChat": "chat",
           "chatErrorEscalationKeywordError": "error",

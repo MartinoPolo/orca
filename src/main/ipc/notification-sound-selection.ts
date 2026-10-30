@@ -8,7 +8,10 @@ import dingSoundPath from '../../../resources/notification-sounds/ding.mp3?asset
 import sonarSoundPath from '../../../resources/notification-sounds/sonar.mp3?asset'
 import thumpSoundPath from '../../../resources/notification-sounds/thump.mp3?asset'
 import twoToneSoundPath from '../../../resources/notification-sounds/two-tone.mp3?asset'
-import type { NotificationSettings } from '../../shared/notification-settings-types'
+import type {
+  NotificationSettings,
+  NotificationSoundCategory
+} from '../../shared/notification-settings-types'
 
 export const NOTIFICATION_SOUND_MIME_BY_EXTENSION: ReadonlyMap<string, string> = new Map([
   ['.ogg', 'audio/ogg'],
@@ -37,22 +40,38 @@ export function getEffectiveNotificationSoundId(
   return settings.customSoundId ?? (settings.customSoundPath ? 'custom' : 'system')
 }
 
-export function getSelectedNotificationSoundPath(settings: NotificationSettings): {
+export function getSelectedNotificationSoundPath(
+  settings: NotificationSettings,
+  category?: NotificationSoundCategory
+): {
   path: string | null
   reason?: 'missing-path' | 'invalid-path' | 'unsupported-type'
 } {
-  const customSoundId = getEffectiveNotificationSoundId(settings)
+  const soundId =
+    category === 'needs-input'
+      ? settings.needsInputSoundId
+      : category === 'failed'
+        ? settings.failedSoundId
+        : settings.customSoundId
+  const soundPath =
+    category === 'needs-input'
+      ? settings.needsInputSoundPath
+      : category === 'failed'
+        ? settings.failedSoundPath
+        : settings.customSoundPath
+  const customSoundId = soundId ?? (soundPath ? 'custom' : 'system')
   if (customSoundId === 'system') {
-    return { path: null, reason: 'missing-path' }
+    // Agent events still need a sound when focused or below banner priority.
+    return category ? { path: twoToneSoundPath } : { path: null, reason: 'missing-path' }
   }
   if (customSoundId !== 'custom') {
     const builtInPath = BUILT_IN_NOTIFICATION_SOUNDS.get(customSoundId)
     return builtInPath ? { path: builtInPath } : { path: null, reason: 'missing-path' }
   }
-  if (!settings.customSoundPath) {
+  if (!soundPath) {
     return { path: null, reason: 'missing-path' }
   }
-  const normalizedPath = normalize(settings.customSoundPath)
+  const normalizedPath = normalize(soundPath)
   if (!isAbsolute(normalizedPath)) {
     return { path: null, reason: 'invalid-path' }
   }

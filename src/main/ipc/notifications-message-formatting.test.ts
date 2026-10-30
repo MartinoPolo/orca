@@ -49,6 +49,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'main',
           repoLabel: 'jinjing-work',
@@ -84,6 +85,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'claude',
@@ -98,6 +100,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'claude',
@@ -137,6 +140,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'feat/notis',
           agentType: 'builder\nagent',

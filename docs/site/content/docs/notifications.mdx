@@ -6,7 +6,7 @@ Orca runs agents, not just terminals, so it knows when an agent actually finishe
 
 ## Agent-finished pings
 
-When an agent transitions from working to idle, Orca fires a notification — system notification, sound, and a chip on the worktree.
+An agent's new done, input-needed, or blocked transition can play its selected sound at any session priority, even when Orca is focused or the OS banner is suppressed. Desktop agent banners appear only for P4/P5 sessions; unassigned sessions default to P3. Existing in-app unread attention and mobile delivery do not depend on this banner threshold.
 
 ## Persistent bell
 
@@ -20,12 +20,8 @@ Right-click a notification to mark unread — useful when you've triaged somethi
 
 ## Tuning
 
-Turn off specific categories (system, sound, chip-only) under [Settings → Notifications](/docs/settings).
+Use [Settings → Notifications](/docs/settings) to enable or disable desktop notifications and agent or terminal-bell sources. Focus suppression applies to banners, not sounds.
 
 ## Custom sounds
 
-Pick a custom desktop notification sound per category under [Settings → Notifications](/docs/settings) — point at any audio file on disk, or pick from Orca's built-in set. Useful when you want agent-finished pings to stand out from system mail and Slack.
-
-Supported formats: MP3, WAV, OGG, M4A, AAC, FLAC. One file applies to all delivered desktop notifications.
-
-When you use a custom sound, set its playback volume from the same settings pane.
+Choose a sound and volume independently for Done, Needs input, and Failed / blocked under [Settings → Notifications](/docs/settings). Select a built-in sound or an audio file on disk (MP3, WAV, OGG, M4A, AAC, FLAC). The Done selection also applies to terminal bells. For agent alerts, System Default plays Orca's built-in Two Tone so it can sound even when no banner appears. Test notifications and terminal bells retain the platform's OS-default sound behavior.

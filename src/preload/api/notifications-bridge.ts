@@ -7,7 +7,8 @@ import type {
   NotificationSoundDataResult,
   NotificationSoundPathResult,
   NotificationSoundResult,
-  StructuredNotificationRead
+  StructuredNotificationRead,
+  NotificationSoundCategory
 } from '../../shared/notification-settings-types'
 import type { AgentSessionExecutionLocation } from '../../shared/agent-session-record'
 import type { PreloadApi } from '../api-types'
@@ -52,10 +53,12 @@ export const notificationsApi = {
   playSound: async (options?: {
     force?: boolean
     volume?: number
+    category?: NotificationSoundCategory
   }): Promise<NotificationSoundResult> => {
     try {
       const resolved = (await ipcRenderer.invoke(
-        'notifications:resolveSoundPath'
+        'notifications:resolveSoundPath',
+        options?.category
       )) as NotificationSoundPathResult
       if (!resolved.ok) {
         if (cachedNotificationSound) {
@@ -66,8 +69,10 @@ export const notificationsApi = {
 
       let entry = cachedNotificationSound
       if (!entry || entry.path !== resolved.path) {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: IPC handler returns NotificationSoundDataResult; Electron invoke is untyped.
         const sound = (await ipcRenderer.invoke(
-          'notifications:loadSound'
+          'notifications:loadSound',
+          options?.category
         )) as NotificationSoundDataResult
         if (!sound.ok) {
           disposeCachedNotificationSound()
