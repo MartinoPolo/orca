@@ -83,6 +83,15 @@ export function agentPickerBlankTerminalMatches(rawQuery: string): boolean {
   )
 }
 
+/** Whether free text such as a launch profile's name or command matches the picker query. */
+export function agentPickerTextMatches(rawQuery: string, candidates: readonly string[]): boolean {
+  const query = getAgentPickerSearchQuery(rawQuery)
+  if (query === null) {
+    return false
+  }
+  return !query || candidates.some((candidate) => scoreCandidate(query, candidate, 0) !== NO_MATCH)
+}
+
 function scoreAgent(agent: AgentCatalogEntry, query: string): number {
   return Math.min(
     scoreCandidate(query, agent.label, 0),

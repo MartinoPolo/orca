@@ -8,6 +8,8 @@ import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { worktreeOwnerHostIds } from '@/lib/worktree-runtime-owner-index'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 import { useAppStore } from '@/store'
+import { getComposerAgentProfiles } from '@/lib/composer-agent-profile-target'
+import { resolveComposerAgentProfileHostScope } from './composer-agent-profile-scope'
 
 export function buildComposerCardProps(state: ComposerModel) {
   const attachmentTarget = resolveComposerAttachmentTarget(state)
@@ -234,6 +236,11 @@ export function buildComposerCardProps(state: ComposerModel) {
     onTuiAgentChange: setTuiAgent,
     detectedAgentIds: isProjectGroupTarget ? folderDetectedAgentIds : detectedAgentIds,
     agentRows: resolveComposerAgentRows(state),
+    agentProfileOptions: getComposerAgentProfiles(
+      state.settings,
+      resolveComposerAgentProfileHostScope(state, useAppStore.getState()),
+      state.disabledTuiAgents
+    ),
     onOpenAgentSettings: handleOpenAgentSettings,
     advancedOpen,
     onToggleAdvanced: () => setAdvancedOpen((current) => !current),

@@ -12,10 +12,12 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import AgentCombobox from '@/components/agent/AgentCombobox'
 import { AGENT_CATALOG } from '@/lib/agent-catalog'
 import NewWorkspaceComposerModal from './NewWorkspaceComposerModal'
+import type { AgentProfileSelection } from '../../../shared/agent-launch-profile-agents'
 
 const mocks = vi.hoisted(() => ({
   submit: vi.fn(),
   host: 'local',
+  profiles: [] as AgentProfileSelection[],
   availability: vi.fn<() => HostStructuredAgentAvailability>()
 }))
 vi.mock('@/runtime/use-host-structured-agent-availability', () => ({
@@ -36,6 +38,7 @@ vi.mock('@/hooks/useComposerState', () => ({
       projectOptions: [],
       selectedRepoIsGit: true,
       detectedAgentIds: new Set(['claude', 'opencode']),
+      agentProfileOptions: mocks.profiles,
       agentRows: {
         target: { workspace: { kind: 'git-worktree', executionHostId: mocks.host } },
         detectionTarget: { kind: 'local' }
@@ -56,6 +59,7 @@ vi.mock('@/components/NewWorkspaceComposerCard', () => ({
         onValueChange={p.onQuickAgentChange}
         allowBlankTerminal
         surfaceRows={p.agentSurfaceRows}
+        agentProfiles={p.agentProfiles}
       />
       <button onClick={p.onCreate} disabled={p.createDisabled}>
         Create
@@ -71,6 +75,7 @@ const initial = useAppStore.getState()
 beforeEach(() => {
   mocks.submit.mockReset()
   mocks.host = 'local'
+  mocks.profiles = []
   mocks.availability.mockReturnValue({ state: 'pending' })
   setLocalRuntimeCapabilitiesForTests(RUNTIME_CAPABILITIES)
   useAppStore.setState({
@@ -156,4 +161,30 @@ it('submits the untouched refusal-aware OpenCode CLI instead of the registered c
     route: 'terminal-tui'
   })
   expect(mocks.submit.mock.calls[0][1].launchChoice.requestedSurface).toBeUndefined()
+})
+
+it('submits a picked launch profile as a terminal launch and drops it on an agent pick', async () => {
+  const workProfile: AgentProfileSelection = {
+    agent: 'claude',
+    profile: { id: 'work', name: 'ccw', command: 'ccw', agentDirectory: '/accounts/claude-work' }
+  }
+  mocks.profiles = [workProfile]
+  render(<NewWorkspaceComposerModal />, { wrapper: TooltipProvider })
+  // The picker stays closed while the default chat pick is unresolved.
+  fireEvent.click(screen.getByText('Choose CLI'))
+  fireEvent.click(screen.getByRole('combobox'))
+  fireEvent.click(screen.getByRole('option', { name: 'ccw' }))
+  expect(screen.getByRole('combobox').textContent).toBe('ccw')
+  // A profile starts its own command in a terminal, so chat discovery does not gate it.
+  act(() => setLocalRuntimeCapabilitiesForTests(null))
+  expect(create().hasAttribute('disabled')).toBe(false)
+  await submit()
+  expect(mocks.submit).toHaveBeenLastCalledWith(
+    'claude',
+    expect.objectContaining({ agentProfile: workProfile })
+  )
+  act(() => setLocalRuntimeCapabilitiesForTests(RUNTIME_CAPABILITIES))
+  fireEvent.click(screen.getByText('Choose CLI'))
+  await submit()
+  expect(mocks.submit.mock.calls.at(-1)?.[1].agentProfile).toBeUndefined()
 })

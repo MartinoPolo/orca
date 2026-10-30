@@ -17,6 +17,50 @@ function renderPicker(element: ReactElement) {
 afterEach(cleanup)
 
 describe('AgentCombobox', () => {
+  it('offers searchable named profiles after the agents and shows the picked profile', () => {
+    const piSelection = {
+      agent: 'pi' as const,
+      profile: { id: 'work', name: 'piw', command: '/tools/piw', agentDirectory: '/accounts/work' }
+    }
+    const claudeSelection = {
+      agent: 'claude' as const,
+      profile: { id: 'work', name: 'ccw', command: 'ccw', agentDirectory: '/accounts/claude-work' }
+    }
+    const agents = AGENT_CATALOG.filter((entry) => entry.id === 'pi' || entry.id === 'claude')
+    const onSelect = vi.fn()
+    const onValueChange = vi.fn()
+    const picker = (selected: typeof claudeSelection | null) => (
+      <AgentCombobox
+        agents={agents}
+        value={selected?.agent ?? 'pi'}
+        onValueChange={onValueChange}
+        agentProfiles={{ options: [piSelection, claudeSelection], selected, onSelect }}
+      />
+    )
+    const { rerender } = renderPicker(picker(null))
+    fireEvent.click(screen.getByRole('combobox'))
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Claude',
+      'Pi',
+      'piw',
+      'ccw'
+    ])
+    fireEvent.change(screen.getByPlaceholderText('Search agents...'), {
+      target: { value: '/tools' }
+    })
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['piw'])
+    fireEvent.change(screen.getByPlaceholderText('Search agents...'), { target: { value: 'ccw' } })
+    fireEvent.click(screen.getByRole('option', { name: 'ccw' }))
+    expect(onSelect).toHaveBeenCalledWith(claudeSelection)
+    expect(onValueChange).not.toHaveBeenCalled()
+
+    rerender(picker(claudeSelection))
+    expect(screen.getByRole('combobox').textContent).toBe('ccw')
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('option', { name: 'Pi' }))
+    expect(onValueChange).toHaveBeenCalledWith('pi')
+  })
+
   it.each(['codex', null] as const)(
     'clears %s without opening the picker or changing defaults',
     (value) => {

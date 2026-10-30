@@ -71,3 +71,23 @@ export function buildAgentLaunchProfileEnv(
 ): Record<string, string> {
   return AGENT_LAUNCH_PROFILE_AGENTS[agent].buildEnvironment(profile)
 }
+
+/** Command overrides with a selected profile's own command for its agent. */
+export function withAgentLaunchProfileCommand(
+  overrides: Partial<Record<TuiAgent, string>> | undefined,
+  selection: AgentProfileSelection | undefined
+): Partial<Record<TuiAgent, string>> {
+  return selection
+    ? { ...overrides, [selection.agent]: selection.profile.command }
+    : (overrides ?? {})
+}
+
+/** Launch environment with the selected profile's account root taking precedence. */
+export function withAgentLaunchProfileEnv(
+  environment: Record<string, string> | undefined,
+  selection: AgentProfileSelection | undefined
+): Record<string, string> | undefined {
+  return selection
+    ? { ...environment, ...buildAgentLaunchProfileEnv(selection.agent, selection.profile) }
+    : environment
+}

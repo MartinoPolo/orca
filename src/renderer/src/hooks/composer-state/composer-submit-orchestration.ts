@@ -136,11 +136,23 @@ export function useComposerSubmitOrchestration(
     requiresExplicitSetupChoice: target.derivedComposerState.requiresExplicitSetupChoice,
     resolvePendingSmartGitHubSubmit:
       external.githubSubmitResolution.resolvePendingSmartGitHubSubmit,
+    ephemeralVmsEnabled: target.runtimeTargetSelection.ephemeralVmsEnabled,
+    folderTargetRuntimeEnvironmentId:
+      target.runtimeTargetSelection.folderTargetRuntimeEnvironmentId,
+    selectedEphemeralVmRecipeId: target.runtimeTargetSelection.selectedEphemeralVmRecipeId,
+    selectedProjectGroup: target.initialTargetState.selectedProjectGroup,
     selectedRepo: target.runtimeTargetSelection.selectedRepo,
+    selectedRepoAgentLaunchFact: target.runtimeTargetSelection.selectedRepoAgentLaunchFact,
+    selectedRepoExecutionHostId: target.runtimeTargetSelection.selectedRepoExecutionHostId,
+    selectedRepoIsRemote: target.runtimeTargetSelection.selectedRepoIsRemote,
     selectedRepoRequiresConnection: target.runtimeTargetSelection.selectedRepoRequiresConnection,
+    selectedRepoRuntimeEnvironmentId:
+      target.runtimeTargetSelection.selectedRepoRuntimeEnvironmentId,
+    selectedRepoStartupShell: target.runtimeTargetSelection.selectedRepoStartupShell,
     selectedWorkspaceTarget: target.runtimeTargetSelection.selectedWorkspaceTarget,
     setCreateError: target.asyncComposerState.setCreateError,
     setCreating: target.asyncComposerState.setCreating,
+    settings: target.composerTargetStore.settings,
     setupDecision: target.asyncComposerState.setupDecision,
     showProjectRequiredError: source.branchStartPointActions.showProjectRequiredError,
     sourceIntentBlocksCreate: target.workspaceIdentityState.sourceIntentBlocksCreate,

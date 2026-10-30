@@ -1,5 +1,11 @@
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import {
+  withAgentLaunchProfileCommand,
+  withAgentLaunchProfileEnv,
+  type AgentProfileSelection
+} from '../../../../shared/agent-launch-profile-agents'
+import { assertComposerProfileAgent } from '@/lib/composer-agent-profile-target'
 import type { AgentStartupShell } from '../../../../shared/tui-agent-startup-shell'
 import type { AgentStartedTelemetry } from '@/lib/worktree-startup-payload'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
@@ -17,6 +23,7 @@ import {
 
 export type QuickComposerStartupInput = {
   agent: TuiAgent | null
+  agentProfile?: AgentProfileSelection
   prompt: string
   draftPrompt: string | null | undefined
   settings: GlobalSettings | null | undefined
@@ -34,20 +41,27 @@ export type QuickComposerStartup = {
 }
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
-  const { agent, draftPrompt, prompt, settings } = input
+  const { agent, agentProfile, draftPrompt, prompt, settings } = input
+  assertComposerProfileAgent(agentProfile, agent)
+  const commandOverrides = withAgentLaunchProfileCommand(settings?.agentCmdOverrides, agentProfile)
+  const resolveAgentEnv = (launchAgent: TuiAgent): Record<string, string> | undefined =>
+    withAgentLaunchProfileEnv(
+      resolveTuiAgentLaunchEnv(
+        launchAgent,
+        settings,
+        requireExecutionHostPlatform(input.launchHost)
+      ),
+      agentProfile
+    )
   const draftLaunchPlan =
     agent === null || !draftPrompt
       ? null
       : buildAgentDraftLaunchPlan({
           agent,
           draft: draftPrompt,
-          cmdOverrides: settings?.agentCmdOverrides ?? {},
+          cmdOverrides: commandOverrides,
           agentArgs: resolveTuiAgentLaunchArgs(agent, settings),
-          agentEnv: resolveTuiAgentLaunchEnv(
-            agent,
-            settings,
-            requireExecutionHostPlatform(input.launchHost)
-          ),
+          agentEnv: resolveAgentEnv(agent),
           platform: requireExecutionHostPlatform(input.launchHost),
           shell: input.shell ?? undefined,
           isRemote: input.isRemote
@@ -69,13 +83,9 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
     startupPlan = buildAgentStartupPlan({
       agent,
       prompt,
-      cmdOverrides: settings?.agentCmdOverrides ?? {},
+      cmdOverrides: commandOverrides,
       agentArgs: resolveTuiAgentLaunchArgs(agent, settings),
-      agentEnv: resolveTuiAgentLaunchEnv(
-        agent,
-        settings,
-        requireExecutionHostPlatform(input.launchHost)
-      ),
+      agentEnv: resolveAgentEnv(agent),
       platform: requireExecutionHostPlatform(input.launchHost),
       shell: input.shell ?? undefined,
       isRemote: input.isRemote,

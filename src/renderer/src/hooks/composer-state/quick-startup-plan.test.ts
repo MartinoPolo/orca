@@ -5,6 +5,63 @@ import { buildQuickComposerStartup } from './quick-startup-plan'
 const LINKED_ISSUE_URL = 'https://github.com/stablyai/orca/issues/42'
 
 describe('buildQuickComposerStartup linked work-item drafts', () => {
+  it('uses the selected Pi command and account for a linked draft, without changing default Pi', () => {
+    const input = {
+      agent: 'pi' as const,
+      prompt: '',
+      draftPrompt: '/skill:mpx-execute https://example.com/issue',
+      settings: undefined,
+      launchHost: { kind: 'known', platform: 'linux', hostKind: 'local' } as const,
+      shell: undefined,
+      isRemote: false,
+      telemetrySource: 'sidebar' as const
+    }
+    const agentProfile = {
+      agent: 'pi',
+      profile: { id: 'work', name: 'piw', command: '/tools/piw', agentDirectory: '/accounts/work' }
+    } as const
+    const named = buildQuickComposerStartup({ ...input, agentProfile })
+    expect(named.startupPlan?.launchCommand).toContain('/tools/piw')
+    expect(named.backendStartup?.command).toContain('/tools/piw')
+    expect(named.backendStartup?.env).toMatchObject({
+      PI_CODING_AGENT_DIR: '/accounts/work',
+      ORCA_PI_SOURCE_AGENT_DIR: '/accounts/work',
+      ORCA_PI_PREFILL: input.draftPrompt
+    })
+    const plain = buildQuickComposerStartup({
+      ...input,
+      draftPrompt: null,
+      prompt: 'start here',
+      agentProfile
+    })
+    expect(plain.startupPlan?.launchConfig.agentCommand).toContain('/tools/piw')
+    expect(plain.startupPlan?.launchConfig.agentEnv).toMatchObject({
+      PI_CODING_AGENT_DIR: '/accounts/work'
+    })
+    const builtIn = buildQuickComposerStartup(input)
+    expect(builtIn.startupPlan?.launchCommand).not.toContain('/tools/piw')
+    expect(builtIn.backendStartup?.env?.PI_CODING_AGENT_DIR).toBeUndefined()
+  })
+
+  it('refuses a profile whose agent differs from the launched agent', () => {
+    expect(() =>
+      buildQuickComposerStartup({
+        agent: 'claude',
+        agentProfile: {
+          agent: 'pi',
+          profile: { id: 'work', name: 'piw', command: 'piw', agentDirectory: '/accounts/work' }
+        },
+        prompt: '',
+        draftPrompt: null,
+        settings: undefined,
+        launchHost: { kind: 'known', platform: 'linux', hostKind: 'local' },
+        shell: undefined,
+        isRemote: false,
+        telemetrySource: 'sidebar'
+      })
+    ).toThrow('no longer available')
+  })
+
   it.each([
     ['local', false, 'local'],
     ['remote', true, 'ssh']

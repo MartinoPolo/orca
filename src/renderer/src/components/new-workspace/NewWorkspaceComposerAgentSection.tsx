@@ -12,6 +12,7 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   NewWorkspaceComposerCardProps,
   | 'quickAgent'
   | 'agentSurfaceRows'
+  | 'agentProfiles'
   | 'onQuickAgentChange'
   | 'agentRows'
   | 'quickSetupOnly'
@@ -33,6 +34,7 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
 export function NewWorkspaceComposerAgentSection({
   quickAgent,
   agentSurfaceRows,
+  agentProfiles,
   onQuickAgentChange,
   quickSetupOnly = false,
   onQuickSetupOnlySelect,
@@ -91,7 +93,11 @@ export function NewWorkspaceComposerAgentSection({
             </TooltipContent>
           </Tooltip>
         </div>
-        <AgentCombobox {...comboboxProps} surfaceRows={agentSurfaceRows} />
+        <AgentCombobox
+          {...comboboxProps}
+          surfaceRows={agentSurfaceRows}
+          agentProfiles={agentProfiles}
+        />
       </div>
 
       <div className="!mb-2">

@@ -1,5 +1,6 @@
 import type { ComposerModel } from './composer-model'
 import type { ComposerAgentRows } from './composer-agent-rows-target'
+import type { AgentProfileSelection } from '../../../../shared/agent-launch-profile-agents'
 
 export type ComposerCardSourceProps = Pick<
   ComposerModel,
@@ -59,6 +60,8 @@ export type ComposerCardSourceProps = Pick<
 
 export type ComposerCardActionProps = {
   agentRows?: ComposerAgentRows | null
+  /** Launch profiles whose account roots resolve on the target's host. */
+  agentProfileOptions: readonly AgentProfileSelection[]
   selectedRepo?: ComposerModel['selectedRepo'] | null
   onRepoChange: ComposerModel['handleRepoChange']
   onProjectChange: ComposerModel['handleProjectChange']

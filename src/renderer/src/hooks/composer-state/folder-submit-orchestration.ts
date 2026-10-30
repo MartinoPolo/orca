@@ -31,6 +31,11 @@ import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
+import {
+  withAgentLaunchProfileCommand,
+  withAgentLaunchProfileEnv
+} from '../../../../shared/agent-launch-profile-agents'
+import { assertComposerProfileAgent } from '@/lib/composer-agent-profile-target'
 import { useAppStore } from '@/store'
 import { getFolderWorkspaceAgentLaunchFact } from '@/components/sidebar/folder-workspace-agent-startup'
 import { submitFolderWorkspaceCreate } from '@/components/sidebar/folder-workspace-composer-submit'
@@ -100,6 +105,8 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           requestedAgent && isTuiAgentEnabled(requestedAgent, disabledTuiAgents)
             ? requestedAgent
             : null
+        // A profile pick never degrades to a workspace without its agent.
+        assertComposerProfileAgent(options?.agentProfile, agent)
         if (isSubmissionCancelled()) {
           return
         }
@@ -120,14 +127,20 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           quickAgent: agent,
           launchChoice: options?.launchChoice,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
-          agentCmdOverrides: settings?.agentCmdOverrides,
+          agentCmdOverrides: withAgentLaunchProfileCommand(
+            settings?.agentCmdOverrides,
+            options?.agentProfile
+          ),
           linkedWorkItemPromptTemplate,
           agentArgs: agent ? resolveTuiAgentLaunchArgs(agent, settings) : undefined,
           agentEnv: agent
-            ? resolveTuiAgentLaunchEnv(
-                agent,
-                settings,
-                launchHost.kind === 'known' ? launchHost.platform : null
+            ? withAgentLaunchProfileEnv(
+                resolveTuiAgentLaunchEnv(
+                  agent,
+                  settings,
+                  launchHost.kind === 'known' ? launchHost.platform : null
+                ),
+                options?.agentProfile
               )
             : undefined,
           terminalWindowsShell: settings?.terminalWindowsShell,

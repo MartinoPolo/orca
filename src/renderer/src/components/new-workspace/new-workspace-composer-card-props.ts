@@ -1,4 +1,5 @@
 import type { AgentComboboxSurfaceRows } from '@/components/agent/agent-combobox-surface-items'
+import type { AgentComboboxProfiles } from '@/components/agent/agent-combobox-profile-items'
 import type { ComposerAgentRows } from '@/hooks/composer-state/composer-agent-rows-target'
 import type RepoCombobox from '@/components/repo/RepoCombobox'
 import type { NewWorkspaceProjectOption } from '@/lib/new-workspace-project-options'
@@ -40,6 +41,7 @@ export type NewWorkspaceComposerCardProps = {
   nameInputRef?: React.RefObject<HTMLInputElement | null>
   quickAgent: TuiAgent | null
   agentSurfaceRows?: AgentComboboxSurfaceRows
+  agentProfiles?: AgentComboboxProfiles
   onQuickAgentChange: (
     agent: TuiAgent | null,
     surface?: AgentComboboxSurfaceRows['surface']

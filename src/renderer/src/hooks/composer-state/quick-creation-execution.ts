@@ -44,6 +44,7 @@ import { translate } from '@/i18n/i18n'
 import { resolveQuickCreateLinkedWorkItemPrompt } from '@/lib/linked-work-item-context'
 import { buildQuickComposerStartup } from './quick-startup-plan'
 import { buildQuickCreationRequest, type QuickSubmitOptions } from './quick-creation-request'
+import { buildQuickEphemeralVmRecipe } from './quick-ephemeral-vm-recipe'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
 import { resolveAgentSessionLaunchRoute } from '@/lib/agent-session-launch-plan'
 
@@ -137,6 +138,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         telemetry: quickTelemetry
       } = buildQuickComposerStartup({
         agent,
+        agentProfile: options?.agentProfile,
         prompt: quickPrompt,
         draftPrompt: quickDraftPrompt,
         settings,
@@ -164,21 +166,13 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         )
       }
 
-      let ephemeralVmRecipe: WorktreeCreationRequest['ephemeralVmRecipe']
-
       const activeEphemeralVmRecipeId = ephemeralVmsEnabled ? selectedEphemeralVmRecipeId : null
-
-      if (activeEphemeralVmRecipeId && selectedWorkspaceTarget.status === 'ready') {
-        const selectedRecipe = ephemeralVmRecipes.find(
-          (recipe) => recipe.id === activeEphemeralVmRecipeId
-        )
-        ephemeralVmRecipe = {
-          sourceRepoId: repoId,
-          recipeId: activeEphemeralVmRecipeId,
-          projectId: selectedWorkspaceTarget.target.projectId,
-          ...(selectedRecipe?.checkoutMode ? { checkoutMode: selectedRecipe.checkoutMode } : {})
-        }
-      }
+      const ephemeralVmRecipe = buildQuickEphemeralVmRecipe(
+        repoId,
+        activeEphemeralVmRecipeId,
+        ephemeralVmRecipes,
+        selectedWorkspaceTarget
+      )
 
       const promptDelivery = quickDraftPrompt ? 'draft' : 'auto-submit'
       // Why: the verdict is persisted on the request as data and re-entered once the worktree exists.

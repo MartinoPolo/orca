@@ -12,6 +12,12 @@ import {
 } from '@/lib/workspace-create-error-format'
 import { toast } from 'sonner'
 import { scheduleComposerCreateHandoff } from '@/lib/composer-create-handoff'
+import { resolveQuickSubmitProfileOptions } from './quick-submit-profile-options'
+import {
+  resolveComposerAgentProfileHostScope,
+  type ComposerProfileScopeState
+} from './composer-agent-profile-scope'
+import { assertPendingCreationAccountMatches } from './pending-account-startup'
 
 import type { ComposerModel } from './composer-model'
 
@@ -42,7 +48,20 @@ type QuickSubmitActionInput = Pick<
   | 'submitFolderTarget'
   | 'taskSourceContext'
   | 'telemetrySource'
->
+  | 'selectedRepoIsRemote'
+  | 'selectedRepoStartupShell'
+  | 'settings'
+> &
+  ComposerProfileScopeState
+
+function reportCreateError(
+  error: unknown,
+  setCreateError: QuickSubmitActionInput['setCreateError']
+): void {
+  const formattedError = formatWorkspaceCreateError(error)
+  setCreateError(formattedError)
+  toast.error(getWorkspaceCreateErrorToastMessage(formattedError))
+}
 
 export function useQuickSubmitAction(input: QuickSubmitActionInput) {
   const {
@@ -70,11 +89,50 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
     sparseError,
     submitFolderTarget,
     taskSourceContext,
-    telemetrySource
+    telemetrySource,
+    ephemeralVmsEnabled,
+    folderTargetRuntimeEnvironmentId,
+    selectedEphemeralVmRecipeId,
+    selectedProjectGroup,
+    selectedRepoAgentLaunchFact,
+    selectedRepoExecutionHostId,
+    selectedRepoRuntimeEnvironmentId,
+    selectedRepoIsRemote,
+    selectedRepoStartupShell,
+    settings
   } = input
 
   const submitQuick = useCallback(
-    async (requestedAgent: TuiAgent | null, options?: QuickSubmitOptions): Promise<void> => {
+    async (
+      requestedAgent: TuiAgent | null,
+      requestedOptions?: QuickSubmitOptions
+    ): Promise<void> => {
+      const profileScope = resolveComposerAgentProfileHostScope(
+        {
+          ephemeralVmsEnabled,
+          folderTargetRuntimeEnvironmentId,
+          isProjectGroupTarget,
+          selectedEphemeralVmRecipeId,
+          selectedProjectGroup,
+          selectedRepo,
+          selectedRepoAgentLaunchFact,
+          selectedRepoExecutionHostId,
+          selectedRepoRuntimeEnvironmentId,
+          selectedWorkspaceTarget
+        },
+        useAppStore.getState()
+      )
+      let options: QuickSubmitOptions | undefined
+      try {
+        options = resolveQuickSubmitProfileOptions(
+          requestedOptions,
+          useAppStore.getState().settings,
+          profileScope
+        )
+      } catch (error) {
+        reportCreateError(error, setCreateError)
+        return
+      }
       if (isProjectGroupTarget) {
         await submitFolderTarget(requestedAgent, options)
         return
@@ -128,6 +186,23 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       )
 
       if (pendingCreationId) {
+        try {
+          assertPendingCreationAccountMatches({
+            requestedAgent,
+            agentProfile: options?.agentProfile,
+            pendingRequest: liveStore.pendingWorktreeCreations[pendingCreationId]?.request,
+            scope: profileScope,
+            launch: {
+              settings,
+              launchHost: selectedRepoAgentLaunchFact,
+              shell: selectedRepoStartupShell,
+              isRemote: selectedRepoIsRemote
+            }
+          })
+        } catch (error) {
+          reportCreateError(error, setCreateError)
+          return
+        }
         liveStore.setActivePendingWorktreeCreation(pendingCreationId)
         liveStore.setActiveView('terminal')
         liveStore.setSidebarOpen(true)
@@ -222,7 +297,17 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       sparseError,
       submitFolderTarget,
       taskSourceContext,
-      telemetrySource
+      telemetrySource,
+      ephemeralVmsEnabled,
+      folderTargetRuntimeEnvironmentId,
+      selectedEphemeralVmRecipeId,
+      selectedProjectGroup,
+      selectedRepoAgentLaunchFact,
+      selectedRepoExecutionHostId,
+      selectedRepoRuntimeEnvironmentId,
+      selectedRepoIsRemote,
+      selectedRepoStartupShell,
+      settings
     ]
   )
 

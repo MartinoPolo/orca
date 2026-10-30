@@ -5,6 +5,7 @@ import type { LinkedWorkItemSummary } from '@/lib/new-workspace'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { AgentLaunchChoice } from '@/lib/agent-menu-selection'
+import type { AgentProfileSelection } from '../../../../shared/agent-launch-profile-agents'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import { toFolderWorkspaceLinkedTask } from '@/components/sidebar/folder-workspace-composer-helpers'
@@ -59,6 +60,8 @@ export type QuickCreationRequestInput = {
 export type QuickSubmitOptions = {
   setupOnly?: boolean
   launchChoice?: AgentLaunchChoice
+  /** A named account launch; always a terminal running the profile's command. */
+  agentProfile?: AgentProfileSelection
 }
 
 export function buildQuickCreationRequest(
