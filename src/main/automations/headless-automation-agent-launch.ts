@@ -36,6 +36,12 @@ export async function launchHeadlessAutomationAgent(
   }
 ): Promise<HeadlessAutomationAgentLaunch> {
   const { automation, run, target } = request
+  if (automation.agentProfileId) {
+    // A headless host has no client settings, and launching the default account would bill another one.
+    throw new Error(
+      'This automation pins a launch profile, which only an Orca desktop client can launch.'
+    )
+  }
   const agent = automation.agentId
   const text = automation.prompt?.trim()
   if (automation.reuseSession && automation.workspaceMode === 'existing' && text) {

@@ -171,6 +171,21 @@ export async function assertExtraAgentArgsSupported(
   )
 }
 
+/** Profiles live in this client's settings, so only automations this desktop dispatches can pin one. */
+export function assertAgentProfileAuthority(
+  authorityKind: AutomationAuthorityRef['kind'],
+  agentProfileId: string | undefined
+): void {
+  if (authorityKind !== 'desktop' && agentProfileId?.trim()) {
+    throw new AutomationHostScopeUnsupportedError(
+      translate(
+        'automations.agentProfile.pairedHostUnsupported',
+        'Launch profiles apply only to automations this desktop runs. Use the default command for a paired server.'
+      )
+    )
+  }
+}
+
 /** Same gate for the legacy unfenced path, which knows only the environment id. */
 export async function assertEnvironmentSupportsExtraAgentArgs(
   environmentId: string,

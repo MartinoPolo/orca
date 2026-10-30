@@ -1,6 +1,7 @@
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import type { AutomationPrecheck } from '../../../../shared/automations-types'
 import type { Worktree } from '../../../../shared/worktree/types'
+import type { TuiAgent } from '../../../../shared/tui-agent'
 import {
   hasExtraAgentArgs,
   parseExtraAgentArgs
@@ -36,6 +37,14 @@ export function buildDraftPrecheck(draft: AutomationDraft): AutomationPrecheck |
     command,
     timeoutSeconds: Number.isFinite(rawTimeout) ? rawTimeout : 60
   }
+}
+
+/** A launch profile belongs to one agent, so switching agents clears it. */
+export function withAutomationDraftAgent(
+  draft: AutomationDraft,
+  agentId: TuiAgent
+): AutomationDraft {
+  return agentId === draft.agentId ? draft : { ...draft, agentId, agentProfileId: undefined }
 }
 
 export function getAgentLabel(agentId: string): string {

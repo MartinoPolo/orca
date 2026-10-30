@@ -9,6 +9,7 @@ import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import { scheduleAgentBackgroundDraft } from '@/lib/agent-background-draft-delivery'
 import { requestBackgroundTerminalWorktreeMount } from '@/components/terminal/background-terminal-worktree-mount'
 import { resolveAgentStartupPlanInputs } from '../../../shared/agent-startup-plan-inputs'
+import { applyBackgroundLaunchProfile } from '@/lib/automation-agent-profile'
 import { requireTuiAgentConfig } from '../../../shared/require-tui-agent-config'
 import { resolveAgentBackgroundLaunchHost } from '@/lib/agent-background-session-launch-host'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -64,7 +65,7 @@ export async function launchAgentBackgroundSession(
     throw new Error("Extra arguments can't be applied to a paired server's workspace from here.")
   }
   // Why before any tab or PTY: an invalid launch must fail the run without creating a terminal.
-  const planInputs = resolveAgentStartupPlanInputs({
+  const defaultPlanInputs = resolveAgentStartupPlanInputs({
     agent,
     // Why: the client's Windows shell setting describes this machine, not a remote host.
     settings: isLocalHost
@@ -76,6 +77,13 @@ export async function launchAgentBackgroundSession(
     shell: undefined,
     extraAgentArgs: args.extraAgentArgs,
     suppressStartupUpdatePrompt: true
+  })
+  const planInputs = applyBackgroundLaunchProfile({
+    planInputs: defaultPlanInputs,
+    profile: args.agentLaunchProfile,
+    state: store,
+    worktreeId,
+    launchPlatform
   })
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0

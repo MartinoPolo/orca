@@ -40,6 +40,8 @@ export type AutomationDraft = {
   agentId: TuiAgent
   /** Saved as-is; empty means none. */
   extraAgentArgs: string
+  /** Launch profile (account) id; absent launches the agent's configured command. */
+  agentProfileId?: string
   projectId: string
   workspaceMode: AutomationWorkspaceMode
   workspaceId: string

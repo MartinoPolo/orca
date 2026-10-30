@@ -161,6 +161,10 @@ export async function saveOrcaAutomation(
     ...(hasExtraAgentArgs(draft.extraAgentArgs) || currentAutomation?.extraAgentArgs
       ? { extraAgentArgs: draft.extraAgentArgs }
       : {}),
+    // Same shape rule: an empty id clears a saved profile.
+    ...(draft.agentProfileId || currentAutomation?.agentProfileId
+      ? { agentProfileId: draft.agentProfileId ?? '' }
+      : {}),
     runContext,
     projectId: draft.projectId,
     workspaceMode: draft.workspaceMode,
@@ -181,6 +185,7 @@ export async function saveOrcaAutomation(
     precheck,
     agentId: draft.agentId,
     ...(hasExtraAgentArgs(draft.extraAgentArgs) ? { extraAgentArgs: draft.extraAgentArgs } : {}),
+    ...(draft.agentProfileId ? { agentProfileId: draft.agentProfileId } : {}),
     runContext,
     projectId: draft.projectId,
     workspaceMode: draft.workspaceMode,

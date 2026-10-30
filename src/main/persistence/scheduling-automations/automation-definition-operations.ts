@@ -13,6 +13,10 @@ import {
   assertAutomationExtraAgentArgs,
   storedExtraAgentArgs
 } from '../../../shared/automation-extra-agent-args-record'
+import {
+  applyAutomationAgentProfileUpdate,
+  storedAutomationAgentProfileId
+} from '../../../shared/automation-agent-profile'
 import { nextAutomationOccurrenceAfter } from '../../../shared/automation-schedule-occurrences'
 import {
   applyAutomationExecutionTarget,
@@ -87,6 +91,7 @@ export function createAutomation(
   const schedulerOwner = getAutomationSchedulerOwner(repo)
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
   const extraAgentArgs = storedExtraAgentArgs(input.extraAgentArgs)
+  const agentProfileId = storedAutomationAgentProfileId(input.agentId, input.agentProfileId)
   const automation: Automation = {
     id: randomUUID(),
     ...(input.creationKey ? { creationKey: input.creationKey } : {}),
@@ -95,6 +100,7 @@ export function createAutomation(
     precheck: normalizeAutomationPrecheck(input.precheck),
     agentId: input.agentId,
     ...(extraAgentArgs !== undefined ? { extraAgentArgs } : {}),
+    ...(agentProfileId !== undefined ? { agentProfileId } : {}),
     // Prefer authority-local contexts; client-assigned runtime IDs cannot identify this store's host.
     runContext: contexts.runContext ?? input.runContext ?? null,
     sourceContext: contexts.sourceContext ?? input.sourceContext ?? null,
@@ -230,6 +236,7 @@ export function updateAutomation(
   } else {
     merged.extraAgentArgs = extraAgentArgs
   }
+  applyAutomationAgentProfileUpdate(merged, definedUpdates, current)
   assertAutomationExtraAgentArgs(merged)
   const previousPin = automationWorkspaceSshPin(operations.state, current.workspaceId)
   const workspaceSshPin = automationWorkspaceSshPin(operations.state, merged.workspaceId)

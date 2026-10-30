@@ -22918,6 +22918,12 @@
     "legacyModelCount": "{{total}} models"
   },
   "automations": {
+    "agentProfile": {
+      "label": "Account",
+      "configuredCommand": "Default command",
+      "missingProfile": "Deleted profile",
+      "pairedHostUnsupported": "Launch profiles apply only to automations this desktop runs. Use the default command for a paired server."
+    },
     "runFailures": {
       "noDispatchHost": "No Orca window was available to launch the automation.",
       "unevaluableSchedule": "Orca could not evaluate this automation and skipped the occurrence.",

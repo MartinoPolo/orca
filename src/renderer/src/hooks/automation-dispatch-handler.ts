@@ -4,6 +4,10 @@ import { submitPromptToAgentPty } from '@/lib/agent-paste-draft'
 import { launchAgentBackgroundSession } from '@/lib/launch-agent-background-session'
 import { observeExistingAutomationSession } from '@/lib/automation-session-observer'
 import { findReusableAutomationSession } from '@/lib/automation-session-reuse'
+import {
+  resolveAutomationAgentProfile,
+  resolveAutomationLaunchAccount
+} from '@/lib/automation-agent-profile'
 import type { AutomationTerminalOwnership } from '@/lib/automation-terminal-ownership'
 import { useAppStore } from '@/store'
 import { captureWorkspaceSelection, restoreWorkspaceSelection } from '@/lib/active-workspace-host'
@@ -92,7 +96,19 @@ export async function handleAutomationDispatchRequest({
       finalizeTerminalOwnership
     })
     const dispatchStartedAt = Date.now()
-    if (automation.reuseSession) {
+    const agentLaunchProfile = resolveAutomationAgentProfile(
+      useAppStore.getState().settings,
+      automation
+    )
+    const launchAccount = automation.reuseSession
+      ? resolveAutomationLaunchAccount({
+          state: useAppStore.getState(),
+          agent: automation.agentId,
+          worktreeId: worktree.id,
+          profile: agentLaunchProfile
+        })
+      : null
+    if (automation.reuseSession && launchAccount !== null) {
       const reusableSession = findReusableAutomationSession({
         automationId: automation.id,
         agentId: automation.agentId,
@@ -100,6 +116,7 @@ export async function handleAutomationDispatchRequest({
         currentRunId: run.id,
         // Dispatch runs only on desktop authority, so history reads explicitly target the local runtime.
         runs: await listAutomationRunsForTarget({ kind: 'local' }, automation.id),
+        ...(launchAccount ? { launchAccount } : {}),
         state: useAppStore.getState()
       })
       if (reusableSession) {
@@ -168,6 +185,7 @@ export async function handleAutomationDispatchRequest({
       worktreeId: worktree.id,
       prompt: automation.prompt,
       ...(automation.extraAgentArgs ? { extraAgentArgs: automation.extraAgentArgs } : {}),
+      ...(agentLaunchProfile ? { agentLaunchProfile } : {}),
       launchSource: 'unknown',
       title: run.title,
       onData: completion.appendOutput,

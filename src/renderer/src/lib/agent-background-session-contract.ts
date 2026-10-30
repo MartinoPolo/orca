@@ -3,6 +3,7 @@ import type { LaunchSource } from '../../../shared/telemetry-events'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { AgentStartupPlan } from '@/lib/tui-agent-startup'
 import type { AutomationTerminalOwnership } from '@/lib/automation-terminal-ownership'
+import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
 
 export type LaunchAgentBackgroundSessionArgs = {
   agent: TuiAgent
@@ -10,6 +11,8 @@ export type LaunchAgentBackgroundSessionArgs = {
   prompt?: string
   /** An automation's saved extras, merged over this host's default Arguments. */
   extraAgentArgs?: string
+  /** The automation's pinned account; an unavailable profile fails the launch. */
+  agentLaunchProfile?: AgentLaunchProfile
   launchSource?: LaunchSource
   title?: string
   onData?: (chunk: string) => void

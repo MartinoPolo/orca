@@ -29,6 +29,7 @@ import {
   toRuntimeAutomationUpdateInput
 } from './automation-host-client'
 import {
+  assertAgentProfileAuthority,
   assertAuthorityCapability,
   assertExtraAgentArgsSupported,
   assertOwnerFencingSupported,
@@ -197,6 +198,7 @@ async function updateFenced(
   expectedOwner: AutomationOwnerPrecondition,
   destination?: AutomationDestination
 ): Promise<Automation> {
+  assertAgentProfileAuthority(authority.kind, updates.agentProfileId)
   await assertOwnerFencingSupported(authority)
   await assertExtraAgentArgsSupported(authority, updates.extraAgentArgs)
   const result = await callAuthority<{ automation: Automation }>(authority, 'automation.update', {
@@ -291,6 +293,7 @@ export async function createAutomationForDestination(
   if (input.creationKey) {
     await assertAutomationCreateIdempotencySupported(authority)
   }
+  assertAgentProfileAuthority(authority.kind, input.agentProfileId)
   await assertOwnerFencingSupported(authority)
   // Why before create: a move is create-then-delete and must refuse before mutating anything.
   await assertExtraAgentArgsSupported(authority, input.extraAgentArgs)

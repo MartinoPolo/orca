@@ -17,6 +17,8 @@ import { AutomationSetupDecisionField } from './AutomationSetupDecisionField'
 import { AutomationWorkspaceField } from './AutomationWorkspaceField'
 import { AutomationDestinationField } from './AutomationDestinationField'
 import { AutomationExtraAgentArgsField } from './AutomationExtraAgentArgsField'
+import { AutomationAgentProfileField } from './AutomationAgentProfileField'
+import { withAutomationDraftAgent } from './automation-draft-model'
 import type { AutomationCreateDestinationControl } from './use-automation-create-destination'
 import type { AutomationDraft } from './AutomationEditorDialog'
 
@@ -76,12 +78,19 @@ export function AutomationEditorSettingsSidebar({
             <AgentCombobox
               agents={visibleAgents}
               value={draft.agentId}
-              onValueChange={(agentId) => onDraftChange((current) => ({ ...current, agentId }))}
+              onValueChange={(agentId) =>
+                onDraftChange((current) => withAutomationDraftAgent(current, agentId))
+              }
               defaultAgent={settings?.defaultTuiAgent ?? null}
               triggerClassName={`h-9 w-full min-w-0 ${pickerTriggerClassName}`}
               allowNarrowTrigger
             />
           </Field>
+          <AutomationAgentProfileField
+            draft={draft}
+            settings={settings}
+            onDraftChange={onDraftChange}
+          />
           <AutomationExtraAgentArgsField draft={draft} onDraftChange={onDraftChange} />
         </div>
         {destination ? (

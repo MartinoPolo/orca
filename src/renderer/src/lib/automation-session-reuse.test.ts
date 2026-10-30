@@ -133,4 +133,39 @@ describe('automation session reuse in the renderer store', () => {
 
     expect(session).toBeNull()
   })
+
+  it('reuses a pane only when it was launched under the same account', () => {
+    const work = { environmentName: 'CLAUDE_CONFIG_DIR', directory: '/home/ada/.claude-work' }
+    const defaultAccount = { environmentName: 'CLAUDE_CONFIG_DIR', directory: undefined }
+    const findFor = (
+      recordedEnv: Record<string, string> | null,
+      launchAccount: { environmentName: string; directory: string | undefined }
+    ) =>
+      findReusableAutomationSession({
+        automationId: 'auto-1',
+        agentId: 'claude',
+        worktreeId: 'wt-1',
+        currentRunId: 'run-current',
+        runs: [run({ id: 'run-new', terminalSessionId: 'tab-1', createdAt: 2 })],
+        launchAccount,
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The lookup reads only these fields; full tab and layout records are irrelevant here.
+        state: {
+          agentStatusByPaneKey: { [paneKey]: status() },
+          ptyIdsByTabId: { 'tab-1': ['pty-1'] },
+          terminalLayoutsByTabId: { 'tab-1': { ptyIdsByLeafId: { [leafId]: 'pty-1' } } },
+          unifiedTabsByWorktree: { 'wt-1': [{ contentType: 'terminal', entityId: 'tab-1' }] },
+          agentLaunchConfigByPaneKey: recordedEnv
+            ? { [paneKey]: { launchConfig: { agentArgs: '', agentEnv: recordedEnv } } }
+            : {}
+        } as never
+      })
+    const workEnv = { CLAUDE_CONFIG_DIR: '/home/ada/.claude-work' }
+
+    expect(findFor(workEnv, work)).toEqual({ tabId: 'tab-1', ptyId: 'pty-1', paneKey })
+    expect(findFor({}, work)).toBeNull()
+    expect(findFor(workEnv, defaultAccount)).toBeNull()
+    // An unrecorded pane can only be assumed to run the default account.
+    expect(findFor(null, defaultAccount)).not.toBeNull()
+    expect(findFor(null, work)).toBeNull()
+  })
 })

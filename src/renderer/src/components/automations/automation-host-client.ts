@@ -1,6 +1,9 @@
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { getPairedWebClientEnvironmentId } from '@/lib/paired-web-client-host'
-import { assertEnvironmentSupportsExtraAgentArgs } from './automation-capability-probe'
+import {
+  assertAgentProfileAuthority,
+  assertEnvironmentSupportsExtraAgentArgs
+} from './automation-capability-probe'
 import type {
   Automation,
   AutomationCreateInput,
@@ -146,6 +149,7 @@ export async function updateAutomationForTarget(
 ): Promise<Automation> {
   const target = getAutomationOwnerTarget(automation, sourceTarget)
   if (target.kind === 'environment') {
+    assertAgentProfileAuthority('runtime', updates.agentProfileId)
     await assertEnvironmentSupportsExtraAgentArgs(target.environmentId, updates.extraAgentArgs)
   }
   const result = await callRuntimeRpc<{ automation: Automation }>(
