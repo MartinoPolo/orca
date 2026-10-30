@@ -379,7 +379,7 @@ export function AgentCatalogRow({
               )}
               <p className="mt-2 text-[11px] text-muted-foreground">
                 {translate(
-                  'auto.components.settings.AgentsPane.f9f127d664',
+                  'auto.components.settings.AgentsPane.agentOverridesWithLaunchDefaults',
                   'Override the binary path or name, and edit the default launch arguments or environment for this agent.'
                 )}
               </p>

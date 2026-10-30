@@ -1670,9 +1670,6 @@
   "auto.components.settings.AgentsPane.agentPermissionsInfo": {
     "ko": "에이전트 권한 정보"
   },
-  "auto.components.settings.AgentsPane.f9f127d664": {
-    "ko": "이 agent의 바이너리 경로나 이름을 재정의하고 기본 실행 인수 또는 환경을 편집합니다."
-  },
   "auto.components.settings.AppearancePane.932ff1fbff": {
     "ko": "테마"
   },
@@ -5020,9 +5017,6 @@
   },
   "auto.components.settings.agents.search.96ba2373b6": {
     "ko": "에이전트"
-  },
-  "auto.components.settings.agents.search.01926b9d8c": {
-    "ko": "AI 코딩 에이전트, 기본 에이전트 및 명령 재정의를 구성합니다."
   },
   "auto.components.settings.agents.search.agentRuntime": {
     "ko": "에이전트 런타임"

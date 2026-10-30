@@ -108,7 +108,7 @@ const getAllAgentsPaneSearchEntries = createLocalizedCatalog(() => [
   {
     title: translate('auto.components.settings.agents.search.bb9ad95777', 'Agents'),
     description: translate(
-      'auto.components.settings.agents.search.01926b9d8c',
+      'auto.components.settings.agents.search.agentsWithLinkedPromptTemplates',
       'Configure AI coding agents, launch defaults, and linked work-item prompt templates.'
     ),
     keywords: buildAgentSettingsKeywords()
