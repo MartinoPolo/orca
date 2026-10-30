@@ -40,6 +40,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
 
     expect(store.createTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
+      launchKind: 'command',
       pendingStartup: expect.anything()
     })
     expect(createdTabStartups(store)['tab-1']).toEqual({
@@ -73,6 +74,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(createTab).toHaveBeenNthCalledWith(1, 'wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
       recordInteraction: false,
+      launchKind: 'command',
       pendingStartup: expect.anything()
     })
     expect(store.setTabCustomTitle).toHaveBeenCalledWith('tab-1', 'Claude', {
@@ -113,11 +115,13 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(createTab).toHaveBeenNthCalledWith(1, 'wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
       recordInteraction: false,
+      launchKind: 'command',
       activate: false,
       pendingStartup: expect.anything()
     })
     expect(createTab).toHaveBeenNthCalledWith(2, 'wt-1', undefined, undefined, {
       recordInteraction: false,
+      launchKind: 'command',
       activate: false,
       pendingStartup: expect.anything()
     })

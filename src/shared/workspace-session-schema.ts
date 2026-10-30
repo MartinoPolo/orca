@@ -67,7 +67,8 @@ export const terminalTabSchema = z.object({
   launchAgent: z
     .custom<TuiAgent>((v) => isTuiAgent(v))
     .optional()
-    .catch(undefined)
+    .catch(undefined),
+  launchKind: z.enum(['command']).optional().catch(undefined)
 })
 
 const executionHostIdSchema = z.custom<ExecutionHostId>(

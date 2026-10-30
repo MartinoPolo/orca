@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { cloneElement, isValidElement, StrictMode } from 'react'
 import { act, render, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { TerminalAgent } from '../../../../shared/terminal-agent'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { TabDragItemData } from '../tab-group/useTabDragSplit'
 import { useAppStore } from '../../store'
@@ -74,6 +75,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <>{children}</>,
   DropdownMenuContent: () => null,
   DropdownMenuItem: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  DropdownMenuCheckboxItem: ({ children }: { children?: ReactNode }) => <>{children}</>,
   DropdownMenuSeparator: () => null,
   DropdownMenuShortcut: ({ children }: { children?: ReactNode }) => <>{children}</>,
   DropdownMenuLabel: ({ children }: { children?: ReactNode }) => <>{children}</>,
@@ -142,18 +144,26 @@ const probeStore = useAppStore as unknown as StoreApiWithHook
 let renderCount = 0
 let tabRenderCount = 0
 
-function Harness({ tab }: { tab: TerminalTab }): ReactElement {
+function Harness({
+  tab,
+  agent = null,
+  isActive = true
+}: {
+  tab: TerminalTab
+  agent?: TerminalAgent | null
+  isActive?: boolean
+}): ReactElement {
   renderCount += 1
   return (
     <SortableTab
       tab={tab}
-      agent={null}
+      agent={agent}
       unifiedTabId="unified-1"
       groupId="group-1"
       tabCount={1}
       hasTabsToRight={false}
       hasTabsToLeft={false}
-      isActive
+      isActive={isActive}
       isPinned={false}
       isExpanded={false}
       onActivate={vi.fn()}
@@ -177,6 +187,57 @@ afterEach(() => {
   probeStore.setState({ unreadTerminalTabs: {}, agentStatusEpoch: 0 })
   renderCount = 0
   tabRenderCount = 0
+})
+
+describe('SortableTab tints', () => {
+  function renderedTab(container: HTMLElement, tabId = 'terminal-tab-1'): HTMLElement {
+    const tab = container.querySelector<HTMLElement>(`[data-tab-id="${tabId}"]`)
+    if (!tab) {
+      throw new Error(`Missing tab ${tabId}`)
+    }
+    return tab
+  }
+
+  it('keeps inactive identity tabs muted with an underline and neutral tabs bare', () => {
+    const { container } = render(
+      <>
+        <Harness tab={makeTab({ color: null })} agent="claude" isActive={false} />
+        <Harness
+          tab={makeTab({ id: 'terminal-tab-2', color: '' })}
+          agent="claude"
+          isActive={false}
+        />
+      </>
+    )
+    const identity = renderedTab(container)
+    const neutral = renderedTab(container, 'terminal-tab-2')
+
+    expect(identity.dataset.tabColor).toBe('var(--tab-tint-claude)')
+    expect(identity.classList.contains('text-muted-foreground')).toBe(true)
+    expect(identity.querySelector('.bottom-0')).not.toBeNull()
+    expect(neutral.dataset.tabColor).toBe('none')
+    expect(neutral.querySelector('.bottom-0')).toBeNull()
+  })
+
+  it('identifies an active command launch tab', () => {
+    const { container } = render(
+      <Harness tab={makeTab({ color: null, launchKind: 'command' })} isActive />
+    )
+    const tab = renderedTab(container)
+
+    expect(tab.dataset.tabColor).toBe('var(--tab-tint-command)')
+    expect(tab.classList.contains('text-foreground')).toBe(true)
+  })
+
+  it('lets unread state fill an inactive tab while keeping its manual identity', () => {
+    probeStore.setState({ unreadTerminalTabs: { 'terminal-tab-1': true } })
+    const { container } = render(<Harness tab={makeTab({ color: '#3b82f6' })} isActive={false} />)
+    const tab = renderedTab(container)
+
+    expect(tab.dataset.tabState).toBe('unread')
+    expect(tab.dataset.tabColor).toBe('#3b82f6')
+    expect(tab.classList.contains('text-foreground')).toBe(true)
+  })
 })
 
 describe('SortableTab update-depth probe', () => {

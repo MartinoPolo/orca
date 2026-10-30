@@ -205,6 +205,30 @@ describe('terminal snapshot cwd remapping', () => {
 })
 
 describe('reopenClosedTerminalTab', () => {
+  it('preserves an explicit neutral color without restarting the agent', () => {
+    const store = makeSeededStore()
+    const tab = store.getState().createTab(WT, undefined, undefined, { launchAgent: 'claude' })
+    store.getState().setTabColor(tab.id, '')
+    store.getState().closeTab(tab.id)
+
+    expect(store.getState().reopenClosedTerminalTab(WT)).toBe(true)
+    const reopened = store.getState().tabsByWorktree[WT]?.[0]
+    expect(reopened?.color).toBe('')
+    expect(reopened?.launchAgent).toBeUndefined()
+  })
+
+  it('retains command launch provenance', () => {
+    const store = makeSeededStore()
+    const tab = store.getState().createTab(WT, undefined, undefined, { launchKind: 'command' })
+    store.getState().closeTab(tab.id)
+
+    expect(store.getState().recentlyClosedTerminalTabsByWorktree[WT]?.[0]?.launchKind).toBe(
+      'command'
+    )
+    expect(store.getState().reopenClosedTerminalTab(WT)).toBe(true)
+    expect(store.getState().tabsByWorktree[WT]?.[0]?.launchKind).toBe('command')
+  })
+
   it('restores the tab bar and group position of a closed middle tab', async () => {
     const store = makeSeededStore()
     const first = store.getState().createTab(WT)

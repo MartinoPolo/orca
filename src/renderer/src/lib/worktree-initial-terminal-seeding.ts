@@ -284,6 +284,7 @@ export function ensureWorktreeHasInitialTerminal(
   const terminalTab = store.createTab(worktreeId, undefined, undefined, {
     pendingActivationSpawn: true,
     ...(launchAgent ? { launchAgent } : {}),
+    ...(sequencedStartup?.command && !launchAgent ? { launchKind: 'command' as const } : {}),
     ...(opts?.activateCreatedTabs === false ? { activate: false } : {}),
     ...(sequencedStartup ? { pendingStartup: sequencedStartup } : {})
   })

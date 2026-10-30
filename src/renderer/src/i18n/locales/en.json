@@ -4319,7 +4319,6 @@
             "03cf6dab1a": "Pink",
             "c2d8b0991f": "Purple",
             "cb3eadefd2": "Blue",
-            "20baa43c05": "None",
             "60f958ec75": "Pin Tab",
             "417722e9c2": "Unpin Tab",
             "splitTerminalRight": "Split terminal right",
@@ -20158,7 +20157,9 @@
       "bar": {
         "SortableTabContextMenu": {
           "switchToTerminalView": "Continue with Terminal Agent",
-          "switchToChatView": "Continue in Chat UI"
+          "switchToChatView": "Continue in Chat UI",
+          "automaticColor": "Automatic",
+          "noColor": "No color"
         },
         "BrowserTab": {
           "closeOthers": "Close Others",

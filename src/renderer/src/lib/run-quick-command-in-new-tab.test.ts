@@ -72,6 +72,7 @@ describe('runQuickCommandInNewTab', () => {
     expect(result).toEqual({ tabId: 'tab-new' })
     expect(mockState.createTab).toHaveBeenCalledWith('wt-1', 'group-1', undefined, {
       quickCommandLabel: 'Build',
+      launchKind: 'command',
       pendingStartup: { command: 'cd packages; bun run build; cd ..' }
     })
     expect(mockState.setRecentQuickCommandForGroup).toHaveBeenCalledWith('group-1', 'build')
@@ -137,6 +138,7 @@ describe('runQuickCommandInNewTab', () => {
 
     expect(mockState.createTab).toHaveBeenCalledWith('wt-1', 'group-1', undefined, {
       quickCommandLabel: 'Status',
+      launchKind: 'command',
       pendingStartup: { command: 'git status' }
     })
   })

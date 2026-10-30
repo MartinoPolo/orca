@@ -9,7 +9,7 @@ import {
 registerWorktreeActivationReset()
 
 describe('ensureWorktreeHasInitialTerminal', () => {
-  it('queues a startup command when agent launch is provided', () => {
+  it('queues an untyped startup command as a command launch', () => {
     const store = createMockStore()
 
     ensureWorktreeHasInitialTerminal(
@@ -22,7 +22,8 @@ describe('ensureWorktreeHasInitialTerminal', () => {
 
     expect(store.createTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
       pendingStartup: expect.anything(),
-      pendingActivationSpawn: true
+      pendingActivationSpawn: true,
+      launchKind: 'command'
     })
     expect(store.setActiveTab).toHaveBeenCalledWith('tab-1')
     expect(createdTabStartups(store)['tab-1']).toEqual({

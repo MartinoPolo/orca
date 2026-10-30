@@ -128,6 +128,7 @@ const ROW = {
   forceHostRuntime: own('tab.terminal', 'forceHostRuntime'),
   startupCwd: own('tab.terminal', 'startupCwd'),
   launchAgent: own('tab.terminal', 'launchAgent'),
+  launchKind: own('tab.terminal', 'launchKind'),
   // Drop transient legacy pendingActivationSpawn writes. agentLaunchPane may survive a window reload while pending, but restart treats the pane as ordinary.
   agentLaunchPane: 'unwritten',
   pendingActivationSpawn: 'unwritten',

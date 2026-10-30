@@ -106,7 +106,7 @@ export function getTabLayoutSignature(
     item.type === 'agent-session' ? projectedStructuredChatTabSavedName(item.data, chatNames) : null
   )
   if (item.type === 'terminal') {
-    return `${item.type}:${item.id}:${item.isPinned}:${isExpanded}:${Boolean(item.data.color)}:${label}`
+    return `${item.type}:${item.id}:${item.isPinned}:${isExpanded}:${label}`
   }
   if (item.type === 'browser') {
     return `${item.type}:${item.id}:${item.isPinned}:${item.data.loading}:${Boolean(item.data.loadError)}:${label}`

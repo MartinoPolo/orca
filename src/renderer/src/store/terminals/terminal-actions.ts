@@ -83,6 +83,7 @@ export type TerminalActions = {
       /** `id` is a mirrored host tab's `web-terminal-` id, minted here and never taken from IPC. */
       mirroredHostTab?: boolean
       launchAgent?: TuiAgent
+      launchKind?: TerminalTab['launchKind']
       /** The pane a host `agent.launch` laid out before its agent existed, while its fate is open. */
       agentLaunchPane?: TerminalTab['agentLaunchPane']
       quickCommandLabel?: string | null

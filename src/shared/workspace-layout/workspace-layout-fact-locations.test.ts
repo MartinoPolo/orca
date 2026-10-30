@@ -88,6 +88,7 @@ function populate(loaded: LoadedWorkspaceLayout): LoadedWorkspaceLayout {
   fill(loaded, 'tab.quickCommandLabel', 'build', terminal)
   fill(loaded, 'tab.isPreview', true, (holder) => holder.kind === 'editor')
   fill(loaded, 'tab.terminal.forceHostRuntime', true)
+  fill(loaded, 'tab.terminal.launchKind', 'command')
   fill(loaded, 'file.externalSshTargetId', 'box')
   fill(loaded, 'file.runtimeEnvironmentId', 'env')
   fill(loaded, 'file.mirroredFromRuntimeSession', true)

@@ -27,13 +27,33 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuItem: ({
     children,
     disabled,
-    onSelect
+    onSelect,
+    'aria-label': ariaLabel
   }: {
     children?: ReactNode
     disabled?: boolean
     onSelect?: () => void
+    'aria-label'?: string
   }) => (
-    <button type="button" disabled={disabled} onClick={() => onSelect?.()}>
+    <button type="button" aria-label={ariaLabel} disabled={disabled} onClick={() => onSelect?.()}>
+      {children}
+    </button>
+  ),
+  DropdownMenuCheckboxItem: ({
+    children,
+    checked,
+    onSelect
+  }: {
+    children?: ReactNode
+    checked?: boolean
+    onSelect?: () => void
+  }) => (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      onClick={() => onSelect?.()}
+    >
       {children}
     </button>
   ),
@@ -68,7 +88,8 @@ vi.mock('lucide-react', () => ({
 }))
 
 vi.mock('@/i18n/i18n', () => ({
-  translate: (_key: string, fallback: string) => fallback
+  translate: (key: string, fallback: string) =>
+    key === 'auto.components.tab.bar.SortableTabContextMenu.cb3eadefd2' ? 'Azul' : fallback
 }))
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -234,6 +255,42 @@ describe('requestActiveTerminalPaneSplit', () => {
 })
 
 describe('SortableTabContextMenu', () => {
+  it('names color swatches with their localized label', () => {
+    const onSetTabColor = vi.fn()
+    const { container } = renderMenu({ onSetTabColor })
+    const blueSwatch = container.querySelector('button[aria-label="Azul"]')
+
+    expect(blueSwatch).not.toBeNull()
+    act(() => blueSwatch?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(onSetTabColor).toHaveBeenCalledWith('term-1', '#3b82f6')
+  })
+
+  it.each([
+    { color: null, checked: 'Automatic' },
+    { color: '', checked: 'No color' },
+    { color: '#3b82f6', checked: null }
+  ])('checks the $checked color mode for color $color', ({ color, checked }) => {
+    const { container } = renderMenu({ tab: { id: 'term-1', worktreeId: 'wt-1', color } })
+    const checkedLabels = Array.from(
+      container.querySelectorAll('[role="menuitemcheckbox"][aria-checked="true"]')
+    ).map((item) => item.textContent)
+
+    expect(checkedLabels).toEqual(checked ? [checked] : [])
+  })
+
+  it('stores Automatic as null and No color as an explicit empty color', () => {
+    const onSetTabColor = vi.fn()
+    const { container } = renderMenu({ onSetTabColor })
+
+    act(() => getButton(container, 'Automatic').click())
+    act(() => getButton(container, 'No color').click())
+
+    expect(onSetTabColor.mock.calls).toEqual([
+      ['term-1', null],
+      ['term-1', '']
+    ])
+  })
+
   it.each([false, true])(
     'copies the workspace ID of an inactive tab (pinned: %s)',
     async (isPinned) => {

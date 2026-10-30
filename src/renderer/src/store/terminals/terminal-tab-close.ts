@@ -117,7 +117,8 @@ export function createTerminalTabCloseActions(
                   ...(closedTab.startupCwd ? { startupCwd: closedTab.startupCwd } : {}),
                   ...(closedTab.shellOverride ? { shellOverride: closedTab.shellOverride } : {}),
                   ...(closedTab.customTitle ? { customTitle: closedTab.customTitle } : {}),
-                  ...(closedTab.color ? { color: closedTab.color } : {}),
+                  ...(closedTab.launchKind ? { launchKind: closedTab.launchKind } : {}),
+                  ...(closedTab.color !== null ? { color: closedTab.color } : {}),
                   ...(closedPosition ? { position: closedPosition } : {})
                 }
               : null

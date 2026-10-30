@@ -24,6 +24,42 @@ describe('parseWorkspaceSession terminal fields', () => {
     }
   })
 
+  it('restores command provenance and explicit neutral color, dropping unknown kinds', () => {
+    const terminalTab = (id: string, fields: Record<string, unknown>) => ({
+      id,
+      ptyId: null,
+      worktreeId: 'wt',
+      title: 'Terminal',
+      customTitle: null,
+      color: null,
+      sortOrder: 0,
+      createdAt: 0,
+      ...fields
+    })
+    const result = parseWorkspaceSession({
+      activeRepoId: null,
+      activeWorktreeId: 'wt',
+      activeTabId: 'tab1',
+      tabsByWorktree: {
+        wt: [
+          terminalTab('tab1', { color: '', launchKind: 'command' }),
+          terminalTab('tab2', { launchAgent: 'pi', launchKind: 'piw' }),
+          terminalTab('tab3', {})
+        ]
+      },
+      terminalLayoutsByTabId: {}
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      const [command, retiredKind, plain] = result.value.tabsByWorktree.wt
+      expect(command).toMatchObject({ color: '', launchKind: 'command' })
+      expect(retiredKind).toMatchObject({ launchAgent: 'pi' })
+      expect(retiredKind?.launchKind).toBeUndefined()
+      expect(plain?.launchKind).toBeUndefined()
+    }
+  })
+
   it('preserves terminal startup cwd while accepting older omitted fields', () => {
     const result = parseWorkspaceSession({
       activeRepoId: null,

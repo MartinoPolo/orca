@@ -91,6 +91,7 @@ export function runQuickCommandInNewTab({
   const store = useAppStore.getState()
   const tab = store.createTab(worktreeId, targetGroupId, undefined, {
     quickCommandLabel: command.label,
+    launchKind: 'command',
     pendingStartup: { command: flattenTerminalQuickCommand(command).command }
   })
 

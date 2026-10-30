@@ -174,6 +174,11 @@
   --color-workspace-status-progress: var(--workspace-status-progress);
   --color-tab-group-split-divider: var(--tab-group-split-divider);
   --color-tab-group-split-divider-strong: var(--tab-group-split-divider-strong);
+  --color-tab-tint-pi: var(--tab-tint-pi);
+  --color-tab-tint-claude: var(--tab-tint-claude);
+  --color-tab-tint-command: var(--tab-tint-command);
+  --color-tab-tint-unread: var(--tab-tint-unread);
+  --color-tab-tint-attention: var(--tab-tint-attention);
   --color-git-graph-ref: var(--git-graph-ref);
   --color-git-graph-remote-ref: var(--git-graph-remote-ref);
   --color-git-graph-base-ref: var(--git-graph-base-ref);
@@ -345,6 +350,12 @@
   /* Split dividers must clear 3:1 against --card even before hover; --border is too faint. */
   --tab-group-split-divider: #868690;
   --tab-group-split-divider-strong: #71717a;
+  /* Terminal tab tints: identity fills the selected tab and underlines the rest; unread and attention fill any tab. */
+  --tab-tint-pi: #3b82f6;
+  --tab-tint-claude: #ea7a45;
+  --tab-tint-command: #22c55e;
+  --tab-tint-unread: #eab308;
+  --tab-tint-attention: #ef4444;
 }
 
 .dark {
@@ -484,6 +495,12 @@
   /* Brighter than terminal defaults so the always-visible line clears 3:1 on `--card`. */
   --tab-group-split-divider: #71717a;
   --tab-group-split-divider-strong: #a1a1aa;
+  /* Bright shades keep tints distinct on the near-black card while white text stays above 5.5:1. */
+  --tab-tint-pi: #60a5fa;
+  --tab-tint-claude: #ef8354;
+  --tab-tint-command: #4ade80;
+  --tab-tint-unread: #facc15;
+  --tab-tint-attention: #ef4444;
 }
 
 /* Status and diff colors follow the chat scheme without copying the app palette. */

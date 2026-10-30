@@ -36,7 +36,12 @@ type LayoutTabFields = {
 
 export type LayoutTerminalCreation = Pick<
   TerminalTab,
-  'defaultTitle' | 'shellOverride' | 'forceHostRuntime' | 'startupCwd' | 'launchAgent'
+  | 'defaultTitle'
+  | 'shellOverride'
+  | 'forceHostRuntime'
+  | 'startupCwd'
+  | 'launchAgent'
+  | 'launchKind'
 >
 
 export type LayoutTerminalTab = LayoutTabFields & {

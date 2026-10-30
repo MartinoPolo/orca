@@ -71,6 +71,8 @@ export type TerminalTab = {
   startupCwd?: string
   /** Show the launched agent’s icon before its first hook; live status later wins. Plain terminals/manually started agents omit this. */
   launchAgent?: TuiAgent
+  /** Persisted launch provenance for the automatic tab tint, never inferred from mutable titles. */
+  launchKind?: 'command'
   /** Session-only agent.launch pane reservation, cleared on attachment/return to an ordinary terminal.
    * Retain main’s outcome until it quits or a different operationId reuses the pane; same-launch retries do not change it. Never persist. */
   agentLaunchPane?: { leafId: string; operationId?: string; outcome?: AgentLaunchPaneOutcome }

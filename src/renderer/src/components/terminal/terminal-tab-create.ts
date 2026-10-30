@@ -52,7 +52,9 @@ export function createNewTerminalTab(
   state.createTab(activeWorktreeId, undefined, shellOverride, {
     id: tabId,
     ...(options?.startupCwd ? { startupCwd: options.startupCwd } : {}),
-    ...(options?.command ? { pendingStartup: { command: options.command } } : {})
+    ...(options?.command
+      ? { pendingStartup: { command: options.command }, launchKind: 'command' as const }
+      : {})
   })
   state.setActiveTabType('terminal', activeWorktreeId)
   // Save visual order with the new terminal last or fallback ordering puts terminals first.
