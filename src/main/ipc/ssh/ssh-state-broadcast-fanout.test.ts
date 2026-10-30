@@ -90,8 +90,10 @@ describe('SSH IPC handlers', () => {
   })
 
   it('publishes the login home the host reported so renderers can resolve account roots', () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The handlers read only the store and window members these mocks provide.
     registerSshHandlers(mockStore as never, () => mockWindow as never)
     rememberSshRemoteHome('ssh-home', '/srv/users/alice')
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: registerSshHandlers installed these callbacks on the mocked connection manager.
     const callbacks = mockConnectionManager.callbacksRef.current as {
       onStateChange: (targetId: string, state: SshConnectionState) => void
     }

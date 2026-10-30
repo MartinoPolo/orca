@@ -17,7 +17,7 @@ import type { AgentProfileSelection } from '../../../shared/agent-launch-profile
 const mocks = vi.hoisted(() => ({
   submit: vi.fn(),
   host: 'local',
-  profiles: [] as AgentProfileSelection[],
+  profiles: new Array<AgentProfileSelection>(),
   availability: vi.fn<() => HostStructuredAgentAvailability>()
 }))
 vi.mock('@/runtime/use-host-structured-agent-availability', () => ({

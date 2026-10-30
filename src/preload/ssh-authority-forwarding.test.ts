@@ -120,6 +120,7 @@ describe('native preload SSH authority forwarding', () => {
   })
 
   it('normalizes partial compatibility authority to unknown for reconciliation', async () => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Older hosts send this partial authority; the cast models that wire shape.
     const partialState = {
       targetId: 'ssh-1',
       status: 'connected',
