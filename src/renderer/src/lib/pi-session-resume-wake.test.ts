@@ -1,8 +1,10 @@
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
+import type { Repo } from '../../../shared/repo-types'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
+import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
 import { resumeSleepingAgentSessionsForWorktree } from './resume-sleeping-agent-session'
 
@@ -14,14 +16,19 @@ vi.mock('@/runtime/runtime-rpc-client', async (importOriginal) =>
 )
 
 const initialAppStoreState = useAppStore.getState()
-const PI_TRANSCRIPT_PATH = join(tmpdir(), 'pi-session-1.jsonl')
+// Account-aware resume accepts only Pi transcripts under the default account or a profile root.
+const PI_TRANSCRIPT_PATH = join(homedir(), '.pi', 'agent', 'sessions', 'pi-session-1.jsonl')
 
 afterEach(() => {
   useAppStore.setState(initialAppStoreState, true)
+  vi.unstubAllGlobals()
 })
 
 describe('Pi session wake', () => {
   it('wakes a manually slept Pi session with its transcript identity', () => {
+    vi.stubGlobal('window', {
+      api: { platform: { get: () => ({ homeDirectory: homedir() }) } }
+    })
     const providerSession = {
       key: 'session_id' as const,
       id: 'pi-session-1',
@@ -37,7 +44,8 @@ describe('Pi session wake', () => {
       state: 'working',
       capturedAt: 1,
       updatedAt: 1,
-      origin: 'quit'
+      origin: 'quit',
+      connectionId: null
     }
     const tab: TerminalTab = {
       id: 'tab-1',
@@ -49,7 +57,37 @@ describe('Pi session wake', () => {
       sortOrder: 0,
       createdAt: 1
     }
+    const repo: Repo = {
+      id: 'repo-1',
+      path: tmpdir(),
+      displayName: 'Local repo',
+      badgeColor: '#000',
+      addedAt: 1,
+      connectionId: null,
+      executionHostId: 'local'
+    }
+    const worktree: Worktree = {
+      id: 'wt-1',
+      repoId: repo.id,
+      path: tmpdir(),
+      head: 'abc123',
+      branch: 'main',
+      isBare: false,
+      isMainWorktree: true,
+      displayName: 'main',
+      comment: '',
+      linkedIssue: null,
+      linkedPR: null,
+      linkedLinearIssue: null,
+      isArchived: false,
+      isUnread: false,
+      isPinned: false,
+      sortOrder: 0,
+      lastActivityAt: 1
+    }
     useAppStore.setState({
+      repos: [repo],
+      worktreesByRepo: { [repo.id]: [worktree] },
       tabsByWorktree: { 'wt-1': [tab] },
       sleepingAgentSessionsByPaneKey: { [record.paneKey]: record }
     })

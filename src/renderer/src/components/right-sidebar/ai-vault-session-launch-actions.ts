@@ -73,6 +73,19 @@ export function useAiVaultSessionLaunchActions({
     [activeWorktree?.id, activeWorktreeId, agentCmdOverrides]
   )
 
+  // Rows prebuild drag payloads while rendering; a refused account leaves an empty command,
+  // which drag validation rejects, and the click path reports the refusal instead.
+  const buildRowResumeStartup = useCallback(
+    (session: AiVaultResumeCommandSession, worktreeId?: string | null): AiVaultResumeStartup => {
+      try {
+        return buildResumeStartup(session, worktreeId)
+      } catch {
+        return { command: '' }
+      }
+    },
+    [buildResumeStartup]
+  )
+
   const copyResumeCommand = useCallback(
     async (session: AiVaultSession, worktreeId?: string | null): Promise<void> => {
       if (session.structuredSession) {
@@ -257,7 +270,7 @@ export function useAiVaultSessionLaunchActions({
   }, [])
 
   return {
-    buildResumeStartup,
+    buildResumeStartup: buildRowResumeStartup,
     copyResumeCommand,
     handleResume,
     handleResumeInNewCli,

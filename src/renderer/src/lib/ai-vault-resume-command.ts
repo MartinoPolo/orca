@@ -17,6 +17,8 @@ import {
   type AiVaultResumeHostShell,
   type AiVaultResumeStartup
 } from '../../../shared/ai-vault-resume-startup'
+import { resolveAiVaultAccountLaunch } from '@/lib/ai-vault-account-resume'
+import type { AgentProfileHostScopeState } from '@/lib/agent-profile-launch-target'
 import {
   buildAiVaultRemoteResumeStartup,
   resolveAiVaultResumeHostShell
@@ -29,7 +31,7 @@ export type {
 export { getAiVaultAgentProviderSession }
 
 export type AiVaultResumeWorktreeArgs = {
-  state: AiVaultResumePlatformState
+  state: AiVaultResumePlatformState & Omit<AgentProfileHostScopeState, 'repos'>
   worktreeId?: string | null
   session: AiVaultResumeCommandSession
   commandOverride?: string | null
@@ -107,12 +109,14 @@ function buildAiVaultResumeForWorktree(
       return { ...reference, ...(!embedCwd && args.session.cwd ? { cwd: args.session.cwd } : {}) }
     }
   }
+  const accountLaunch = resolveAiVaultAccountLaunch(args)
   return buildAiVaultLocalResumeStartup({
     session: args.session,
     host,
     settings: args.state.settings,
-    commandOverride: args.commandOverride,
+    commandOverride: accountLaunch?.agentCommand ?? args.commandOverride,
     agentArgs: args.agentArgs,
+    ...(accountLaunch ? { accountEnv: accountLaunch.agentEnv } : {}),
     embedCwd,
     clearEnvNames
   })
