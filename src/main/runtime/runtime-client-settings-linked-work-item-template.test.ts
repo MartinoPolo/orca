@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { createGlobalSettingsFixture } from '../../shared/global-settings-test-fixture'
 import { RuntimeClientSettingsController } from './runtime-client-settings'
 
+vi.mock('../claude/agent-view-service', () => ({
+  getClaudeAgentViewService: () => ({ reconcile: async () => {} })
+}))
+
 describe('RuntimeClientSettingsController linked work-item templates', () => {
   it('projects templates to paired clients and persists updates', async () => {
     let settings = createGlobalSettingsFixture({
