@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron'
 import { admitCloseActiveTabPayload } from '../../renderer/window-commands/close-active-tab-payload-admission'
-import type { CloseActiveTabPayload } from './ui-command-event-api'
+import { admitTabMovePayload } from '../../renderer/window-commands/tab-move-payload-admission'
+import type { CloseActiveTabPayload, TabMovePayload } from './ui-command-event-api'
 import type {
   BrowserHistoryNavigateCommand,
   BrowserPageCommandTarget,
@@ -142,6 +143,16 @@ export const uiTabAndBrowserCommandsApi = {
       callback(payload)
     ipcRenderer.on('ui:closeFloatingItem', listener)
     return () => ipcRenderer.removeListener('ui:closeFloatingItem', listener)
+  },
+  onMoveTabFromBrowserGuest: (callback: (payload: TabMovePayload) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown): void => {
+      const admitted = admitTabMovePayload(payload)
+      if (admitted) {
+        callback(admitted)
+      }
+    }
+    ipcRenderer.on('ui:moveTabFromBrowserGuest', listener)
+    return () => ipcRenderer.removeListener('ui:moveTabFromBrowserGuest', listener)
   },
   onSelectFloatingIndex: (callback: (payload: { index: number }) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: { index: number }) =>

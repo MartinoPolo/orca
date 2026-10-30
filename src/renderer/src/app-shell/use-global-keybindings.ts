@@ -8,6 +8,7 @@ import { executePluginCommand } from '@/lib/plugins/commands/plugin-command-exec
 import { runBuiltInOrReplacement } from '@/lib/plugins/commands/plugin-command-replacements'
 import {
   findPluginCommandForKeybinding,
+  floatingWorkspacePanelClaimsChord,
   globalShortcutTargetYields
 } from '@/lib/plugins/commands/plugin-command-keybindings'
 import { shouldMinimizeFloatingWorkspacePanelOnCloseShortcut } from '@/components/floating-terminal/workspace/floating-workspace-terminal-actions'
@@ -19,7 +20,11 @@ import {
 import { usePluginCommands } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { useAppStore } from '../store/index'
 import { keybindingMatchesAction } from '../../../shared/keybindings/matching'
-import type { KeybindingActionId, PhysicalModifierToken } from '../../../shared/keybindings/types'
+import {
+  TAB_MOVE_ACTION_IDS,
+  type KeybindingActionId,
+  type PhysicalModifierToken
+} from '../../../shared/keybindings/types'
 import { PLUGIN_COMMAND_ALIAS_ACTION_IDS } from '../../../shared/plugins/contributions/plugin-command-actions'
 import {
   ModifierDoubleTapDetector,
@@ -39,10 +44,19 @@ import { addAppKeyListener, removeAppKeyListener } from '@/lib/keyboard/app-keyb
 import { textInputOwnsComposition } from '../../../shared/keybindings/text-input-shortcut-policy'
 import { isAgentTerminalPreviewTarget } from '../components/dashboard/terminal-preview/agent-terminal-preview-target'
 
+export type GlobalKeybindingsLayout = Pick<
+  AppChromeLayout,
+  'activeView' | 'creationLayoutActive' | 'workspaceChromeActive'
+>
+export type GlobalKeybindingsFloatingWorkspace = Pick<
+  FloatingWorkspacePanelState,
+  'enabled' | 'open' | 'visibleTabCount' | 'openMaximized' | 'setOpenWithFocus'
+>
+
 /** Register window listeners once; each key event reads the latest committed shortcut state through a ref. */
 export function useGlobalKeybindings(args: {
-  layout: AppChromeLayout
-  floatingWorkspace: FloatingWorkspacePanelState
+  layout: GlobalKeybindingsLayout
+  floatingWorkspace: GlobalKeybindingsFloatingWorkspace
 }): void {
   const { layout, floatingWorkspace } = args
   const actions = useAppShortcutActions()
@@ -199,6 +213,10 @@ export function useGlobalKeybindings(args: {
         globalShortcutTargetYields(input, shortcutPlatform, keybindings, matchOptions, actionId)
       const matchAppShortcut = (actionId: KeybindingActionId): boolean =>
         matchShortcut(actionId) && !targetYields(actionId)
+      // A bound tab move also runs from editable and floating-terminal targets; floating-panel chords still win.
+      const matchTabMoveShortcut = (actionId: KeybindingActionId): boolean =>
+        matchShortcut(actionId) &&
+        !floatingWorkspacePanelClaimsChord(input, shortcutPlatform, keybindings, matchOptions)
 
       // Reviewed plugin chords beat built-in defaults; in a terminal they follow the terminal shortcut policy like built-ins.
       if (!targetYields()) {
@@ -237,6 +255,11 @@ export function useGlobalKeybindings(args: {
       }
       for (const actionId of PLUGIN_COMMAND_ALIAS_ACTION_IDS) {
         if (matchAppShortcut(actionId) && handlers.get(actionId)?.()) {
+          return
+        }
+      }
+      for (const actionId of TAB_MOVE_ACTION_IDS) {
+        if (matchTabMoveShortcut(actionId) && handlers.get(actionId)?.()) {
           return
         }
       }

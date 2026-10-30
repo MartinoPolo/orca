@@ -16,14 +16,18 @@ import { useAppStore } from '../store/index'
 import type { usePluginCommands } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { isGitRepoKind } from '../../../shared/repository/repo-kind'
 import { openPluginsSettings } from '@/components/settings/navigation/open-plugins-settings'
+import { moveActiveTabInDirection } from '../components/tab-bar/tab-move-to-pane-column'
 import { resolveActiveTabRenameTarget } from './active-tab-rename-target'
 import { createPluginsSettingsShortcutHandler } from './plugin-settings-shortcut-handler'
-import type {
-  KeybindingActionId,
-  KeybindingContext,
-  PhysicalModifierToken
+import {
+  TAB_MOVE_ACTIONS,
+  type KeybindingActionId,
+  type KeybindingContext,
+  type PhysicalModifierToken,
+  type TabMoveDirection
 } from '../../../shared/keybindings/types'
 import { shortcutPlatform } from './app-window-chrome'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
 export { useAppShortcutActions } from './use-app-shortcut-actions'
 import type { useAppShortcutActions } from './use-app-shortcut-actions'
 
@@ -110,6 +114,17 @@ export function createAppCommandHandlers(
       runBuiltInOrReplacement(actionId, run)
     }
     return true
+  }
+  const moveActiveTab = (actionId: KeybindingActionId, direction: TabMoveDirection): boolean => {
+    const worktreeId = floatingWorkspaceFocused
+      ? FLOATING_TERMINAL_WORKTREE_ID
+      : workspaceChromeActive
+        ? activeWorktreeId
+        : null
+    if (!worktreeId || !moveActiveTabInDirection(worktreeId, direction)) {
+      return false
+    }
+    return claim(actionId, () => {})
   }
   const revealRightSidebarTab = (
     actionId: KeybindingActionId,
@@ -207,6 +222,9 @@ export function createAppCommandHandlers(
         return claim('tab.rename', () => requestTerminalTabRename(tabId))
       }
     ],
+    ...TAB_MOVE_ACTIONS.map(
+      ({ actionId, direction }) => [actionId, () => moveActiveTab(actionId, direction)] as const
+    ),
     [
       'workspace.rename',
       () => {

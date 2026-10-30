@@ -4,7 +4,7 @@ import {
 } from '../../../../../shared/keybindings/window-shortcut-policy'
 import { keybindingMatchesAction } from '../../../../../shared/keybindings/matching'
 import { hasModifier } from '../../../../../shared/keybindings/parser'
-import type { KeybindingOverrides } from '../../../../../shared/keybindings/types'
+import { TAB_MOVE_ACTIONS, type KeybindingOverrides } from '../../../../../shared/keybindings/types'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import type { BrowserPageZoomDirection } from '../../../../../shared/browser/site-settings/browser-page-zoom'
 import type { BrowserFindTarget } from '../../../../../shared/browser/guest-lifecycle/browser-find-source'
@@ -105,6 +105,19 @@ export function forwardGuestShortcutInput(
     }
     return false
   }
+  const tabMove = TAB_MOVE_ACTIONS.find(({ actionId }) =>
+    keybindingMatchesAction(actionId, input, process.platform, keybindings)
+  )
+  if (tabMove) {
+    event.preventDefault()
+    const renderer = resolveRenderer(browserTabId)
+    renderer?.send('ui:moveTabFromBrowserGuest', {
+      direction: tabMove.direction,
+      sourceId: browserTabId
+    })
+    return true
+  }
+
   if (action?.type === 'worktreeHistoryNavigate') {
     // Suppress guest history handling even if no renderer can be resolved.
     event.preventDefault()

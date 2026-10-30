@@ -87,7 +87,18 @@ export function globalShortcutTargetYields(
   return (
     textFieldClaimsActionKey(input, actionId) ||
     isFloatingWorkspaceTerminalInputTarget(input.target) ||
-    (isFloatingWorkspacePanelFocused() &&
-      matchFloatingWorkspacePanelChord(input, platform, null, overrides, options) !== null)
+    floatingWorkspacePanelClaimsChord(input, platform, overrides, options)
+  )
+}
+
+export function floatingWorkspacePanelClaimsChord(
+  input: Parameters<typeof matchFloatingWorkspacePanelChord>[0],
+  platform: NodeJS.Platform,
+  overrides: KeybindingOverrides | undefined,
+  options: KeybindingMatchOptions
+): boolean {
+  return (
+    isFloatingWorkspacePanelFocused() &&
+    matchFloatingWorkspacePanelChord(input, platform, null, overrides, options) !== null
   )
 }

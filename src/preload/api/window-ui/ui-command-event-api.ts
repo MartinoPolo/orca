@@ -42,7 +42,7 @@ import type {
   WorktreeStartupLaunch
 } from '../../../shared/worktree/creation/launch-types'
 import type { FeatureInteractionId } from '../../../shared/feature-education/interactions/feature-interaction-catalog'
-import type { KeybindingActionId } from '../../../shared/keybindings/types'
+import type { KeybindingActionId, TabMoveDirection } from '../../../shared/keybindings/types'
 import type { BrowserFindSource } from '../../../shared/browser/guest-lifecycle/browser-find-source'
 import type {
   BrowserHistoryNavigateCommand,
@@ -76,6 +76,7 @@ import type {
 } from '../../../shared/browser/client-hosting/desktop-browser-bridge-protocol'
 
 export type CloseActiveTabPayload = { sourceId: string }
+export type TabMovePayload = { direction: TabMoveDirection; sourceId: string }
 
 export type UiCommandEventApi = {
   getJiraQuickFilters?: () => Promise<JiraQuickFilterState>
@@ -166,6 +167,7 @@ export type UiCommandEventApi = {
   onHardReloadBrowserPage: (callback: (target: BrowserPageCommandTarget) => void) => () => void
   onCloseActiveTab: (callback: (payload?: CloseActiveTabPayload) => void) => () => void
   onCloseFloatingItem: (callback: (payload: { sourceId: string }) => void) => () => void
+  onMoveTabFromBrowserGuest: (callback: (payload: TabMovePayload) => void) => () => void
   onSelectFloatingIndex: (callback: (payload: { index: number }) => void) => () => void
   onSwitchRecentTab: (callback: () => void) => () => void
   onCtrlTabKeyDown: (callback: (data: { shiftKey: boolean }) => void) => () => void

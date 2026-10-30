@@ -87,6 +87,10 @@ const STATIC_TITLE_COPY = {
     translate('keybindings.title.tabPreviousAllTypes', 'Previous tab (all types)'),
   'tab.previousRecent': () =>
     translate('keybindings.title.tabPreviousRecent', 'Previous recent tab'),
+  'tab.moveToPaneLeft': () => translate('keybindings.title.tabMoveToPaneLeft', 'Move active tab to pane left'),
+  'tab.moveToPaneRight': () => translate('keybindings.title.tabMoveToPaneRight', 'Move active tab to pane right'),
+  'tab.moveToPaneUp': () => translate('keybindings.title.tabMoveToPaneUp', 'Move active tab to pane up'),
+  'tab.moveToPaneDown': () => translate('keybindings.title.tabMoveToPaneDown', 'Move active tab to pane down'),
   'tab.nextTerminal': () => translate('keybindings.title.tabNextTerminal', 'Next terminal tab'),
   'tab.previousTerminal': () =>
     translate('keybindings.title.tabPreviousTerminal', 'Previous terminal tab'),

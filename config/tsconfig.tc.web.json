@@ -22,6 +22,7 @@
     "../src/preload/renderer/browser-pages/browser-client-page-renderer-requests.ts",
     "../src/preload/renderer/browser-pages/browser-find-subscriptions.ts",
     "../src/preload/renderer/window-commands/close-active-tab-payload-admission.ts",
+    "../src/preload/renderer/window-commands/tab-move-payload-admission.ts",
     "../src/preload/renderer/e2e-config.ts",
     "../src/preload/renderer/hidden-window-frame-pump.ts",
     "../src/preload/api/gitlab/gitlab.ts",
