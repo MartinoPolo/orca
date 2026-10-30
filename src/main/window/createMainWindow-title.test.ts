@@ -3,9 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('electron', async () =>
   (await import('./createMainWindow-test-harness')).electronModuleMock()
 )
-vi.mock('@electron-toolkit/utils', async () =>
-  (await import('./createMainWindow-test-harness')).electronToolkitUtilsMock()
-)
 vi.mock('./macos-tahoe-release', async () =>
   (await import('./createMainWindow-test-harness')).macosTahoeReleaseMock()
 )
@@ -35,7 +32,8 @@ describe('createMainWindow native title', () => {
       invalidate: vi.fn(),
       setWindowOpenHandler: vi.fn(),
       send: vi.fn(),
-      isDestroyed: vi.fn(() => false)
+      isDestroyed: vi.fn(() => false),
+      setWebRTCIPHandlingPolicy: vi.fn()
     }
     const instance = {
       webContents,
