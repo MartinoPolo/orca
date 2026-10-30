@@ -9,7 +9,8 @@ import type {
   NotificationSoundDataResult,
   NotificationSoundPathResult,
   NotificationSoundResult,
-  StructuredNotificationRead
+  StructuredNotificationRead,
+  NotificationSoundCategory
 } from '../../../shared/notification-settings-types'
 import type { AgentSessionExecutionLocation } from '../../../shared/agent-session/lifecycle/agent-session-record'
 import type { PreloadApi } from '../../api-types'
@@ -61,11 +62,12 @@ export const notificationsApi = {
   playSound: async (options?: {
     force?: boolean
     volume?: number
+    category?: NotificationSoundCategory
   }): Promise<NotificationSoundResult> => {
     try {
       const resolved: NotificationSoundPathResult = await ipcRenderer.invoke(
         'notifications:resolveSoundPath',
-        { force: options?.force === true }
+        { force: options?.force === true, category: options?.category }
       )
       if (!resolved.ok) {
         // System Focus suppression is transient; keep the decoded sound for later plays.
@@ -77,8 +79,10 @@ export const notificationsApi = {
 
       let entry = cachedNotificationSound
       if (!entry || entry.path !== resolved.path) {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: IPC handler returns NotificationSoundDataResult; Electron invoke is untyped.
         const sound = (await ipcRenderer.invoke(
-          'notifications:loadSound'
+          'notifications:loadSound',
+          options?.category
         )) as NotificationSoundDataResult
         if (!sound.ok) {
           disposeCachedNotificationSound()

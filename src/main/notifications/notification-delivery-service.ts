@@ -117,7 +117,8 @@ export function createNotificationDeliveryService(
       if (
         !request.mobileDeliveredByHost &&
         deps.dispatchMobileNotification &&
-        request.source !== 'test'
+        request.source !== 'test' &&
+        !request.desktopOnly
       ) {
         if (
           reserveNotificationCooldown(
@@ -160,6 +161,11 @@ export function createNotificationDeliveryService(
           delivered: false,
           reason: !settings.enabled ? 'disabled' : hostMuted ? 'host-muted' : 'source-disabled'
         }
+      }
+
+      // Keep mobile fan-out above this desktop-only priority gate.
+      if (request.source === 'agent-task-complete' && (request.priority ?? 3) < 4) {
+        return { delivered: false, reason: 'priority' }
       }
 
       const browserWindow = deps.findActiveWindow()

@@ -41,6 +41,7 @@ import type {
   RuntimeRendererSyncWindowGraph
 } from '../../../../shared/remote-runtime/session-graph/runtime-session-contracts'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
+import { publishAgentOrchestration } from './agent-orchestration-publication'
 
 export async function syncRuntimeGraph(): Promise<void> {
   if (!graphState.syncEnabled || !graphState.getStoreState) {
@@ -244,7 +245,7 @@ export async function syncRuntimeGraph(): Promise<void> {
     if (!result?.agentSenderRevision) {
       currentState?.setAgentSenderPublication?.('local', result?.agentSenderAssociations)
     }
-    currentState?.setRuntimeAgentOrchestrationByPaneKey?.(result?.agentOrchestrationByPaneKey ?? {})
+    await publishAgentOrchestration(currentState, result?.agentOrchestrationByPaneKey ?? {})
     for (const resolution of result?.nativeChatLaunchDraftResolutions ?? []) {
       if (currentState) {
         applyNativeChatLaunchDraftResolved(currentState, {

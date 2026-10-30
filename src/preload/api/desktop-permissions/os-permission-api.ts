@@ -18,7 +18,8 @@ import type {
   NotificationDispatchResult,
   NotificationPermissionStatusResult,
   NotificationSoundResult,
-  StructuredNotificationRead
+  StructuredNotificationRead,
+  NotificationSoundCategory
 } from '../../../shared/notification-settings-types'
 import type { AgentSessionExecutionLocation } from '../../../shared/agent-session/lifecycle/agent-session-record'
 
@@ -44,7 +45,11 @@ export type NotificationsApi = {
   openSystemSettings: () => Promise<void>
   getPermissionStatus: () => Promise<NotificationPermissionStatusResult>
   probeDelivery: (args?: { force?: boolean }) => Promise<NotificationDeliveryProbeResult>
-  playSound: (options?: { force?: boolean; volume?: number }) => Promise<NotificationSoundResult>
+  playSound: (options?: {
+    force?: boolean
+    volume?: number
+    category?: NotificationSoundCategory
+  }) => Promise<NotificationSoundResult>
 }
 
 export type MacosTccPromptsApi = {

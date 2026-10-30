@@ -35,6 +35,24 @@ function resolveNotificationVolumeDraftState(
     : createNotificationVolumeDraftState(sourceVolume)
 }
 
+function useSoundVolumeDraft(sourceVolume: number): [number, (value: number) => void] {
+  const [draftState, setDraftState] = useState(() =>
+    createNotificationVolumeDraftState(sourceVolume)
+  )
+  const resolved = resolveNotificationVolumeDraftState(draftState, sourceVolume)
+  if (resolved !== draftState) {
+    setDraftState(resolved)
+  }
+  return [
+    resolved.draft,
+    (value) =>
+      setDraftState((current) => ({
+        ...resolveNotificationVolumeDraftState(current, sourceVolume),
+        draft: value
+      }))
+  ]
+}
+
 type NotificationsPaneProps = {
   settings: GlobalSettings
   updateSettings: (updates: Partial<GlobalSettings>) => void | Promise<void>
@@ -70,23 +88,13 @@ export function NotificationsPane({
     notificationSettingsRef.current = notificationSettings
   }, [notificationSettings])
 
-  const [volumeDraftState, setVolumeDraftState] = useState(() =>
-    createNotificationVolumeDraftState(notificationSettings.customSoundVolume)
+  const [volumeDraft, setVolumeDraft] = useSoundVolumeDraft(notificationSettings.customSoundVolume)
+  const [needsInputVolumeDraft, setNeedsInputVolumeDraft] = useSoundVolumeDraft(
+    notificationSettings.needsInputSoundVolume ?? 100
   )
-  const resolvedVolumeDraftState = resolveNotificationVolumeDraftState(
-    volumeDraftState,
-    notificationSettings.customSoundVolume
+  const [failedVolumeDraft, setFailedVolumeDraft] = useSoundVolumeDraft(
+    notificationSettings.failedSoundVolume ?? 100
   )
-  if (resolvedVolumeDraftState !== volumeDraftState) {
-    setVolumeDraftState(resolvedVolumeDraftState)
-  }
-  const volumeDraft = resolvedVolumeDraftState.draft
-  const setVolumeDraft = (value: number): void => {
-    setVolumeDraftState((current) => ({
-      ...resolveNotificationVolumeDraftState(current, notificationSettings.customSoundVolume),
-      draft: value
-    }))
-  }
 
   const handleVolumeCommit = (value: number): void => {
     if (notificationSettingsRef.current.customSoundVolume !== value) {
@@ -123,7 +131,7 @@ export function NotificationsPane({
           label={t('auto.components.settings.NotificationsPane.9c41a0d367', 'Enable notifications')}
           description={t(
             'auto.components.settings.NotificationsPane.deff6d30da',
-            'Native system notifications for background events.'
+            'Agent sounds and native banners for background events.'
           )}
           checked={notificationSettings.enabled}
           onToggle={() => {
@@ -227,6 +235,26 @@ export function NotificationsPane({
           onVolumeCommit={handleVolumeCommit}
           onUpdateNotificationSettings={updateNotificationSettings}
         />
+        <NotificationSoundSection
+          category="needs-input"
+          notificationSettings={notificationSettings}
+          notificationsEnabled={notificationSettings.enabled}
+          volumeDraft={needsInputVolumeDraft}
+          onVolumeDraftChange={setNeedsInputVolumeDraft}
+          onVolumeCommit={(value) =>
+            void updateNotificationSettings({ needsInputSoundVolume: value })
+          }
+          onUpdateNotificationSettings={updateNotificationSettings}
+        />
+        <NotificationSoundSection
+          category="failed"
+          notificationSettings={notificationSettings}
+          notificationsEnabled={notificationSettings.enabled}
+          volumeDraft={failedVolumeDraft}
+          onVolumeDraftChange={setFailedVolumeDraft}
+          onVolumeCommit={(value) => void updateNotificationSettings({ failedSoundVolume: value })}
+          onUpdateNotificationSettings={updateNotificationSettings}
+        />
 
         <NotificationSettingToggle
           label={t(
@@ -235,7 +263,7 @@ export function NotificationsPane({
           )}
           description={t(
             'auto.components.settings.NotificationsPane.2772d2f257',
-            'Skip notifications when the triggering worktree is already visible.'
+            'Skip banners when the triggering worktree is already visible; sounds still play.'
           )}
           checked={notificationSettings.suppressWhenFocused}
           disabled={!notificationSettings.enabled}

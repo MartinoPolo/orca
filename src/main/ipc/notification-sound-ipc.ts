@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { extname, normalize } from 'node:path'
 import type { Store } from '../persistence/loading-store/store'
 import type {
+  NotificationSoundCategory,
   NotificationSoundDataResult,
   NotificationSoundPathResult
 } from '../../shared/notification-settings-types'
@@ -12,6 +13,10 @@ import {
 } from './notification-sound-selection'
 import { isNotificationFocusActive } from '../notifications/notification-focus-state'
 
+function soundCategory(value: unknown): NotificationSoundCategory | undefined {
+  return value === 'needs-input' || value === 'failed' || value === 'done' ? value : undefined
+}
+
 const MAX_NOTIFICATION_SOUND_BYTES = 10 * 1024 * 1024
 
 export function registerNotificationSoundHandlers(store: Store): void {
@@ -19,12 +24,18 @@ export function registerNotificationSoundHandlers(store: Store): void {
   ipcMain.removeHandler('notifications:resolveSoundPath')
   ipcMain.handle(
     'notifications:resolveSoundPath',
-    async (_event, options?: { force?: boolean }): Promise<NotificationSoundPathResult> => {
+    async (
+      _event,
+      options?: { force?: boolean; category?: NotificationSoundCategory }
+    ): Promise<NotificationSoundPathResult> => {
       // Custom audio bypasses OS notification muting; explicit previews bypass this gate.
       if (options?.force !== true && (await isNotificationFocusActive())) {
         return { ok: false, reason: 'focus-active' }
       }
-      const selectedSound = getSelectedNotificationSoundPath(store.getSettings().notifications)
+      const selectedSound = getSelectedNotificationSoundPath(
+        store.getSettings().notifications,
+        soundCategory(options?.category)
+      )
       if (!selectedSound.path) {
         return { ok: false, reason: selectedSound.reason ?? 'missing-path' }
       }
@@ -37,32 +48,40 @@ export function registerNotificationSoundHandlers(store: Store): void {
   )
 
   ipcMain.removeHandler('notifications:loadSound')
-  ipcMain.handle('notifications:loadSound', async (): Promise<NotificationSoundDataResult> => {
-    const selectedSound = getSelectedNotificationSoundPath(store.getSettings().notifications)
-    if (!selectedSound.path) {
-      return { ok: false, reason: selectedSound.reason ?? 'missing-path' }
-    }
-
-    const normalizedPath = normalize(selectedSound.path)
-
-    const mimeType = NOTIFICATION_SOUND_MIME_BY_EXTENSION.get(extname(normalizedPath).toLowerCase())
-    if (!mimeType) {
-      return { ok: false, reason: 'unsupported-type' }
-    }
-
-    try {
-      const fileStat = await stat(normalizedPath)
-      if (!fileStat.isFile()) {
-        return { ok: false, reason: 'invalid-path' }
-      }
-      if (fileStat.size > MAX_NOTIFICATION_SOUND_BYTES) {
-        return { ok: false, reason: 'too-large' }
+  ipcMain.handle(
+    'notifications:loadSound',
+    async (_event, category?: NotificationSoundCategory): Promise<NotificationSoundDataResult> => {
+      const selectedSound = getSelectedNotificationSoundPath(
+        store.getSettings().notifications,
+        soundCategory(category)
+      )
+      if (!selectedSound.path) {
+        return { ok: false, reason: selectedSound.reason ?? 'missing-path' }
       }
 
-      const data = await readFile(normalizedPath)
-      return { ok: true, data: new Uint8Array(data), mimeType, path: normalizedPath }
-    } catch {
-      return { ok: false, reason: 'read-failed' }
+      const normalizedPath = normalize(selectedSound.path)
+
+      const mimeType = NOTIFICATION_SOUND_MIME_BY_EXTENSION.get(
+        extname(normalizedPath).toLowerCase()
+      )
+      if (!mimeType) {
+        return { ok: false, reason: 'unsupported-type' }
+      }
+
+      try {
+        const fileStat = await stat(normalizedPath)
+        if (!fileStat.isFile()) {
+          return { ok: false, reason: 'invalid-path' }
+        }
+        if (fileStat.size > MAX_NOTIFICATION_SOUND_BYTES) {
+          return { ok: false, reason: 'too-large' }
+        }
+
+        const data = await readFile(normalizedPath)
+        return { ok: true, data: new Uint8Array(data), mimeType, path: normalizedPath }
+      } catch {
+        return { ok: false, reason: 'read-failed' }
+      }
     }
-  })
+  )
 }

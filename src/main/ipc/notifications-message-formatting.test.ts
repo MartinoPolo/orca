@@ -49,6 +49,7 @@ describe('registerNotificationHandlers', () => {
         {},
         {
           source: 'agent-task-complete',
+          priority: 4,
           worktreeId: 'repo::wt1',
           worktreeLabel: 'main',
           repoLabel: 'jinjing-work',

@@ -1,16 +1,18 @@
-import { usesCustomNotificationSound } from '../../../../shared/notification-settings-types'
+import type { NotificationSoundCategory } from '../../../../shared/notification-settings-types'
 
 export async function playDesktopNotificationSound(
   customSoundId: string | null | undefined,
-  customSoundVolume?: number | null
+  customSoundVolume?: number | null,
+  category: NotificationSoundCategory = 'done'
 ): Promise<boolean> {
-  if (!usesCustomNotificationSound(customSoundId)) {
+  if (!customSoundId || customSoundId === 'none') {
     return false
   }
 
   try {
     const result = await window.api.notifications.playSound({
-      volume: customSoundVolume ?? undefined
+      volume: customSoundVolume ?? undefined,
+      category
     })
     // Why: 'deduped' (burst coalescing) and 'focus-active' (system Focus) are expected — not failures.
     if (!result.played && result.reason !== 'deduped' && result.reason !== 'focus-active') {
