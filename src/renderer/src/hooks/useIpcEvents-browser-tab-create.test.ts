@@ -198,6 +198,7 @@ describe('useIpcEvents browser tab create routing', () => {
           replyTabSetProfile: () => {},
           onCloseActiveTab: () => () => {},
           onCloseFloatingItem: () => () => {},
+          onMoveTabFromBrowserGuest: () => () => {},
           onSelectFloatingIndex: () => () => {},
           onBrowserPageTabShortcut: () => () => {},
           onSwitchRecentTab: () => () => {},

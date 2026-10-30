@@ -133,6 +133,7 @@ export function buildTerminalCreateWindow(args: {
         replyTabSetProfile: () => {},
         onCloseActiveTab: () => () => {},
         onCloseFloatingItem: () => () => {},
+        onMoveTabFromBrowserGuest: () => () => {},
         onSelectFloatingIndex: () => () => {},
         onBrowserPageTabShortcut: () => () => {},
         onSwitchRecentTab: () => () => {},

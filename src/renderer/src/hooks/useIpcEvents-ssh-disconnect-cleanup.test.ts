@@ -176,6 +176,7 @@ describe('useIpcEvents updater integration', () => {
           replyTabSetProfile: () => {},
           onCloseActiveTab: () => () => {},
           onCloseFloatingItem: () => () => {},
+          onMoveTabFromBrowserGuest: () => () => {},
           onSelectFloatingIndex: () => () => {},
           onBrowserPageTabShortcut: () => () => {},
           onSwitchRecentTab: () => () => {},

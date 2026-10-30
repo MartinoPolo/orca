@@ -75,6 +75,7 @@ export function buildWindowApi(args: {
         replyTabSetProfile: () => {},
         onCloseActiveTab: () => () => {},
         onCloseFloatingItem: () => () => {},
+        onMoveTabFromBrowserGuest: () => () => {},
         onSelectFloatingIndex: () => () => {},
         onBrowserPageTabShortcut: () => () => {},
         onSwitchRecentTab: () => () => {},

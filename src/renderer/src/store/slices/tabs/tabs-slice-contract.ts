@@ -8,8 +8,9 @@ import type {
 } from '../../../../../shared/tab-types'
 import type { WorkspaceSessionState } from '../../../../../shared/workspace-session-state-types'
 import type { WorkspaceSessionHydrationOptions } from '@/lib/workspace-session-hydration-keys'
+import type { TabMoveDirection } from '../../../../../shared/keybindings'
 
-export type TabSplitDirection = 'left' | 'right' | 'up' | 'down'
+export type TabSplitDirection = TabMoveDirection
 
 /** A new group beside `sourceGroupId`, created in the same update as the tab that fills it. */
 export type TabSplitTarget = {
