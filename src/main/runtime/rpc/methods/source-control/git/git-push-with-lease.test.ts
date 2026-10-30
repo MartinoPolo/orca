@@ -11,6 +11,7 @@ const lease = {
 function createDispatcher() {
   const pushRuntimeGitWithLease = vi.fn().mockResolvedValue({ ok: true })
   const amendRuntimeGitCommit = vi.fn().mockResolvedValue({ success: true, pushLease: lease })
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The git RPC handlers call only the runtime members this stub provides.
   const runtime = {
     getRuntimeId: () => 'test-runtime',
     pushRuntimeGitWithLease,
