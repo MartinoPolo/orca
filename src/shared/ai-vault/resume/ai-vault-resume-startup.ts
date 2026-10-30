@@ -118,6 +118,8 @@ function resumeCommandOverrides(
 export function buildAiVaultLocalResumeStartup(
   args: AiVaultResumeStartupArgs & {
     agentArgs?: string
+    /** The launch-profile account that owns the transcript; wins over default env. */
+    accountEnv?: Record<string, string>
     embedCwd: boolean
     /** Copy-path only: names the pasted line must strip off the agent itself.
      *  Spawned startups drop them through `envToDelete` instead. */
@@ -152,7 +154,8 @@ export function buildAiVaultLocalResumeStartup(
         ),
       agentEnv: {
         ...resolveTuiAgentLaunchEnv(session.agent, settings, platform),
-        ...managedDataAccountResumeEnv(session)
+        ...managedDataAccountResumeEnv(session),
+        ...args.accountEnv
       },
       resumeInLaunchCwd: true,
       ...(session.agent === 'omp' && resumeFilePath ? { ompResumeFilePath: resumeFilePath } : {})

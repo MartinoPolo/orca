@@ -28,6 +28,8 @@ import type { HeldPaneReopenOutcome } from '../../session-restore/newer-daemon/n
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
+import { toast } from 'sonner'
+import { resolveAgentAccountResumeLaunchConfig } from '@/lib/agent-account-resume'
 
 export const NOT_REOPENED: HeldPaneReopenOutcome = { reopened: false, agentResumed: false }
 
@@ -79,9 +81,27 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
         ? sleepingRecord
         : undefined
     // A live invocation takes the decision's answer, none included; only otherwise the saved record.
-    const launchConfig = entry
+    const capturedLaunchConfig = entry
       ? state.getAgentLaunchConfigForStatusEntry(entry)
       : matchingSleepingRecord?.launchConfig
+    const resumeWorktreeId = sleepingRecord?.worktreeId ?? session.worktree?.id
+    const accountResolution = resolveAgentAccountResumeLaunchConfig({
+      state,
+      agent,
+      worktreeId: resumeWorktreeId,
+      hostOptions: {
+        executionHostId: session.executionHostId,
+        projectRuntime: session.projectRuntime
+      },
+      transcriptPath: providerSession.transcriptPath,
+      capturedLaunchConfig,
+      originConnectionId: entry ? entry.connectionId : sleepingRecord?.connectionId
+    })
+    if (!accountResolution.ok) {
+      toast.error(accountResolution.message)
+      return null
+    }
+    const launchConfig = accountResolution.launchConfig
     // Quote resume for the live pane’s effective Windows shell rather than the platform’s PowerShell default.
     // Why: a nested-SSH pane on a server runs on its SSH target; the pane's host names a worktree
     // copy, while a folder's own record carries its connection.

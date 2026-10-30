@@ -18,6 +18,7 @@ import { getLocalProjectExecutionRuntimeContext } from '@/runtime/hosts/prefligh
 import { resolveResumeLaunchRecipe } from '../../../../../shared/agent-launch/choices/resume-launch-recipe'
 import { translate } from '@/i18n/i18n'
 import type { SleepingAgentSessionRecord } from '../../../../../shared/agent-session/lifecycle/agent-session-resume'
+import { resolveAgentAccountResumeLaunchConfig } from '@/lib/agent-account-resume'
 
 export type ResumeSleepingAgentSessionsOptions = {
   suppressNavigation?: boolean
@@ -59,7 +60,19 @@ export function launchSleepingAgentSession(
   options?: ResumeSleepingAgentSessionsOptions
 ): boolean {
   const state = useAppStore.getState()
-  const launchConfig = record.launchConfig
+  const accountResolution = resolveAgentAccountResumeLaunchConfig({
+    state,
+    agent: record.agent,
+    worktreeId: record.worktreeId,
+    transcriptPath: record.providerSession.transcriptPath,
+    capturedLaunchConfig: record.launchConfig,
+    originConnectionId: record.connectionId
+  })
+  if (!accountResolution.ok) {
+    toast.error(accountResolution.message)
+    return false
+  }
+  const launchConfig = accountResolution.launchConfig
   const resumeTarget = getResumeLaunchTarget(record.worktreeId)
   const startupPlan = buildAgentResumeStartupPlan({
     agent: record.agent,
