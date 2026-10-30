@@ -4,15 +4,15 @@
 
 ## Fork Patches
 
-- **Implemented:** Isolate Pi status/titlebar ownership so same-process subagents cannot replace the parent terminal session; see [`docs/reference/pi-terminal-session-ownership.md`](docs/reference/pi-terminal-session-ownership.md).
 - **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build, or `pnpm run build:fork:installer` for the same build as a normal NSIS installer under `MPX_APPS/Orca-Stable`.
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
+- **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths. Packaged CLI smoke checks use the shared bounded, hidden process runner.
+- **Implemented:** Refresh Cursor's chat metadata index on a cached miss so newly created chats are found even when workspace directory timestamps do not change; coalesce refreshes per scan and preserve WSL refusal recovery.
 - **Implemented:** Send Pi's Ctrl+Enter as CSI-u from trusted panes without enabling the protocol globally for Windows ConPTY shells.
-- **Implemented:** Preserve snapshot mouse encoding and negotiated Alt shortcuts, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
+- **Implemented:** Preserve negotiated Alt shortcuts through the application-owned Kitty mode mirror, and prevent unencodable mobile wheel reports from becoming editor arrow keys; see [`docs/reference/terminal-input-mode-preservation.md`](docs/reference/terminal-input-mode-preservation.md).
 - **Implemented:** Windows desktop port discovery uses unfiltered `netstat` enumeration so IPv4 and IPv6 TCP listeners reach the existing scanner and workspace attribution. Parsing still requires the English `LISTENING` state.
 - **Implemented:** Per-agent linked work-item prompt templates can prefill issue and review workspaces with workflows such as `/skill:mpx-execute {{artifact_url}}` while keeping launch drafts reviewable.
-- **Implemented:** Community-PR tracking runs only in `stablyai/orca`; fork CI does not access upstream organization projects or require upstream bot credentials.
 - **Implemented:** Source control starts “Committed on Branch” collapsed on panel mount and workspace switches; committed files and their header use muted styling on a secondary surface, separated from visible active changes by a gap and divider.
 - **Implemented:** `ORCA_LAB_ROOT` gives packaged builds a fail-closed separate Orca profile and storage while sharing the normal shell, development tools, and agent configuration. It retains a distinct Orca Lab identity and native window title without enabling E2E mode; see [`docs/reference/orca-lab-isolation.md`](docs/reference/orca-lab-isolation.md).
 
