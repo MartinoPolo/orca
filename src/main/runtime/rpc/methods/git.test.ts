@@ -295,6 +295,7 @@ describe('git RPC methods', () => {
 
   it('routes git.amendCommit to the runtime and keeps the message optional', async () => {
     const amendRuntimeGitCommit = vi.fn().mockResolvedValue({ success: true })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The git RPC handlers call only the runtime members this stub provides.
     const runtime = {
       getRuntimeId: () => 'test-runtime',
       amendRuntimeGitCommit
