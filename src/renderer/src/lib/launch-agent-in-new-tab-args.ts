@@ -4,6 +4,7 @@ import type { LaunchSource } from '../../../shared/telemetry-events'
 import type { StructuredLaunchTerminal } from '@/lib/structured-agent-session-launch-admission'
 import type { LaunchAgentInNewTabRequest } from '@/lib/launch-agent-in-new-tab-host-agents'
 import type { NativeChatComposerFocusIntent } from '@/components/native-chat/use-native-chat-composer-reveal-focus'
+import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
 
 export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   requestedSurface?: AgentSessionLaunchRequest['requestedSurface']
@@ -18,6 +19,8 @@ export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   prompt?: string
   /** Optional CLI arguments appended to the selected agent command; a chat has no command line. */
   agentArgs?: string | null
+  /** Named account profile; pins the launch to a terminal running the profile's command and root. */
+  agentLaunchProfile?: AgentLaunchProfile
   /** The launch's saved choice; a chat seeds it and a terminal applies it as flags. */
   sessionOptions?: Readonly<Record<string, string>>
   /** On terminals, a flag `agentArgs` sets itself wins over the inherited saved choice. */

@@ -11,7 +11,7 @@ import { requestNativeChatComposerFocus } from '@/components/native-chat/use-nat
 import { useNewTabAgentMenuRows } from './use-new-tab-agent-menu-rows'
 import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import type { TabAgentLaunchOption } from './tab-agent-launch-options'
-import { buildAgentPickerLaunchOptions } from './tab-agent-launch-options'
+import { useTabAgentLaunchOptions } from './use-tab-agent-launch-options'
 import { buildTabCreateMenuOptions, type TabCreateMenuOption } from './tab-create-menu-options'
 import { resolveWindowsShellLaunchTarget } from './windows-shell-launch'
 import { buildWindowsShellMenuEntries } from './tab-bar-windows-shell-options'
@@ -82,8 +82,7 @@ export function useTabBarCreateMenuController({
     newTabMenuOpen && showAgentLaunchItems,
     selectedPickerAgent
   )
-  const commandOverrides = useAppStore((state) => state.settings?.agentCmdOverrides)
-  const agentLaunchOptions = buildAgentPickerLaunchOptions(agentPickerEntries, commandOverrides)
+  const agentLaunchOptions = useTabAgentLaunchOptions(worktreeId, agentPickerEntries)
   const pendingNewTabMenuFocusRef = useRef<{ focus: () => void; synchronous?: true } | null>(null)
   const pendingNewTabMenuFocusAnimationRef = useRef<number | null>(null)
   const pendingNewTabMenuFocusRetryRef = useRef<number | null>(null)
@@ -229,7 +228,9 @@ export function useTabBarCreateMenuController({
   })
   const launchAgentFromNewTabEntry = (option: TabAgentLaunchOption): void => {
     if (option.row) {
-      if (option.setup) {
+      if (option.agentProfile) {
+        launchAgentRow(option.row, undefined, undefined, option.agentProfile)
+      } else if (option.setup) {
         launchAgentRow(option.row, option.setup, option.pickerEntry)
       } else {
         launchAgentRow(option.row)

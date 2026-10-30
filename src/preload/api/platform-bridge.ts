@@ -14,8 +14,15 @@ function resolvePlatformInfo(): PlatformInfo {
       (process as NodeJS.Process & { getSystemVersion?: () => string }).getSystemVersion?.() ?? '',
     arch: process.arch,
     shell: process.env.SHELL?.trim() || process.env.ComSpec?.trim() || '',
+    ...resolveHomeDirectory(),
     displayServer: getLinuxDisplayServer()
   })
+}
+
+// The sandbox cannot read node:os; the platform-native login home is the trusted local account root.
+function resolveHomeDirectory(): { homeDirectory?: string } {
+  const home = (process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME)?.trim()
+  return home ? { homeDirectory: home } : {}
 }
 
 export const platformApi = {

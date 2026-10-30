@@ -2,6 +2,7 @@ import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-ch
 import { getDefaultVoiceSettings } from '../../../shared/constants'
 import { normalizePRBotAuthorOverrides } from '../../../shared/pr-bot-author-overrides'
 import { normalizeAgentLinkedWorkItemPromptTemplates } from '../../../shared/agent-linked-work-item-prompt-templates'
+import { normalizeAgentLaunchProfiles } from '../../../shared/agent-launch-profiles'
 import { normalizeTerminalQuickCommands } from '../../../shared/terminal-quick-commands'
 import { normalizeOpenInApplications } from '../../../shared/open-in-applications'
 import { normalizeTerminalShortcutPolicy } from '../../../shared/keybindings'
@@ -155,6 +156,8 @@ export function normalizeLoadedGlobalSettings(
     agentLinkedWorkItemPromptTemplates: normalizeAgentLinkedWorkItemPromptTemplates(
       parsed.settings?.agentLinkedWorkItemPromptTemplates
     ),
+    piLaunchProfiles: normalizeAgentLaunchProfiles(parsed.settings?.piLaunchProfiles),
+    claudeLaunchProfiles: normalizeAgentLaunchProfiles(parsed.settings?.claudeLaunchProfiles),
     claudeAgentTeamsDefaultDisabledMigrated: true,
     sshRemoteCliControlExistingHostsMigrated: true,
     openInApplications: normalizeOpenInApplications(parsed.settings?.openInApplications, {

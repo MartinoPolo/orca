@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildAgentLaunchProfileOptions,
   buildTabAgentLaunchOptions,
   buildAgentPickerLaunchOptions,
   buildTabAgentLaunchOptionsFromRows,
@@ -151,3 +152,32 @@ it.each(['chat', 'terminal'] as const)(
     expect(options[0].setup).toBeUndefined()
   }
 )
+
+describe('named launch profile options', () => {
+  const options = buildAgentLaunchProfileOptions({
+    claude: [{ id: 'work', name: 'Claude work', command: 'ccw', agentDirectory: '/a' }],
+    pi: [{ id: 'side', name: 'Pi side', command: 'piw', agentDirectory: '/b' }]
+  })
+
+  it('launches each profile as a terminal row for its agent', () => {
+    expect(options).toEqual([
+      expect.objectContaining({
+        id: 'pi-profile:side',
+        row: { kind: 'terminal', agent: 'pi' }
+      }),
+      expect.objectContaining({
+        id: 'claude-profile:work',
+        label: 'Claude work',
+        row: { kind: 'terminal', agent: 'claude' },
+        agentProfile: expect.objectContaining({ command: 'ccw' })
+      })
+    ])
+  })
+
+  it('matches by profile name or command', () => {
+    expect(findMatchingTabAgentLaunchOptions('ccw', options).map((option) => option.id)).toEqual([
+      'claude-profile:work'
+    ])
+    expect(findMatchingTabAgentLaunchOptions('pi side', options)[0]?.id).toBe('pi-profile:side')
+  })
+})

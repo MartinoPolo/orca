@@ -4,7 +4,7 @@ import {
   type AgentPickerEntry,
   type AgentPickerDraft
 } from '../../../../shared/agent-launch-picker'
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback } from 'react'
 import { toast } from 'sonner'
 import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
 import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
@@ -12,7 +12,6 @@ import { captureNativeChatComposerFocusIntent } from '@/components/native-chat/u
 import { newAgentPromptOutcome } from '@/lib/new-agent-prompt-outcome'
 import { activeAgentNotesSendFailureMessage } from '@/lib/active-agent-note-send-result'
 import { Settings as SettingsIcon } from 'lucide-react'
-import { AgentSurfaceLaunchButton } from '@/components/agent/AgentSurfaceLaunchButton'
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -30,6 +29,9 @@ import type { NewTabAgentMenuRow } from '@/lib/new-tab-agent-menu-rows'
 import { useNewTabAgentMenuRows, type NewTabAgentMenuModel } from './use-new-tab-agent-menu-rows'
 import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTarget'
 import { chatUnavailableLabel, rowTitle, rowLabel, rowId } from './tab-agent-row-presentation'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { AgentLaunchProfileMenuItems } from './AgentLaunchProfileMenuItems'
+import { otherSurfaceRow, SurfaceChoiceRow } from './agent-surface-choice-row'
 
 export type QuickLaunchAgentMenuItemsProps = {
   worktreeId: string
@@ -49,8 +51,6 @@ export type QuickLaunchAgentMenuItemsProps = {
   /** Nothing to send: e.g. every note is already on its way, so no agent is started. */
   disabled?: boolean
 }
-
-const ROW_NAVIGATION_KEYS = new Set(['ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'])
 
 const PLACEHOLDER_WIDTHS = ['w-3/5', 'w-1/2', 'w-2/3', 'w-2/5', 'w-3/4', 'w-1/3', 'w-4/5', 'w-1/4']
 
@@ -76,13 +76,17 @@ export function useTabAgentMenuLaunch({
   onFocusChat?: (tabId: string) => void
 }) {
   const runLaunch = useCallback(
-    (row: NewTabAgentMenuRow, draft?: AgentPickerDraft, pickerEntry?: AgentPickerEntry) => {
+    (
+      row: NewTabAgentMenuRow,
+      draft?: AgentPickerDraft,
+      pickerEntry?: AgentPickerEntry,
+      agentLaunchProfile?: AgentLaunchProfile
+    ) => {
       if (disabled || row.kind === 'chat-unavailable') {
         return
       }
       const { agent } = row
-      const entry = getCatalogEntry(agent)
-      const label = entry?.label ?? agent
+      const label = agentLaunchProfile?.name ?? getCatalogEntry(agent)?.label ?? agent
       const result = launchAgentInNewTab({
         requestId: newAgentLaunchRequestId(),
         focusIntent: captureNativeChatComposerFocusIntent(),
@@ -94,6 +98,7 @@ export function useTabAgentMenuLaunch({
           : {}),
         agent,
         ...(draft ? agentPickerLaunchInputs(draft, pickerEntry) : {}),
+        ...(agentLaunchProfile ? { agentLaunchProfile } : {}),
         worktreeId,
         groupId,
         ...(prompt !== undefined ? { prompt } : {}),
@@ -166,7 +171,20 @@ function QuickLaunchAgentMenuItemsInner(props: QuickLaunchAgentMenuItemsProps): 
   const detectionTarget = useAgentDetectionTargetForWorktree(props.worktreeId)
   const model = useNewTabAgentMenuRows(props.worktreeId, true, detectionTarget)
   const runLaunch = useTabAgentMenuLaunch(props)
-  return <ProjectedAgentMenuItems {...props} model={model} runLaunch={runLaunch} />
+  return (
+    <ProjectedAgentMenuItems
+      {...props}
+      model={model}
+      runLaunch={runLaunch}
+      profileItems={
+        <AgentLaunchProfileMenuItems
+          worktreeId={props.worktreeId}
+          disabled={props.disabled}
+          runLaunch={runLaunch}
+        />
+      }
+    />
+  )
 }
 
 export function ProjectedAgentMenuItems({
@@ -175,7 +193,8 @@ export function ProjectedAgentMenuItems({
   runLaunch,
   pickerEntries,
   onSelectPickerAgent,
-  hidePickerSearch
+  hidePickerSearch,
+  profileItems
 }: {
   disabled?: boolean
   model: NewTabAgentMenuModel
@@ -183,6 +202,8 @@ export function ProjectedAgentMenuItems({
   pickerEntries?: AgentPickerEntry[]
   onSelectPickerAgent?: (agent: AgentPickerEntry['agent']) => void
   hidePickerSearch?: boolean
+  /** Named launch profile rows, listed after the agents. */
+  profileItems?: React.ReactNode
 }): React.JSX.Element {
   const desktopDefaultAgent = useAppStore((s) => s.settings?.defaultTuiAgent)
   const openSettingsPage = useAppStore((s) => s.openSettingsPage)
@@ -312,102 +333,9 @@ export function ProjectedAgentMenuItems({
           )
         })
       )}
+      {profileItems}
       <AgentSettingsMenuItem onSelect={openAgentSettings} />
     </>
-  )
-}
-
-/** The same agent on the other surface: a chat's detected CLI, or a CLI-set agent's chat. */
-function otherSurfaceRow(
-  row: Exclude<NewTabAgentMenuRow, { kind: 'chat-unavailable' }>,
-  detectedIds: readonly TuiAgent[] | null
-): NewTabAgentMenuRow | null {
-  const { agent, executionHostId } = row
-  if (row.kind === 'chat') {
-    return detectedIds?.includes(agent) ? { kind: 'cli', agent, executionHostId } : null
-  }
-  return row.kind === 'cli' && row.chat ? { kind: 'chat', agent, executionHostId } : null
-}
-
-// Why: the row starts its own surface; its trailing button (or ArrowRight, then Enter) opens the other.
-function SurfaceChoiceRow({
-  row,
-  other,
-  label,
-  disabled,
-  runLaunch,
-  children
-}: {
-  row: NewTabAgentMenuRow
-  other: NewTabAgentMenuRow
-  label: string
-  disabled: boolean
-  runLaunch: (row: NewTabAgentMenuRow) => void
-  children: React.ReactNode
-}): React.JSX.Element {
-  const otherButton = useRef<HTMLButtonElement>(null)
-  const releaseTarget = useRef<{ event: PointerEvent; target: EventTarget } | null>(null)
-  const title = rowTitle(row, label)
-  return (
-    <DropdownMenuItem
-      variant="launch"
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      onPointerUp={(event) => {
-        // Radix synchronously clicks the row on drag release, discarding the release target.
-        const release = { event: event.nativeEvent, target: event.target }
-        releaseTarget.current = release
-        queueMicrotask(() => {
-          if (releaseTarget.current === release) {
-            releaseTarget.current = null
-          }
-        })
-      }}
-      onClick={(event) => {
-        const release = releaseTarget.current
-        releaseTarget.current = null
-        if (disabled) {
-          return
-        }
-        const target =
-          event.target === event.currentTarget && release && release.event.eventPhase !== Event.NONE
-            ? release.target
-            : event.target
-        runLaunch(target instanceof Node && otherButton.current?.contains(target) ? other : row)
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'ArrowRight') {
-          event.preventDefault()
-          otherButton.current?.focus()
-        }
-      }}
-    >
-      {children}
-      <AgentSurfaceLaunchButton
-        ref={otherButton}
-        surface={other.kind === 'chat' ? 'chat' : 'terminal'}
-        title={rowTitle(other, label)}
-        className="hover:bg-accent focus-visible:bg-accent [[data-highlighted]_&]:opacity-100"
-        onKeyDown={(event) => {
-          // Stopped so the row's own Enter handling does not start the row's surface instead.
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            event.stopPropagation()
-            event.currentTarget.click()
-          } else if (ROW_NAVIGATION_KEYS.has(event.key)) {
-            event.preventDefault()
-            event.stopPropagation()
-            const item = event.currentTarget.closest<HTMLElement>('[role="menuitem"]')
-            item?.focus()
-            // Why: roving focus ignores keys from inside an item, so the row replays the move.
-            if (event.key !== 'ArrowLeft') {
-              item?.dispatchEvent(new KeyboardEvent('keydown', { key: event.key, bubbles: true }))
-            }
-          }
-        }}
-      />
-    </DropdownMenuItem>
   )
 }
 

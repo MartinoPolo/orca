@@ -23,6 +23,25 @@ function normalizeLegacyProfile(overrides: Record<string, unknown>): PersistedSt
   return normalizeLoadedGlobalSettings(parsed, terminal, profile)
 }
 
+describe('agent launch profile persistence', () => {
+  it('loads only valid profiles with distinguishable normalized names', () => {
+    const profiles = [
+      { id: 'work', name: ' Work ', command: ' ccw ', agentDirectory: '/accounts/work' },
+      { id: 'personal', name: 'work', command: 'ccp', agentDirectory: '/accounts/personal' },
+      { id: 'relative', name: 'Relative', command: 'pi', agentDirectory: 'accounts/relative' }
+    ]
+    const loaded = normalizeLegacyProfile({
+      piLaunchProfiles: profiles,
+      claudeLaunchProfiles: profiles
+    })
+    const expected = [
+      { id: 'work', name: 'Work', command: 'ccw', agentDirectory: '/accounts/work' }
+    ]
+    expect(loaded.piLaunchProfiles).toEqual(expected)
+    expect(loaded.claudeLaunchProfiles).toEqual(expected)
+  })
+})
+
 describe('chat worker error preference upgrade', () => {
   it('defaults a truly missing saved key to on and preserves a saved opt-out', () => {
     const parsed = getDefaultPersistedState(homedir())

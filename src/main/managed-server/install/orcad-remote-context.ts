@@ -36,6 +36,7 @@ import {
 import { detectRemoteHostPlatform } from '../../ssh/ssh-remote-platform-detection'
 import { OrcadHostUnsupportedError } from '../../orcad/orcad-host-unavailable'
 import { rememberSshHostPlatform } from '../../ssh/ssh-host-platform-memo'
+import { rememberSshRemoteHome } from '../../ssh/ssh-remote-home-memo'
 
 /** Default SSH generic retains compatibility with lifecycle consumers requiring SSH-only fields. */
 export type OrcadRemoteContext<Target extends OrcadHostTarget = SshTarget> = {
@@ -77,11 +78,11 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
     )
   }
   const remote = { conn: connection, host, signal }
-  const { orcadHome: remoteHome, userDataDir } = await resolveOrcadMachineHome(
-    remote,
-    !isWslOrcadHostTarget(target),
-    known.loginHome
-  )
+  const {
+    loginHome,
+    orcadHome: remoteHome,
+    userDataDir
+  } = await resolveOrcadMachineHome(remote, !isWslOrcadHostTarget(target), known.loginHome)
   let firstLibcProbeOutput = known.firstLibcProbeOutput
   const serverTarget = await resolveOrcadRuntimeTarget({
     conn: connection,
@@ -103,6 +104,7 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
   })
   if (!isWslOrcadHostTarget(target)) {
     rememberSshHostPlatform(target.id, host, serverTarget)
+    rememberSshRemoteHome(target.id, loginHome)
   }
   if (isWindowsRemoteHost(host)) {
     // Prepare pinned Node before even reading activation state on Windows.

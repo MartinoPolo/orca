@@ -8,12 +8,54 @@ import {
   SSH_DETECTED_PORT_ADVERTISED_URL_MAX_UTF8_BYTES,
   SSH_DETECTED_PORT_PROCESS_NAME_MAX_UTF8_BYTES,
   SSH_PROVIDER_EPOCH_MAX_UTF8_BYTES,
+  SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES,
   SSH_RETAINED_IDENTIFIER_MAX_UTF8_BYTES,
   admitSshConnectionStateForAuthorityReconciliation,
   isAdmissibleDirectSshAuthority
 } from './ssh-retained-payload-admission'
 
 describe('SSH retained payload admission', () => {
+  it.each([
+    { label: 'missing', homeDirectory: undefined },
+    { label: 'null', homeDirectory: null },
+    { label: 'wrong type', homeDirectory: 42 },
+    { label: 'blank', homeDirectory: '   ' },
+    { label: 'NUL', homeDirectory: '/srv/users/alice\0other' },
+    {
+      label: 'oversized UTF-8',
+      homeDirectory: '🙂'.repeat(SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES / 4 + 1)
+    }
+  ])('drops $label home metadata without rejecting connection state', ({ homeDirectory }) => {
+    const admitted = admitSshConnectionState(
+      {
+        targetId: 'ssh-a',
+        status: 'connected',
+        error: null,
+        reconnectAttempt: 0,
+        remoteHomeDirectory: homeDirectory
+      },
+      'ssh-a'
+    )
+    expect(admitted?.status).toBe('connected')
+    expect(admitted).not.toHaveProperty('remoteHomeDirectory')
+  })
+
+  it('preserves a home directory at the UTF-8 byte limit without truncation', () => {
+    const homeDirectory = '🙂'.repeat(SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES / 4)
+    expect(
+      admitSshConnectionState(
+        {
+          targetId: 'ssh-a',
+          status: 'connected',
+          error: null,
+          reconnectAttempt: 0,
+          remoteHomeDirectory: homeDirectory
+        },
+        'ssh-a'
+      )?.remoteHomeDirectory
+    ).toBe(homeDirectory)
+  })
+
   it('keeps a managed server update note, and drops an unknown one without hiding the server', () => {
     const admit = (update: unknown) =>
       admitSshConnectionState(
@@ -226,10 +268,10 @@ describe('SSH retained payload admission', () => {
 
     expect(
       admitSshConnectionStateForAuthorityReconciliation(
-        { ...state, providerEpoch: 'provider-a' },
+        { ...state, providerEpoch: 'provider-a', remoteHomeDirectory: '/srv/users/alice' },
         'ssh-a'
       )
-    ).toEqual({ ...state, providerEpoch: null })
+    ).toEqual({ ...state, providerEpoch: null, remoteHomeDirectory: '/srv/users/alice' })
     expect(
       admitSshConnectionStateForAuthorityReconciliation(
         { ...state, providerEpoch: '', connectionGeneration: 3 },

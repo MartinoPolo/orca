@@ -17,6 +17,7 @@ vi.mock('../ssh/ssh-port-scanner', () => mocks.sshPortScanner)
 import { registerSshHandlers } from './ssh'
 import type { SshConnectionState, SshTarget } from '../../../shared/ssh-types'
 import { createSshIpcHarness } from './ssh-ipc-test-harness'
+import { forgetSshRemoteHome, rememberSshRemoteHome } from '../../ssh/ssh-remote-home-memo'
 
 const { mockSshStore, mockConnectionManager } = mocks
 
@@ -86,5 +87,28 @@ describe('SSH IPC handlers', () => {
       'ssh:state-changed',
       expect.anything()
     )
+  })
+
+  it('publishes the login home the host reported so renderers can resolve account roots', () => {
+    registerSshHandlers(mockStore as never, () => mockWindow as never)
+    rememberSshRemoteHome('ssh-home', '/srv/users/alice')
+    const callbacks = mockConnectionManager.callbacksRef.current as {
+      onStateChange: (targetId: string, state: SshConnectionState) => void
+    }
+    try {
+      callbacks.onStateChange('ssh-home', {
+        targetId: 'ssh-home',
+        status: 'connected',
+        error: null,
+        reconnectAttempt: 0
+      })
+
+      expect(mockWindow.webContents.send).toHaveBeenCalledWith('ssh:state-changed', {
+        targetId: 'ssh-home',
+        state: expect.objectContaining({ remoteHomeDirectory: '/srv/users/alice' })
+      })
+    } finally {
+      forgetSshRemoteHome('ssh-home')
+    }
   })
 })

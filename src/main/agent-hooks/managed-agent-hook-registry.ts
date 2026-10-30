@@ -23,7 +23,12 @@ import { museHookService } from '../muse/hook-service'
 import { openClaudeHookService } from '../openclaude/hook-service'
 import { zcodeHookService } from '../zcode/hook-service'
 
-export type ManagedAgentHookInstallOptions = { userInitiated?: boolean; cliVersion?: string }
+export type ManagedAgentHookInstallOptions = {
+  userInitiated?: boolean
+  cliVersion?: string
+  /** A Claude launch profile root installed besides the default home. */
+  configDirectory?: string
+}
 export type ManagedAgentHookInstaller = readonly [
   HookInstallAgent,
   (
@@ -33,7 +38,7 @@ export type ManagedAgentHookInstaller = readonly [
 export type ManagedAgentHookScriptRefresher = readonly [HookInstallAgent, () => Promise<void>]
 export type ManagedAgentHookRemover = readonly [
   HookInstallAgent,
-  () => AgentHookInstallStatus | Promise<AgentHookInstallStatus>
+  (configDirectory?: string) => AgentHookInstallStatus | Promise<AgentHookInstallStatus>
 ]
 export type ManagedAgentHookAsyncRemover = readonly [
   HookInstallAgent,
@@ -42,7 +47,14 @@ export type ManagedAgentHookAsyncRemover = readonly [
 export type ManagedAgentHookStatusReader = readonly [HookInstallAgent, () => AgentHookInstallStatus]
 
 export const MANAGED_AGENT_HOOK_INSTALLERS: readonly ManagedAgentHookInstaller[] = [
-  ['claude', (options) => claudeHookService.install({ claudeVersion: options?.cliVersion })],
+  [
+    'claude',
+    (options) =>
+      claudeHookService.install({
+        claudeVersion: options?.cliVersion,
+        configDir: options?.configDirectory
+      })
+  ],
   ['openclaude', () => openClaudeHookService.install()],
   ['codex', () => codexHookService.reconcileHooks()],
   ['gemini', () => geminiHookService.install()],
@@ -93,7 +105,7 @@ export const MANAGED_AGENT_HOOK_SCRIPT_REFRESHERS: readonly ManagedAgentHookScri
 ]
 
 export const MANAGED_AGENT_HOOK_REMOVERS: readonly ManagedAgentHookRemover[] = [
-  ['claude', () => claudeHookService.remove()],
+  ['claude', (configDirectory) => claudeHookService.remove(configDirectory)],
   ['openclaude', () => openClaudeHookService.remove()],
   ['codex', () => codexHookService.remove()],
   ['gemini', () => geminiHookService.remove()],

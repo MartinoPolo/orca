@@ -40,6 +40,19 @@ describe('platformApi.get', () => {
     expect(first.osRelease).toBe('25.3.0')
   })
 
+  it('exposes only the platform-native login home as trusted local metadata', async () => {
+    vi.stubEnv('HOME', '/home/preload-user')
+    vi.stubEnv('USERPROFILE', 'C:\\Users\\preload-user')
+    try {
+      const platformApi = await loadPlatformApi()
+      expect(platformApi.get().homeDirectory).toBe(
+        process.platform === 'win32' ? 'C:\\Users\\preload-user' : '/home/preload-user'
+      )
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('resolves nothing before the first get, keeping preload startup free', async () => {
     await loadPlatformApi()
 

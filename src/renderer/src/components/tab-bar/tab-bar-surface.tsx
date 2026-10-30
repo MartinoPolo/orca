@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ProjectedAgentMenuItems } from './QuickLaunchButton'
+import { AgentLaunchProfileMenuItems } from './AgentLaunchProfileMenuItems'
 import TabBarCreateEntry from './TabBarCreateEntry'
 import { TabStripScrollIndicator } from './TabStripScrollIndicator'
 import { TabStripTooltipProvider } from './TabStripTooltipProvider'
@@ -287,6 +288,9 @@ export function renderTabBarSurface({
                 onSelectPickerAgent={selectPickerAgent}
                 hidePickerSearch={!terminalOnly && Boolean(onOpenEntry)}
                 runLaunch={launchAgentRow}
+                profileItems={
+                  <AgentLaunchProfileMenuItems worktreeId={worktreeId} runLaunch={launchAgentRow} />
+                }
               />
             </>
           ) : null}

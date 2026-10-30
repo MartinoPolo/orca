@@ -283,8 +283,13 @@ export class ClaudeHookService {
     }
   }
 
-  remove(): AgentHookInstallStatus {
-    const configPath = getConfigPath(this.options.settings)
+  /** A `configDir` removes only that profile root's entries; shared files stay for the default home. */
+  remove(configDir?: string): AgentHookInstallStatus {
+    const refused = refuseProfileAtDefaultHome(this.options, configDir)
+    if (refused) {
+      return refused
+    }
+    const configPath = getConfigPath(this.options.settings, configDir)
     const config = readHooksJson(configPath)
     if (!config) {
       return {
@@ -306,12 +311,12 @@ export class ClaudeHookService {
     if (hooksChanged || statusLineChanged) {
       writeHooksJson(configPath, nextConfig)
     }
-    if (this.options.agent === 'claude') {
-      for (const configDir of [
+    if (this.options.agent === 'claude' && configDir === undefined) {
+      for (const profileConfigDir of [
         undefined,
         ...listClaudeProfileHomes(getAppEnvironment().getPath('userData'))
       ]) {
-        removeClaudeAgentView(getConfigPath(this.options.settings, configDir))
+        removeClaudeAgentView(getConfigPath(this.options.settings, profileConfigDir))
       }
       try {
         // Explicit uninstall resets opt-out memory for a future re-enable.
@@ -320,7 +325,7 @@ export class ClaudeHookService {
         // Marker cleanup is best-effort.
       }
     }
-    return this.getStatus()
+    return this.getStatus({ configDir })
   }
 }
 

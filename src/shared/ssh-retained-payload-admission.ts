@@ -21,6 +21,7 @@ export {
 } from './ssh-retained-payload-limits'
 
 export const SSH_PROVIDER_EPOCH_MAX_UTF8_BYTES = 128
+export const SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES = 16 * 1024
 const SSH_PLAIN_SSH_REASON_MAX_UTF8_BYTES = 64
 export const SSH_DETECTED_PORTS_MAX_ENTRIES = 50
 export const SSH_DETECTED_PORT_HOST_MAX_UTF8_BYTES = 1024
@@ -95,6 +96,12 @@ export function admitSshConnectionState(
     input.remotePlatform === 'win32'
       ? { remotePlatform: input.remotePlatform }
       : {}),
+    // Invalid or oversized homes are omitted, never truncated: a cut path names another folder.
+    ...(isStringWithinLimit(input.remoteHomeDirectory, SSH_REMOTE_HOME_DIRECTORY_MAX_UTF8_BYTES) &&
+    input.remoteHomeDirectory.trim().length > 0 &&
+    !input.remoteHomeDirectory.includes('\0')
+      ? { remoteHomeDirectory: input.remoteHomeDirectory }
+      : {}),
     ...admitSshPlainSshMode(input.plainSsh),
     ...(input.hostNodeRuntime === true ? { hostNodeRuntime: true } : {}),
     ...admitSshManagedServerStatus(input.managedServer)
@@ -141,6 +148,7 @@ export function admitSshConnectionStateForAuthorityReconciliation(
       reconnectAttempt: input.reconnectAttempt,
       supportsFolderDownload: input.supportsFolderDownload,
       remotePlatform: input.remotePlatform,
+      remoteHomeDirectory: input.remoteHomeDirectory,
       plainSsh: input.plainSsh,
       hostNodeRuntime: input.hostNodeRuntime,
       managedServer: input.managedServer

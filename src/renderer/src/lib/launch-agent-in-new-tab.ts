@@ -24,6 +24,8 @@ import { terminalSessionOptionInputs } from '../../../shared/tui-agent-launch-co
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
 import { launchStructuredAgentFromNewTab } from '@/lib/launch-agent-in-new-tab-structured-route'
 import { workspaceKindForWorktreeId } from '@/lib/agent-launch-route-input'
+import { resolveAgentProfileLaunchInputs } from '@/lib/agent-profile-launch-inputs'
+import { CLIENT_PLATFORM } from '@/lib/new-workspace'
 import {
   launchOnceHostAnswered,
   routeNewTabLaunch,
@@ -55,6 +57,7 @@ export function launchAgentInNewTabWithOutcome(
     groupId,
     prompt,
     agentArgs,
+    agentLaunchProfile,
     sessionOptions,
     initialCwd,
     promptDelivery = 'auto-submit',
@@ -87,7 +90,20 @@ export function launchAgentInNewTabWithOutcome(
           permissionSettings,
           readLaunchPermissionChoice(sessionOptions) ? 'own' : undefined
         )
-  const agentEnv = resolveTuiAgentLaunchEnv(agent, permissionSettings, resolvedLaunchPlatform)
+  const agentProfileInputs = resolveAgentProfileLaunchInputs({
+    agent,
+    profile: agentLaunchProfile,
+    state: store,
+    worktreeId,
+    resolvedLaunchPlatform,
+    clientPlatform: CLIENT_PLATFORM,
+    commandOverrides: store.settings?.agentCmdOverrides ?? {},
+    environment: resolveTuiAgentLaunchEnv(agent, permissionSettings, resolvedLaunchPlatform)
+  })
+  if (!agentProfileInputs.ok) {
+    args.focusIntent?.cancel()
+    return null
+  }
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'
@@ -97,7 +113,8 @@ export function launchAgentInNewTabWithOutcome(
   // Resolve structured ownership first; only terminal routes plan CLI arguments.
   const route = routeNewTabLaunch(store, args, {
     agent,
-    requestedSurface: args.requestedSurface,
+    // A chat cannot run a profile's own command and account root.
+    requestedSurface: agentLaunchProfile ? 'terminal' : args.requestedSurface,
     selectedExecutionHostId: args.selectedExecutionHostId,
     workspace: { kind: workspaceKindForWorktreeId(worktreeId), worktreeId },
     prompt: trimmedPrompt,
@@ -111,7 +128,7 @@ export function launchAgentInNewTabWithOutcome(
     return launchOnceHostAnswered(route, args, (next) => launchAgentInNewTabWithOutcome(next))
   }
   const { plan } = route
-  if (plan?.route === 'structured-native-chat') {
+  if (plan?.route === 'structured-native-chat' && !agentLaunchProfile) {
     const structured = launchStructuredAgentFromNewTab({
       plan,
       worktreeId,
@@ -151,12 +168,12 @@ export function launchAgentInNewTabWithOutcome(
   })
   const startupPlanBase = {
     agent,
-    cmdOverrides: store.settings?.agentCmdOverrides ?? {},
+    cmdOverrides: agentProfileInputs.commandOverrides,
     platform: resolvedLaunchPlatform,
     shell: queuedShell,
     isRemote,
     agentArgs: effectiveAgentArgs,
-    agentEnv,
+    agentEnv: agentProfileInputs.environment,
     ...terminalOptions
   }
   const { startupPlan, pasteDraftAfterLaunch, submitPastedPrompt } = planLaunchAgentStartupPrompt({
@@ -211,6 +228,8 @@ export function launchAgentInNewTabWithOutcome(
   }
   if (
     pasteDraftAfterLaunch !== null &&
+    // The host builds its own command, which would drop the profile's command and root.
+    !agentLaunchProfile &&
     newTabPromptLaunchesThroughHost({ promptDelivery, pastesPrompt: true, isRemote })
   ) {
     const launched = launchNewTabPromptThroughHost({

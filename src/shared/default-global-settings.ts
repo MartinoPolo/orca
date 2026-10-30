@@ -227,10 +227,12 @@ export function buildDefaultSettings(args: {
     zcodePlanSite: 'zai',
     geminiCliOAuthEnabled: false,
     agentCmdOverrides: {},
-      // Arguments hold only the user's own text; the permission flag comes from the choice below.
-      agentDefaultArgs: {},
-      agentLinkedWorkItemPromptTemplates: {},
-      agentDefaultEnv: {},
+    piLaunchProfiles: [],
+    claudeLaunchProfiles: [],
+    // Arguments hold only the user's own text; the permission flag comes from the choice below.
+    agentDefaultArgs: {},
+    agentLinkedWorkItemPromptTemplates: {},
+    agentDefaultEnv: {},
     agentYoloDefaultsMigrated: true,
     agentPermissionDefault: 'full-access',
     agentPermissionOverrides: {},
