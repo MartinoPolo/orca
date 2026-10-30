@@ -44,6 +44,8 @@ import '@/components/sidebar/workspace-creation/folder/folder-workspace-source-r
 import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/workspace-creation/folder/folder-workspace-source-selection'
 import { useAgentMenuObservation } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/keyboard/app-keyboard-router'
+import type { AgentProfileSelection } from '../../../shared/agent-launch-profile-agents'
+import { useComposerAgentProfilePick } from '@/components/new-workspace/use-composer-agent-profile-pick'
 
 // Keep Add Project’s clone/SSH machinery outside the composer entry render, matching App loading.
 const HostedAddRepoDialog = lazyWithRetry(
@@ -192,7 +194,10 @@ function QuickTabBody({
     // Repair invalid picks before children render an unavailable option.
     setQuickAgentOverride(resolvedQuickAgentSelection.quickAgentOverride)
   }
-  const quickAgent = resolvedQuickAgentSelection.quickAgent
+  const { activeProfile, setPickedProfile } = useComposerAgentProfilePick(
+    cardProps.agentProfileOptions
+  )
+  const quickAgent = activeProfile?.agent ?? resolvedQuickAgentSelection.quickAgent
   const chipAgentIds =
     offeredAgentIds &&
     new Set([...offeredAgentIds, ...(quickAgent && choicePending(quickAgent) ? [quickAgent] : [])])
@@ -212,7 +217,8 @@ function QuickTabBody({
       : undefined
   const quickAgentSurface = quickAgentPick.agent === quickAgent ? quickAgentPick.surface : undefined
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
-  const createDisabled = formDisabled || !launchSelection.ready
+  // A profile always starts its own command in a terminal, so chat readiness does not gate it.
+  const createDisabled = formDisabled || (!activeProfile && !launchSelection.ready)
 
   const handleQuickAgentChange = useCallback(
     (
@@ -223,8 +229,16 @@ function QuickTabBody({
     ) => {
       setQuickAgentOverride(agent)
       setQuickAgentPick({ agent, surface, draft, entry, contextKey: observation.contextKey })
+      setPickedProfile(null)
     },
-    [observation.contextKey]
+    [observation.contextKey, setPickedProfile]
+  )
+  const handleProfilePick = useCallback(
+    (selection: AgentProfileSelection) => {
+      handleQuickAgentChange(selection.agent, 'terminal')
+      setPickedProfile(selection)
+    },
+    [handleQuickAgentChange, setPickedProfile]
   )
 
   const handleCreate = useCallback(async (): Promise<void> => {
@@ -270,9 +284,11 @@ function QuickTabBody({
         pickerDraft,
         quickAgentPick.entry,
         launchSelection.choice?.executionHostId
-      )
+      ),
+      agentProfile: activeProfile ?? undefined
     })
   }, [
+    activeProfile,
     createDisabled,
     quickAgent,
     launchSelection.choice,
@@ -380,6 +396,15 @@ function QuickTabBody({
                 surface: quickAgentSurface,
                 contextKey: observation.contextKey,
                 onPick: handleQuickAgentChange
+              }
+            : undefined
+        }
+        agentProfiles={
+          cardProps.agentProfileOptions.length > 0
+            ? {
+                options: cardProps.agentProfileOptions,
+                selected: activeProfile,
+                onSelect: handleProfilePick
               }
             : undefined
         }

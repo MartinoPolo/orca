@@ -3,6 +3,7 @@ import type {
   AgentPickerEntry
 } from '../../../../../shared/agent-launch/picker/agent-launch-picker'
 import type { AgentComboboxSurfaceRows } from '@/components/agent/agent-combobox-surface-items'
+import type { AgentLaunchPickerProfiles } from '@/components/agent/agent-launch-picker-profile-items'
 import type { ComposerAgentRows } from '@/hooks/composer-state/composer-agent-rows-target'
 import type RepoCombobox from '@/components/repo/RepoCombobox'
 import type { NewWorkspaceProjectOption } from '@/lib/workspace/creation/new-workspace-project-options'
@@ -45,6 +46,7 @@ export type NewWorkspaceComposerCardProps = {
   agentSurfaceRows?: AgentComboboxSurfaceRows
   agentPickerDraft?: AgentPickerDraft
   agentSetupDisabled?: boolean
+  agentProfiles?: AgentLaunchPickerProfiles
   onQuickAgentChange: (
     agent: TuiAgent | null,
     surface?: AgentComboboxSurfaceRows['surface'],

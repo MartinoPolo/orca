@@ -11,6 +11,11 @@ import type { ComposerModel } from './composer-model'
 import { ensureAgentLaunchPreferences } from '@/runtime/agent-launch-settings/use-host-agent-launch-preferences'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
+import {
+  withAgentLaunchProfileSettings,
+  type AgentProfileSelection
+} from '../../../../shared/agent-launch-profile-agents'
+import { assertComposerProfileAgent } from '@/lib/composer-agent-profile-target'
 import type { AgentStartupShell } from '../../../../shared/agent-launch/startup/tui-agent-startup-shell'
 import type { AgentStartedTelemetry } from '@/lib/workspace/creation/worktree-startup-payload'
 import type { WorktreeCreationRequest } from '@/lib/workspace/creation/pending-worktree-creation'
@@ -26,6 +31,7 @@ import type { ExecutionHostPlatformFact } from '@/runtime/hosts/platform/executi
 
 export type QuickComposerStartupInput = {
   agent: TuiAgent | null
+  agentProfile?: AgentProfileSelection
   prompt: string
   draftPrompt: string | null | undefined
   settings: GlobalSettings | null | undefined
@@ -47,13 +53,14 @@ export type QuickComposerStartup = {
 }
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
-  const { agent, draftPrompt, prompt, settings } = input
+  const { agent, agentProfile, draftPrompt, prompt, settings } = input
+  assertComposerProfileAgent(agentProfile, agent)
   const inputs =
     agent === null
       ? null
       : resolveAgentStartupPlanInputs({
           agent,
-          settings: settings ?? {},
+          settings: withAgentLaunchProfileSettings(settings ?? {}, agentProfile),
           agentArgs: input.launchInputs?.agentArgs,
           sessionOptions: input.launchInputs?.sessionOptions,
           platform: requireExecutionHostPlatform(input.launchHost),
@@ -148,7 +155,9 @@ export async function prepareQuickComposerStartup(
       launchInputs: input.legacyLaunchInputs ?? input.launchInputs
     })
   const host = parseExecutionHostId(input.executionHostId)
+  // A host-composed command would drop the profile's command and account root.
   const hostComposes =
+    !input.agentProfile &&
     (input.launchInputs !== undefined || Boolean(draftPrompt)) &&
     !input.ephemeralVm &&
     host?.kind === 'runtime' &&

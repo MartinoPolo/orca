@@ -42,6 +42,8 @@ import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { settleComposerSubmit } from '@/lib/workspace/creation/composer-submit-cancellation'
 import { isTuiAgentEnabled } from '../../../../shared/agent-launch/catalog/tui-agent-selection'
+import { withAgentLaunchProfileSettings } from '../../../../shared/agent-launch-profile-agents'
+import { assertComposerProfileAgent } from '@/lib/composer-agent-profile-target'
 import { submitFolderWorkspaceCreate } from '@/components/sidebar/workspace-creation/folder/folder-workspace-composer-submit'
 import { translate } from '@/i18n/i18n'
 import {
@@ -107,6 +109,8 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           requestedAgent && isTuiAgentEnabled(requestedAgent, disabledTuiAgents)
             ? requestedAgent
             : null
+        // A profile pick never degrades to a workspace without its agent.
+        assertComposerProfileAgent(options?.agentProfile, agent)
         if (isSubmissionCancelled()) {
           return
         }
@@ -160,6 +164,9 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
         const linkedWorkItemPromptTemplate = agent
           ? settings?.agentLinkedWorkItemPromptTemplates?.[agent]
           : undefined
+        const launchSettings = settings
+          ? withAgentLaunchProfileSettings(settings, options?.agentProfile)
+          : settings
         const folderWorkspaceCreated = await submitFolderWorkspaceCreate({
           projectGroup: selectedProjectGroup,
           setupSupported,
@@ -175,8 +182,8 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
           launchInputs: options?.launchInputs,
           legacyLaunchInputs: options?.legacyLaunchInputs,
           autoRenameBranchFromWork: settings?.autoRenameBranchFromWork,
-          settings: settings ?? undefined,
-          agentCmdOverrides: settings?.agentCmdOverrides,
+          settings: launchSettings ?? undefined,
+          agentCmdOverrides: launchSettings?.agentCmdOverrides,
           linkedWorkItemPromptTemplate,
           terminalWindowsShell: settings?.terminalWindowsShell,
           isRemote: folderTargetIsRemote,

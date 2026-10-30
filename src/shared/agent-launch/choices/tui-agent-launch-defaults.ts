@@ -16,7 +16,7 @@ import {
   sanitizeAgentPermissionUpdates
 } from '../permissions/tui-agent-permission-choice'
 import { projectAgentLaunchProfile } from './agent-launch-profile'
-import { normalizeAgentLaunchProfiles } from './agent-launch-profiles'
+import { normalizeAgentLaunchProfiles } from '../../agent-launch-profiles'
 import {
   resolveStartupShell,
   tokenizeStartupCommand,

@@ -6,6 +6,7 @@ import {
 } from './claude-launch-profiles'
 import { buildPiLaunchProfileEnv, getDefaultPiAgentDirectory } from './pi-launch-profiles'
 import type { TuiAgent } from './agent-launch/catalog/tui-agent'
+import { getTuiAgentDefaultEnv } from './agent-launch/choices/tui-agent-launch-defaults'
 
 export const AGENT_LAUNCH_PROFILE_AGENTS = {
   pi: {
@@ -70,4 +71,48 @@ export function buildAgentLaunchProfileEnv(
   profile: AgentLaunchProfile
 ): Record<string, string> {
   return AGENT_LAUNCH_PROFILE_AGENTS[agent].buildEnvironment(profile)
+}
+
+/** Command overrides with a selected profile's own command for its agent. */
+export function withAgentLaunchProfileCommand(
+  overrides: Partial<Record<TuiAgent, string>> | undefined,
+  selection: AgentProfileSelection | undefined
+): Partial<Record<TuiAgent, string>> {
+  return selection
+    ? { ...overrides, [selection.agent]: selection.profile.command }
+    : (overrides ?? {})
+}
+
+/** Launch environment with the selected profile's account root taking precedence. */
+export function withAgentLaunchProfileEnv(
+  environment: Record<string, string> | undefined,
+  selection: AgentProfileSelection | undefined
+): Record<string, string> | undefined {
+  return selection
+    ? { ...environment, ...buildAgentLaunchProfileEnv(selection.agent, selection.profile) }
+    : environment
+}
+
+type ProfileLaunchSettings = Partial<Pick<GlobalSettings, 'agentCmdOverrides' | 'agentDefaultEnv'>>
+
+/** Launch settings that run a selected profile's command under its account root. */
+export function withAgentLaunchProfileSettings<Settings extends ProfileLaunchSettings>(
+  settings: Settings,
+  selection: AgentProfileSelection | undefined
+): Settings {
+  if (!selection) {
+    return settings
+  }
+  const { agent, profile } = selection
+  return {
+    ...settings,
+    agentCmdOverrides: { ...settings.agentCmdOverrides, [agent]: profile.command },
+    agentDefaultEnv: {
+      ...settings.agentDefaultEnv,
+      [agent]: {
+        ...(settings.agentDefaultEnv?.[agent] ?? getTuiAgentDefaultEnv(agent)),
+        ...buildAgentLaunchProfileEnv(agent, profile)
+      }
+    }
+  }
 }

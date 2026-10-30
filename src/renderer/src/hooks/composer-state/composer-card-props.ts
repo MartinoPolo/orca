@@ -11,6 +11,8 @@ import { worktreeOwnerHostIds } from '@/lib/workspace/ownership/workspace-catalo
 import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 import { useAppStore } from '@/store'
 import { composerPickerRepos } from './composer-picker-repos'
+import { getComposerAgentProfiles } from '@/lib/composer-agent-profile-target'
+import { resolveComposerAgentProfileHostScope } from './composer-agent-profile-scope'
 
 export function buildComposerCardProps(state: ComposerModel) {
   const attachmentTarget = resolveComposerAttachmentTarget(state)
@@ -233,6 +235,11 @@ export function buildComposerCardProps(state: ComposerModel) {
     onTuiAgentChange: setTuiAgent,
     detectedAgentIds: isProjectGroupTarget ? folderDetectedAgentIds : detectedAgentIds,
     agentRows: resolveComposerAgentRows(state),
+    agentProfileOptions: getComposerAgentProfiles(
+      state.settings,
+      resolveComposerAgentProfileHostScope(state, useAppStore.getState()),
+      state.disabledTuiAgents
+    ),
     onOpenAgentSettings: handleOpenAgentSettings,
     advancedOpen,
     setupChoiceRevealRequest,

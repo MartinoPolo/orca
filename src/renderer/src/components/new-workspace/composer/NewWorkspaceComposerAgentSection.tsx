@@ -1,3 +1,4 @@
+import { AgentLaunchPickerProfileItems } from '@/components/agent/agent-launch-picker-profile-items'
 import React from 'react'
 import { ChevronDown, Settings2 } from 'lucide-react'
 import type AgentCombobox from '@/components/agent/AgentCombobox'
@@ -17,6 +18,7 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   | 'selectedRepoIsGit'
   | 'selectedProjectId'
   | 'projectOptions'
+  | 'agentProfiles'
   | 'onQuickAgentChange'
   | 'agentRows'
   | 'onOpenAgentSettings'
@@ -41,6 +43,7 @@ export function NewWorkspaceComposerAgentSection({
   selectedRepoIsGit,
   selectedProjectId,
   projectOptions,
+  agentProfiles,
   onQuickAgentChange,
   onOpenAgentSettings,
   createDisabled,
@@ -99,7 +102,10 @@ export function NewWorkspaceComposerAgentSection({
           onSetDefault={handleSetDefaultAgent}
           onSelectBlankTerminal={() => onQuickAgentChange(null)}
           onPick={(agent, draft, entry) => onQuickAgentChange(agent, draft?.surface, draft, entry)}
-        />
+          triggerLabel={agentProfiles?.selected?.profile.name}
+        >
+          <AgentLaunchPickerProfileItems profiles={agentProfiles} />
+        </AgentLaunchPicker>
       </div>
 
       <div className="!mb-2">
