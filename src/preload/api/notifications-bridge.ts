@@ -56,6 +56,7 @@ export const notificationsApi = {
     category?: NotificationSoundCategory
   }): Promise<NotificationSoundResult> => {
     try {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: IPC handler returns NotificationSoundPathResult; Electron invoke is untyped.
       const resolved = (await ipcRenderer.invoke(
         'notifications:resolveSoundPath',
         options?.category
