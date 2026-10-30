@@ -31,13 +31,13 @@ describe('shortcut groups', () => {
     const catalog = buildShortcutDefinitionCatalog({
       disabledTuiAgents: [],
       pluginCommands: [],
-      keybindings: { 'terminal.splitRight': ['Mod+Alt+ArrowRight'] },
+      keybindings: { 'terminal.splitRight': ['Mod+Alt+ArrowLeft'] },
       platform: 'darwin',
       missionControlConflictMessage: 'Blocked by Mission Control.'
     })
 
     expect(catalog.conflictByAction.get('terminal.splitRight')).toEqual([
-      expect.stringContaining('Worktree History Forward')
+      expect.stringContaining('Worktree History Back')
     ])
   })
 })

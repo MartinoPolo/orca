@@ -17,7 +17,7 @@ export const TAB_MOVE_KEYBINDING_DEFINITIONS: readonly KeybindingDefinition[] = 
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'move', 'right', 'split', 'group'],
-    defaultBindings: platformBindings([]),
+    defaultBindings: platformBindings(['Mod+Alt+ArrowRight']),
     allowInTerminal: true
   },
   {

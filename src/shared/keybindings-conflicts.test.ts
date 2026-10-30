@@ -215,12 +215,6 @@ describe('keybindings', () => {
 
   it('reports terminal bindings that lose their chord to main-process shortcuts', () => {
     expect(
-      findInterceptionConflicts('darwin', { 'terminal.splitRight': ['Mod+Alt+ArrowRight'] })
-    ).toContainEqual({
-      binding: 'Mod+Alt+ArrowRight',
-      actionIds: expect.arrayContaining(['worktree.history.forward', 'terminal.splitRight'])
-    })
-    expect(
       findInterceptionConflicts('darwin', { 'terminal.splitDown': ['Mod+Alt+ArrowLeft'] })
     ).toContainEqual({
       binding: 'Mod+Alt+ArrowLeft',

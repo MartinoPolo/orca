@@ -24,13 +24,16 @@ describe('directional tab move keybindings', () => {
     }
   )
 
-  it('leaves every move unbound so worktree history keeps its default chords', () => {
+  it('gives move-right the history-forward chord and leaves other moves unbound', () => {
     for (const platform of PLATFORMS) {
       for (const { actionId } of TAB_MOVE_ACTIONS) {
-        expect(getEffectiveKeybindingsForAction(actionId, platform)).toEqual([])
+        expect(getEffectiveKeybindingsForAction(actionId, platform)).toEqual(
+          actionId === 'tab.moveRight' ? ['Mod+Alt+ArrowRight'] : []
+        )
       }
-      expect(getEffectiveKeybindingsForAction('worktree.history.forward', platform)).toEqual([
-        'Mod+Alt+ArrowRight'
+      expect(getEffectiveKeybindingsForAction('worktree.history.forward', platform)).toEqual([])
+      expect(getEffectiveKeybindingsForAction('worktree.history.back', platform)).toEqual([
+        'Mod+Alt+ArrowLeft'
       ])
     }
   })

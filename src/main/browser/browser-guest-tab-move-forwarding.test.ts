@@ -97,12 +97,15 @@ describe('browser guest directional tab move forwarding', () => {
     })
   })
 
-  it('keeps the default Mod+Alt+ArrowRight chord on worktree history forward', () => {
+  it('moves the guest tab right on the default Mod+Alt+ArrowRight chord', () => {
     registerForwarding({ resolveWorktreeId: () => 'worktree-1' })
 
     triggerBeforeInput({ code: 'ArrowRight', key: 'ArrowRight', alt: true })
 
-    expect(rendererSend).toHaveBeenCalledWith('ui:worktreeHistoryNavigate', 'forward')
-    expect(rendererSend).not.toHaveBeenCalledWith('ui:moveTabFromBrowserGuest', expect.anything())
+    expect(rendererSend).toHaveBeenCalledWith('ui:moveTabFromBrowserGuest', {
+      direction: 'right',
+      sourceId: browserTabId
+    })
+    expect(rendererSend).not.toHaveBeenCalledWith('ui:worktreeHistoryNavigate', 'forward')
   })
 })

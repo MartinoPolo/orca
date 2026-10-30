@@ -64,7 +64,8 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'worktree', 'history', 'forward'],
-    defaultBindings: platformBindings(['Mod+Alt+ArrowRight'])
+    // The fork gives this chord to tab.moveRight.
+    defaultBindings: platformBindings([])
   },
   {
     id: 'tab.newTerminal',
