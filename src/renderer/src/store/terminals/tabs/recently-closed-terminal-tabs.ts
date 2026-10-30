@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../../types'
 import { runtimeEnvironmentIdForWorkspaceOwner } from '@/lib/workspace/ownership/resolve-owner'
+import type { TerminalTab } from '../../../../../shared/workspace-layout/terminal-tab-types'
 import {
   isWindowsAbsolutePathLike,
   relativePathInsideRoot
@@ -15,6 +16,7 @@ export type ClosedTerminalTabSnapshot = {
   startupCwd?: string
   shellOverride?: string
   customTitle?: string
+  launchKind?: TerminalTab['launchKind']
   color?: string
   position?: RecentlyClosedTabPosition
 }
@@ -100,12 +102,13 @@ export const createRecentlyClosedTerminalTabsSlice: StateCreator<
 
     const tab = get().createTab(worktreeId, snapshot.position?.groupId, snapshot.shellOverride, {
       ...(snapshot.startupCwd ? { startupCwd: snapshot.startupCwd } : {}),
+      ...(snapshot.launchKind ? { launchKind: snapshot.launchKind } : {}),
       activate: true
     })
     if (snapshot.customTitle) {
       get().setTabCustomTitle(tab.id, snapshot.customTitle)
     }
-    if (snapshot.color) {
+    if (snapshot.color !== undefined) {
       get().setTabColor(tab.id, snapshot.color)
     }
     get().setActiveTabType('terminal', worktreeId)

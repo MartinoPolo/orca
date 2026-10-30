@@ -34,6 +34,10 @@ Use these _only_ for git status. Don't reuse them for unrelated state colors —
 
 Diff hunks (line, changed-character and gutter tints in chat diffs and Monaco's diff editor) use `--diff-added` / `--diff-removed` and their `-background`, `-emphasis` and `-gutter` tints instead. The hues default to the matching decoration colors, so themes can tune diffs separately from file status. Diff _text_ in chat uses `text-chat-diff-added` / `text-chat-diff-removed`.
 
+## Terminal tab headers
+
+Terminal headers may use a tint from the `--tab-tint-*` tokens. Identity marks what runs inside: Pi (every account) blue, Claude orange, ordinary command launches green. Inactive tabs show identity only as a softened bottom strip; the active tab fills with its identity tint above a full-strength strip. State fills any tab and replaces the identity background, so a filled inactive tab always needs the user: unread yellow, attention (needs input, interrupted, or failed) red. Manual swatches override automatic identity; No color keeps a neutral identity. Keep text contrast accessible in both themes, and do not apply these tints to other surfaces.
+
 ## List rows: hover, selected, current
 
 A common point of drift. Use these conventions for any list-style row (worktrees, command palette items, settings nav):

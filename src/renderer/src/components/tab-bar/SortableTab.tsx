@@ -29,6 +29,7 @@ import { useTabStripSlotProps } from './use-tab-strip-slot-props'
 import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { useTabContextMenuOpening } from './tab-context-menu-opening'
 import { TerminalTabLeadingIcon } from './TerminalTabLeadingIcon'
+import { getTerminalTabTintPresentation, type TerminalTabTintSource } from './terminal-tab-color'
 import {
   isTerminalTabActivityLive,
   terminalTabHasUnreadActivity
@@ -42,10 +43,8 @@ import { NativeChatNamingErrorBlock, NativeChatNamingFailedDialog } from './Nati
 import { ForkMarkedName } from '../native-chat/fork/ForkMarkedName'
 
 /** What the strip draws for a terminal or native chat tab; never a source of agent identity. */
-type SortableTabModel = Pick<
-  TerminalTab,
-  'id' | 'worktreeId' | 'title' | 'customTitle' | 'color' | 'shellOverride' | 'launchAgent'
->
+type SortableTabModel = TerminalTabTintSource &
+  Pick<TerminalTab, 'id' | 'worktreeId' | 'title' | 'customTitle' | 'shellOverride' | 'launchAgent'>
 
 export type SortableTabProps = {
   tab: SortableTabModel
@@ -174,6 +173,13 @@ export default function SortableTab({
   // Why: a live working/needs-input state is newer than a prior-turn unread, so it owns the icon until the turn ends.
   const showUnreadActivity =
     hasUnreadActivity && !isEditing && !isTerminalTabActivityLive(activityStatus)
+  const tint = getTerminalTabTintPresentation({
+    tab,
+    agent: tabAgent,
+    activityStatus,
+    showUnreadActivity,
+    isActive
+  })
 
   useEffect(() => {
     const closeMenu = (): void => setMenuOpen(false)
@@ -215,9 +221,11 @@ export default function SortableTab({
       // Expose rendered selection so E2E catches visual regressions missed by store-only assertions.
       data-active={isActive ? 'true' : 'false'}
       data-agent-activity-status={activityStatus}
+      {...tint.rootAttributes}
       {...attributes}
       {...dragListeners}
-      className={`${fork ? '@container/tab ' : ''}w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`${fork ? '@container/tab ' : ''}w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive || tint.isFilled)}`}
+      style={tint.rootStyle}
       onDoubleClick={(e) => {
         if (isEditing) {
           return
@@ -248,10 +256,8 @@ export default function SortableTab({
         }
       }}
     >
-      {isActive && <span className={ACTIVE_TAB_INDICATOR_CLASSES} aria-hidden />}
-      {showUnreadActivity && (
-        // Why: a real DOM child keeps both drop-indicator pseudo-elements free and pointer events reaching the tab.
-        <span aria-hidden className="pointer-events-none absolute inset-0 bg-amber-500/10" />
+      {tint.showIndicator && (
+        <span className={ACTIVE_TAB_INDICATOR_CLASSES} style={tint.indicatorStyle} aria-hidden />
       )}
       <TerminalTabLeadingIcon
         agent={tabAgent}
@@ -291,12 +297,6 @@ export default function SortableTab({
         />
       ) : (
         <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{titleNode}</span>
-      )}
-      {tab.color && !isEditing && (
-        <span
-          className="mr-1.5 size-2 rounded-full shrink-0"
-          style={{ backgroundColor: tab.color }}
-        />
       )}
       {isExpanded && !isEditing && (
         <button

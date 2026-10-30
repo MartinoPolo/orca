@@ -58,6 +58,7 @@ export function applyDefaultTerminalTabs(
       pendingActivationSpawn: true,
       recordInteraction: false,
       ...(launchAgent ? { launchAgent } : {}),
+      ...(pendingStartup?.command && !launchAgent ? { launchKind: 'command' as const } : {}),
       ...(opts?.activateCreatedTabs === false ? { activate: false } : {}),
       ...(pendingStartup ? { pendingStartup } : {})
     })

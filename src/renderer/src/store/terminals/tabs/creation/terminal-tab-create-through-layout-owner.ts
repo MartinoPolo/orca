@@ -41,7 +41,8 @@ export function withMainTerminalFacts(tab: TerminalTab): TerminalTab {
           'shellOverride',
           'startupCwd',
           'forceHostRuntime',
-          'launchAgent'
+          'launchAgent',
+          'launchKind'
         ])
       : {})
   }
@@ -61,7 +62,8 @@ export function terminalTabCreateCommand(
     ...(tab.shellOverride ? { shellOverride: tab.shellOverride } : {}),
     ...(tab.startupCwd ? { startupCwd: tab.startupCwd } : {}),
     ...(tab.forceHostRuntime ? { forceHostRuntime: true } : {}),
-    ...(tab.launchAgent ? { launchAgent: tab.launchAgent } : {})
+    ...(tab.launchAgent ? { launchAgent: tab.launchAgent } : {}),
+    ...(tab.launchKind ? { launchKind: tab.launchKind } : {})
   }
   return {
     type: 'createTerminalTab',

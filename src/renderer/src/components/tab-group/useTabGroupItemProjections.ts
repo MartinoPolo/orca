@@ -96,6 +96,7 @@ export function useTabGroupItemProjections({
             startupCwd: terminalTab?.startupCwd,
             // Why: rebuilt from the unified-tab model, so copy store-only launchAgent or the provider icon is missing until the first hook.
             launchAgent: terminalTab?.launchAgent,
+            launchKind: terminalTab?.launchKind,
             pendingActivationSpawn: terminalTab?.pendingActivationSpawn
           }
         }),

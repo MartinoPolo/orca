@@ -1,6 +1,8 @@
 import { Pencil, Pin, PinOff, SquareTerminal, Timer, X } from 'lucide-react'
 import {
   ContextMenuItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSeparator,
   ContextMenuShortcut,
   ContextMenuContent
@@ -18,12 +20,6 @@ import { useAllowAutoClose } from './use-allow-auto-close'
 import { CloseSplitPaneMenuItem } from './CloseSplitPaneMenuItem'
 
 const TAB_COLORS = [
-  {
-    get label() {
-      return translate('auto.components.tab.bar.SortableTabContextMenu.20baa43c05', 'None')
-    },
-    value: null
-  },
   {
     get label() {
       return translate('auto.components.tab.bar.SortableTabContextMenu.cb3eadefd2', 'Blue')
@@ -228,25 +224,32 @@ export function SortableTabContextMenu({
             const isSelected = tab.color === color.value
             return (
               <ContextMenuItem
-                key={color.label}
+                key={color.value}
+                aria-label={color.label}
                 className={`relative h-4 w-4 min-w-4 p-0 rounded-full border ${
                   isSelected ? 'ring-1 ring-foreground/70 ring-offset-1 ring-offset-popover' : ''
-                } ${
-                  color.value ? 'border-transparent' : 'border-muted-foreground/50 bg-transparent'
                 }`}
-                style={color.value ? { backgroundColor: color.value } : undefined}
+                style={{ backgroundColor: color.value }}
                 onSelect={() => {
                   onSetTabColor(tab.id, color.value)
                 }}
-              >
-                {color.value === null && (
-                  <span className="absolute block h-px w-3 rotate-45 bg-muted-foreground/80" />
-                )}
-              </ContextMenuItem>
+              />
             )
           })}
         </div>
       </div>
+      {/* null keeps the automatic launch-identity tint; '' is an explicit neutral choice. */}
+      <ContextMenuRadioGroup
+        value={tab.color === null ? 'automatic' : tab.color === '' ? 'none' : ''}
+        onValueChange={(value) => onSetTabColor(tab.id, value === 'automatic' ? null : '')}
+      >
+        <ContextMenuRadioItem value="automatic">
+          {t('components.tab.bar.SortableTabContextMenu.automaticColor', 'Automatic')}
+        </ContextMenuRadioItem>
+        <ContextMenuRadioItem value="none">
+          {t('components.tab.bar.SortableTabContextMenu.noColor', 'No color')}
+        </ContextMenuRadioItem>
+      </ContextMenuRadioGroup>
     </ContextMenuContent>
   )
 }

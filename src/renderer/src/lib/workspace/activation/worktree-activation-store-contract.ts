@@ -1,6 +1,7 @@
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { Tab } from '../../../../../shared/tab-types'
 import type { TuiAgent } from '../../../../../shared/agent-launch/catalog/tui-agent'
+import type { TerminalTab } from '../../../../../shared/workspace-layout/terminal-tab-types'
 import type {
   AgentProviderSessionMetadata,
   SleepingAgentLaunchConfig
@@ -22,6 +23,7 @@ export type WorktreeActivationStore = Partial<WorktreeRuntimeOwnerState> & {
     options?: {
       pendingActivationSpawn?: boolean
       launchAgent?: TuiAgent
+      launchKind?: TerminalTab['launchKind']
       recordInteraction?: boolean
       viewMode?: Tab['viewMode']
       activate?: boolean

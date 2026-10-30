@@ -31,6 +31,7 @@ export function queueSetupAndIssueCommands(
     }
     const setupTab = store.createTab(worktreeId, undefined, undefined, {
       recordInteraction: false,
+      launchKind: 'command',
       ...(opts?.activateCreatedTabs === false ? { activate: false } : {}),
       ...(setup.cwd ? { startupCwd: setup.cwd } : {}),
       pendingStartup: setupCommand

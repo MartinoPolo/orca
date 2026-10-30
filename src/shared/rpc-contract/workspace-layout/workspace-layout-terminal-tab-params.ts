@@ -22,7 +22,8 @@ const TerminalCreation = z.object({
   forceHostRuntime: z.literal(true).optional(),
   launchAgent: z
     .custom<TuiAgent>((value) => typeof value === 'string' && isTuiAgent(value))
-    .optional()
+    .optional(),
+  launchKind: z.enum(['command']).optional().catch(undefined)
 })
 
 /** Preserve window-created tab/pane IDs for immediate callers; refuse collisions and replay creates idempotently. */

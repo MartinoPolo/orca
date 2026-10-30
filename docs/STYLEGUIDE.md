@@ -2,7 +2,7 @@
 
 UI rules for Orca. Token values live in `src/renderer/src/assets/main.css` (canonical); this file documents _roles and rules_, not values.
 
-The identity is **monochrome and quiet**: neutral grays carry the chrome, color is reserved for state (selection ring, destructive, git decorations). Orca mostly hosts other tools (Monaco, xterm, Markdown previews), so its own UI should recede and frame. When in doubt:
+The identity is **monochrome and quiet**: neutral grays carry the chrome, color is reserved for state (selection ring, destructive, git decorations) and muted terminal tab header identity tints. Orca mostly hosts other tools (Monaco, xterm, Markdown previews), so its own UI should recede and frame. When in doubt:
 
 - Reach for **muted/accent/border** before color.
 - Reach for **CSS variables** before hardcoded hex.
@@ -36,6 +36,7 @@ Tokens pair a **surface** with a **foreground** that meets contrast on it; alway
 - `border` = all hairlines; `ring` = focus-visible outlines and selection halos, not persistent decoration.
 - `sidebar*` only inside the worktree sidebar; `editor-surface` for Monaco/markdown editor panes, not app chrome.
 - `--git-decoration-*` only for git status, never other state.
+- `--tab-tint-*` only for terminal tab headers ([rules](./styleguide/color.md#terminal-tab-headers)).
 - **List rows:** idle transparent; hover `bg-accent` (`bg-sidebar-accent` in the sidebar); cmdk keyboard selection must not rely on flat `bg-accent` on light popovers/dialogs — use the `.jump-palette-item[data-selected='true']` recipe in `main.css`; the persistent current row is `bg-accent` plus `data-current="true"`. Never invent a "selected" color.
 
 ## Typography
