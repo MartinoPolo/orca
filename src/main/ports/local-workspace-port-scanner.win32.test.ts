@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 
 vi.mock('./port-scan-command-client', async () => {
   const { join } = await import('node:path')
-  const { runProcess } = await import('../../shared/child-process/run-process')
+  const { runProcess } = await import('@orca/process-host')
   return {
     runPortScanCommand: async (command: string, args: string[]) => {
       const startedAt = Date.now()
