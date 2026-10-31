@@ -11733,8 +11733,6 @@
           "description": "Les liens du terminal, du chat et du markdown s'ouvrent dans le navigateur sans retirer le focus de l'endroit où vous avez cliqué."
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "Afficher les actions de lien du terminal",
-          "descriptionV2": "Contrôlez les clics sur les URL détectées imprimées dans les volets du terminal et les transcriptions de discussion.",
           "plainClickLabel": "Clic simple",
           "plainClickDescription": "Choisissez si un clic gauche affiche les actions, ouvre l'URL ou la laisse au terminal. Cmd/Ctrl-clic s'ouvre toujours directement.",
           "plainClickAriaLabel": "Comportement de l'URL de clic simple",

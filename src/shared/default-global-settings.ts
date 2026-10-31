@@ -9,6 +9,7 @@ import { DEFAULT_APP_ICON_ID } from './app-icon'
 import { DEFAULT_OPEN_IN_APPLICATIONS } from './open-in-applications'
 import { DEFAULT_DISABLED_TUI_AGENTS } from './tui-agent-selection'
 import { UI_LANGUAGE_SYSTEM } from './ui-language'
+import { FILE_LINK_SYSTEM_APP_KINDS } from './file-link-system-app-kinds'
 import {
   DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
   DEFAULT_LEFT_SIDEBAR_TINT_OPACITY
@@ -132,6 +133,7 @@ export function buildDefaultSettings(args: {
     terminalLinkActionPopoverEnabled: true,
     terminalLinkClickBehavior: 'actions',
     terminalUrlMiddleClickBehavior: 'open',
+    fileLinkSystemAppKinds: [...FILE_LINK_SYSTEM_APP_KINDS],
     experimentalNativeChat: false,
     experimentalBrowserExtensions: false,
     nativeChatResumeWorkOnRestart: false,

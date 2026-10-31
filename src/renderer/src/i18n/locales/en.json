@@ -11961,8 +11961,6 @@
           "description": "Links from the terminal, chat, and markdown join the browser without taking focus from where you clicked."
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "Terminal URL clicks",
-          "descriptionV2": "Control clicks on detected URLs printed in terminal panes and chat transcripts.",
           "plainClickLabel": "Plain click",
           "plainClickDescription": "Choose whether a left-click shows actions, opens the URL, or leaves it to the terminal. Cmd/Ctrl-click always opens directly.",
           "plainClickAriaLabel": "Plain click URL behavior",
@@ -11971,7 +11969,9 @@
           "middleClickAriaLabel": "Middle click",
           "actionsLabel": "Actions",
           "openUrlLabel": "Open URL",
-          "leaveToTerminalLabel": "Leave to terminal"
+          "leaveToTerminalLabel": "Leave to terminal",
+          "titleV2": "Terminal link clicks",
+          "descriptionV3": "Control clicks on detected URLs and file paths in terminal panes and chat transcripts."
         },
         "PluginConsentDialog": {
           "reconsent": "Changed since you approved it",
@@ -13418,6 +13418,16 @@
           "installed": "Make sure you trust {{value0}}. This plugin runs the publisher’s code inside Orca.",
           "label": "Not an official plugin:",
           "translations": "Translations can change any text in Orca. Make sure you trust {{value0}}."
+        },
+        "BrowserFileLinkTargetRows": {
+          "imageLabel": "Images",
+          "pdfLabel": "PDFs",
+          "mediaLabel": "Audio and video",
+          "binaryLabel": "Other binary files",
+          "title": "File links",
+          "description": "Where clicked file paths open by kind. Text files always open in Orca; Shift+Cmd/Ctrl-click opens the other destination.",
+          "orcaLabel": "Orca",
+          "systemLabel": "Default app"
         }
       },
       "right": {

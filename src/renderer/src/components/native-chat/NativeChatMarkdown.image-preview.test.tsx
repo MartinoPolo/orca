@@ -561,7 +561,8 @@ describe('native chat Markdown image preview', () => {
       '/repo/worktree/chart.png',
       null,
       null,
-      expect.objectContaining({ openWithSystemDefault: 'shiftKey' in modifiers })
+      // Images open with the default app by default, so Shift brings them into Orca.
+      expect.objectContaining({ openWithSystemDefault: !('shiftKey' in modifiers) })
     )
   })
 

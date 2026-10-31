@@ -19,6 +19,13 @@ export function getTerminalFileOpenHint(showActions = true): string {
     : `${prefix}Ctrl+click to open, or Shift+Ctrl+click for default app`
 }
 
+export function getTerminalSystemAppFileOpenHint(showActions = true): string {
+  const prefix = terminalLinkActionHintPrefix(showActions)
+  return isMacPlatform()
+    ? `${prefix}⌘+click for default app, or ⇧⌘+click to open in Orca`
+    : `${prefix}Ctrl+click for default app, or Shift+Ctrl+click to open in Orca`
+}
+
 export function getTerminalOrcaFileOpenHint(showActions = true): string {
   const prefix = showActions ? 'Click for actions or ' : ''
   return isMacPlatform()

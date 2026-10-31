@@ -11848,8 +11848,6 @@
           "description": "Links aus dem Terminal, Chat und Markdown werden im Browser geöffnet, ohne den Fokus von der angeklickten Stelle zu nehmen."
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "Klicks auf Terminal-URLs",
-          "descriptionV2": "Klickverhalten für erkannte URLs in Terminal-Bereichen und Chat-Verläufen festlegen.",
           "plainClickLabel": "Normaler Klick",
           "plainClickDescription": "Festlegen, ob ein Linksklick Aktionen anzeigt, die URL öffnet oder die Verarbeitung dem Terminal überlässt. Ein Cmd/Ctrl-Klick öffnet die URL immer direkt.",
           "plainClickAriaLabel": "URL-Verhalten bei normalem Klick",

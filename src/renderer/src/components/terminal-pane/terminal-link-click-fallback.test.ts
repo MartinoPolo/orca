@@ -141,7 +141,7 @@ describe('createFilePathLinkProvider range bounds', () => {
         worktreeId: 'wt-1',
         worktreePath: '/tmp',
         runtimeEnvironmentId: null,
-        openWithSystemDefault: true
+        shiftKey: true
       }
     )
     await flushAsyncWork()
@@ -589,7 +589,7 @@ describe('createFilePathLinkProvider range bounds', () => {
       worktreeId: 'wt-1',
       worktreePath: '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5',
       runtimeEnvironmentId: null,
-      openWithSystemDefault: true
+      shiftKey: true
     })
     await flushAsyncWork()
 
@@ -602,6 +602,8 @@ describe('createFilePathLinkProvider range bounds', () => {
 
   it('opens the same boundary path from direct clicks on both physical halves', async () => {
     setPlatform('Macintosh')
+    // Screenshot paths would otherwise open with the default app; this test covers hit testing.
+    storeState.settings = { fileLinkSystemAppKinds: [] }
     const firstPath = 'validation-screenshots/01-before-white-terminal-scrollbar-gutter.png'
     const middleStart = 'validation-screenshots/02-after-'
     const middleEnd = 'transparent-terminal-scrollbar-gutter.png'

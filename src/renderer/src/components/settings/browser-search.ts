@@ -57,6 +57,8 @@ export function getTerminalLinkActionSearchKeywords(platform: BrowserShortcutPla
       'disable'
     ),
     'link click behavior',
+    'file links',
+    'default app',
     'open directly',
     'modifier-click only',
     'middle click',
@@ -187,12 +189,12 @@ export function getBrowserPaneSearchEntries(
     },
     {
       title: translate(
-        'auto.components.settings.BrowserTerminalLinkActionsSetting.title',
-        'Terminal URL clicks'
+        'auto.components.settings.BrowserTerminalLinkActionsSetting.titleV2',
+        'Terminal link clicks'
       ),
       description: translate(
-        'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV2',
-        'Control clicks on detected URLs printed in terminal panes and chat transcripts.'
+        'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV3',
+        'Control clicks on detected URLs and file paths in terminal panes and chat transcripts.'
       ),
       keywords: getTerminalLinkActionSearchKeywords(platform)
     },

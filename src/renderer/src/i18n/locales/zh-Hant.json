@@ -11671,8 +11671,6 @@
           "description": "終端機、聊天和 Markdown 中的連結會在瀏覽器中開啟，焦點仍保留在點選的位置。"
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "終端機 URL 點選行為",
-          "descriptionV2": "設定終端機窗格和聊天記錄中偵測到的 URL 的點選行為。",
           "plainClickLabel": "一般點選",
           "plainClickDescription": "選擇按一下滑鼠左鍵時要顯示操作、開啟 URL，還是交由終端機處理。Cmd/Ctrl-click 一律直接開啟。",
           "plainClickAriaLabel": "一般點選 URL 的行為",

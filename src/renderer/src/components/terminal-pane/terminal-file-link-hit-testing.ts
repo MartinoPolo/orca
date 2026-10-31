@@ -12,6 +12,7 @@ import {
   type TerminalFileContext
 } from './terminal-file-open-routing'
 import { reserveDetectedFilePathOpenTurn } from './terminal-file-open-turn'
+import { fileLinkDirectClickOpensSystemApp } from './file-link-direct-click-target'
 import {
   fileLinkTargetExists,
   mayCheckFileLinkTargetUnprompted,
@@ -32,7 +33,8 @@ type FileLinkHitTestDeps = {
   wslDistro?: string | null
   terminalHandle?: string | null
   pathExistsCache?: TerminalPathExistsCache
-  openWithSystemDefault?: boolean
+  /** Shift+modifier: open the destination the file kind does not use by default. */
+  shiftKey?: boolean
   sourceTabId?: string | null
   /** Tells the user why a click opened nothing; skipped once a later click supersedes it. */
   onOpenFailure?: (absolutePath: string, failure: FileOpenFailure) => void
@@ -104,7 +106,10 @@ export function openFilePathLinkAtBufferPosition(
       verified || link.isKnownWorktreeRoot || !shown ? link.absolutePath : shown.absolutePath
     openDetectedFilePath(link.absolutePath, link.line, link.column, {
       ...deps,
-      openWithSystemDefault: deps.openWithSystemDefault === true,
+      openWithSystemDefault: fileLinkDirectClickOpensSystemApp(
+        link.absolutePath,
+        deps.shiftKey === true
+      ),
       onOpenFailure: reportsFailure ? (failure) => onOpenFailure(reportedPath, failure) : undefined
     })
   }

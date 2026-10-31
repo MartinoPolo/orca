@@ -12,6 +12,7 @@ import type { WorktreeDeletionPreferences } from './worktree-deletion-preference
 import type { AgentPermissionGlobalSettings } from './tui-agent-permission-choice'
 import type { OrchestrationHeartbeatSettings } from './orchestration-heartbeat'
 import type { AgentLaunchProfileSettings } from './agent-launch-profiles'
+import type { FileLinkOpenSettings } from './file-link-system-app-kinds'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
 export type GlobalSettingsBase = ClaudeAgentViewSettings &
@@ -27,4 +28,5 @@ export type GlobalSettingsBase = ClaudeAgentViewSettings &
   PluginFileTypeSuggestionSettings &
   PluginUpdatePolicySettings &
   PluginSystemSettings &
-  AgentLaunchProfileSettings
+  AgentLaunchProfileSettings &
+  FileLinkOpenSettings

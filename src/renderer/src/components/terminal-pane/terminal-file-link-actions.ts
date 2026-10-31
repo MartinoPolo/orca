@@ -11,6 +11,8 @@ import {
 } from './terminal-file-open-routing'
 import { isHtmlFilePath, localHtmlFileDestinations } from './local-html-file-destinations'
 import { isTerminalLinkDirectActivation } from './terminal-link-activation'
+import { fileLinkDirectClickOpensSystemApp } from './file-link-direct-click-target'
+import { fileLinkOpensInSystemApp } from '../../../../shared/file-link-system-app-kinds'
 import {
   requestTerminalLinkAction,
   type TerminalLinkActionContext
@@ -54,7 +56,7 @@ export function handleTerminalFileLink(
     event?.preventDefault?.()
     openDetectedFilePath(filePath, line, column, {
       ...deps,
-      openWithSystemDefault: Boolean(event?.shiftKey)
+      openWithSystemDefault: fileLinkDirectClickOpensSystemApp(filePath, Boolean(event?.shiftKey))
     })
     return true
   }
@@ -170,26 +172,26 @@ export function buildFileLinkActions(
         }
       : null
   const secondaryActions = [openInGroupRow, revealRow].filter((row) => row !== null)
+  const openInOrcaRow = {
+    label: worktreeRoot
+      ? translate(
+          'auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace',
+          'Switch workspace'
+        )
+      : translate('auto.components.terminal.pane.TerminalLinkActionPopover.openFile', 'Open file'),
+    run: () => openDetectedFilePath(filePath, line, column, deps)
+  }
+  // Why: plain-click "open" runs the primary row, so it must be the file kind's default.
   const rows =
     !worktreeRoot && canOpenWithSystemDefault && isHtmlFilePath(mappedPath)
       ? buildHttpLinkActions(localHtmlFileDestinations(), (browserDestination) =>
           openDetectedFilePath(filePath, line, column, { ...deps, browserDestination })
         )
-      : {
-          primary: {
-            label: worktreeRoot
-              ? translate(
-                  'auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace',
-                  'Switch workspace'
-                )
-              : translate(
-                  'auto.components.terminal.pane.TerminalLinkActionPopover.openFile',
-                  'Open file'
-                ),
-            run: () => openDetectedFilePath(filePath, line, column, deps)
-          },
-          ...(systemDefaultRow ? { alternate: systemDefaultRow } : {})
-        }
+      : systemDefaultRow &&
+          !worktreeRoot &&
+          fileLinkOpensInSystemApp(useAppStore.getState().settings, mappedPath)
+        ? { primary: systemDefaultRow, alternate: openInOrcaRow }
+        : { primary: openInOrcaRow, ...(systemDefaultRow ? { alternate: systemDefaultRow } : {}) }
   return {
     destination: mappedPath,
     kind: worktreeRoot ? 'workspace' : 'file',

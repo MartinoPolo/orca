@@ -11834,8 +11834,6 @@
           "description": "Terminal, sohbet ve markdown bağlantıları, tıkladığınız yerdeki odağı değiştirmeden tarayıcıda açılır."
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "Terminal URL tıklamaları",
-          "descriptionV2": "Terminal bölmelerinde ve sohbet dökümlerinde yazdırılan tespit edilen URL'lere tıklamaları kontrol edin.",
           "plainClickLabel": "Düz tıklama",
           "plainClickDescription": "Sol tıklamanın eylemleri mi göstereceğini, URL'yi mi açacağını yoksa terminale mi bırakacağını seçin. Cmd/Ctrl+tıklama her zaman doğrudan açar.",
           "plainClickAriaLabel": "Düz tıklama URL davranışı",

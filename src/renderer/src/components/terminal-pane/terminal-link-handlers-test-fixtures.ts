@@ -1,8 +1,9 @@
 import { vi, type Mock } from 'vitest'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
+import type { FileLinkOpenSettings } from '../../../../shared/file-link-system-app-kinds'
 
-export type TerminalLinkStoreSettings = {
+export type TerminalLinkStoreSettings = FileLinkOpenSettings & {
   openLinksInApp?: boolean
   openLinksInAppPreferencePrompted?: boolean
   activeRuntimeEnvironmentId?: string | null

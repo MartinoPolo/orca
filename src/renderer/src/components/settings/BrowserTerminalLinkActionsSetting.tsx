@@ -8,6 +8,7 @@ import {
   SettingsSubsectionHeader
 } from './SettingsFormControls'
 import { getTerminalLinkActionSearchKeywords } from './browser-search'
+import { BrowserFileLinkTargetRows } from './BrowserFileLinkTargetRows'
 import {
   terminalLinkClickBehaviorFor,
   type TerminalLinkClickBehavior
@@ -19,6 +20,7 @@ type BrowserTerminalLinkActionsSettingProps = {
     | 'terminalLinkActionPopoverEnabled'
     | 'terminalLinkClickBehavior'
     | 'terminalUrlMiddleClickBehavior'
+    | 'fileLinkSystemAppKinds'
   >
   isMac: boolean
   updateSettings: (updates: Partial<GlobalSettings>) => void
@@ -30,12 +32,12 @@ export function BrowserTerminalLinkActionsSetting({
   updateSettings
 }: BrowserTerminalLinkActionsSettingProps): React.JSX.Element {
   const title = translate(
-    'auto.components.settings.BrowserTerminalLinkActionsSetting.title',
-    'Terminal URL clicks'
+    'auto.components.settings.BrowserTerminalLinkActionsSetting.titleV2',
+    'Terminal link clicks'
   )
   const description = translate(
-    'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV2',
-    'Control clicks on detected URLs printed in terminal panes and chat transcripts.'
+    'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV3',
+    'Control clicks on detected URLs and file paths in terminal panes and chat transcripts.'
   )
   const behavior = terminalLinkClickBehaviorFor(settings)
   const plainClickLabel = translate(
@@ -123,6 +125,7 @@ export function BrowserTerminalLinkActionsSetting({
             />
           </div>
         </div>
+        <BrowserFileLinkTargetRows settings={settings} updateSettings={updateSettings} />
       </section>
     </SearchableSetting>
   )

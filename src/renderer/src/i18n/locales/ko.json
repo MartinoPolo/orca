@@ -11650,8 +11650,6 @@
           "0e0d1ee15a": "글꼴 두께와 독립적으로 조정합니다. 일부 글꼴은 여러 값을 한 면에 매핑하므로 글꼴 두께를 낮추거나 굵게 표시되는 경우 다른 글꼴을 선택하세요."
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "터미널 URL 클릭",
-          "descriptionV2": "터미널 창과 채팅 기록에 인쇄된 감지된 URL에 대한 클릭을 제어합니다.",
           "plainClickLabel": "일반 클릭",
           "plainClickDescription": "왼쪽 클릭 시 동작 메뉴를 표시할지, URL을 열지, 터미널에 맡길지 선택하세요. Cmd/Ctrl 키를 누른 채 클릭하면 항상 바로 열립니다.",
           "plainClickAriaLabel": "일반 클릭 URL 동작",

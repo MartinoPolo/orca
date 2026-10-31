@@ -11615,8 +11615,6 @@
           "0e0d1ee15a": "独立于字体粗细进行调整。某些字体会将多个值映射到一个面，因此如果粗体看起来没有变化，请降低字体粗细或选择另一种字体。"
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "终端 URL 点击次数",
-          "descriptionV2": "控制点击终端窗格和聊天记录中打印的已检测的 URL。",
           "plainClickLabel": "简单的点击",
           "plainClickDescription": "选择左键单击是显示操作、打开 URL 还是将其留给终端。 Cmd/Ctrl-单击始终直接打开。",
           "plainClickAriaLabel": "普通点击 URL 行为",

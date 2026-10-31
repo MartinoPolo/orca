@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TerminalLinkActionContext } from './terminal-link-action-request'
+import type { FileLinkSystemAppKind } from '../../../../shared/file-link-system-app-kinds'
 
 const mocks = vi.hoisted(() => {
-  const settings: { activeRuntimeEnvironmentId: string | null; openLinksInApp?: boolean } = {
+  const settings: {
+    activeRuntimeEnvironmentId: string | null
+    openLinksInApp?: boolean
+    fileLinkSystemAppKinds?: FileLinkSystemAppKind[]
+  } = {
     activeRuntimeEnvironmentId: null
   }
   const tabGroups: Record<string, unknown> = {}
@@ -104,6 +109,40 @@ describe('terminal file link actions', () => {
       openWithSystemDefault: true
     })
   })
+
+  it('puts the default app first for a file kind that opens there', () => {
+    const request = vi.fn()
+    handleTerminalFileLink('/repo/shot.png', null, null, plainEvent(), deps, context(request))
+    mocks.settings = { activeRuntimeEnvironmentId: null, fileLinkSystemAppKinds: [] }
+    handleTerminalFileLink('/repo/shot.png', null, null, plainEvent(), deps, context(request))
+
+    const [systemFirst, orcaFirst] = request.mock.calls.map(([call]) => call)
+    expect([systemFirst.primary.label, systemFirst.alternate.label]).toEqual([
+      'Open with default app',
+      'Open file'
+    ])
+    expect([orcaFirst.primary.label, orcaFirst.alternate.label]).toEqual([
+      'Open file',
+      'Open with default app'
+    ])
+  })
+
+  it.each([
+    ['/repo/shot.png', false, true],
+    ['/repo/shot.png', true, false],
+    ['/repo/src/main.ts', false, false],
+    ['/repo/src/main.ts', true, true]
+  ])(
+    'direct click on %s with Shift %s opens with the default app: %s',
+    (path, shiftKey, system) => {
+      const event = Object.assign(plainEvent(), { metaKey: true, shiftKey })
+      expect(handleTerminalFileLink(path, null, null, event, deps)).toBe(true)
+      expect(mocks.openDetectedFilePath).toHaveBeenCalledExactlyOnceWith(path, null, null, {
+        ...deps,
+        openWithSystemDefault: system
+      })
+    }
+  )
 
   it('offers a local HTML file the link-routing browsers, primary first', () => {
     const request = vi.fn()
