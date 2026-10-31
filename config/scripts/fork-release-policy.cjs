@@ -5,6 +5,7 @@ const { runProcessSync } = require('@orca/process-host')
 const REPOSITORY = 'MartinoPolo/orca'
 const FORK_URL = 'https://github.com/MartinoPolo/orca.git'
 const SHA = /^[0-9a-f]{40}$/
+const REWRITE_BACKUP_PREFIX = 'backup/main-before-'
 
 function git(cwd, args) {
   const result = runProcessSync({
@@ -101,7 +102,8 @@ function assertForkReleaseSource({
       '--prune',
       'fork',
       '+refs/heads/main:refs/remotes/fork/main',
-      '+refs/heads/martas/*:refs/remotes/fork/martas/*'
+      '+refs/heads/martas/*:refs/remotes/fork/martas/*',
+      `+refs/tags/${REWRITE_BACKUP_PREFIX}*:refs/remotes/fork/${REWRITE_BACKUP_PREFIX}*`
     ])
   }
   const commit = git(cwd, ['rev-parse', 'HEAD'])
@@ -130,18 +132,16 @@ function assertForkReleaseSource({
     }
   }
   let priorCommit = null
+  let priorCommitPreservedBy
   if (manifestPath && fs.existsSync(manifestPath)) {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
     checkPreviousArtifact(manifest)
     priorCommit = previousSource(cwd, manifest)
-    const ancestry = runProcessSync({
-      program: 'git',
-      args: ['merge-base', '--is-ancestor', priorCommit, commit],
-      cwd,
-      timeoutMs: 20000
-    })
-    if (ancestry.code !== 0 || ancestry.timedOut) {
-      throw new Error('Previous released commit was dropped')
+    if (!isAncestor(cwd, priorCommit, commit)) {
+      priorCommitPreservedBy = publishedRewriteBackup(cwd, priorCommit)
+      if (!priorCommitPreservedBy) {
+        throw new Error('Previous released commit was dropped')
+      }
     }
   }
   return {
@@ -150,8 +150,29 @@ function assertForkReleaseSource({
     commit,
     publishedCommit: commit,
     priorCommit,
+    ...(priorCommitPreservedBy ? { priorCommitPreservedBy } : {}),
     auditedRefs: refs
   }
+}
+
+function isAncestor(cwd, ancestor, descendant) {
+  const result = runProcessSync({
+    program: 'git',
+    args: ['merge-base', '--is-ancestor', ancestor, descendant],
+    cwd,
+    timeoutMs: 20000
+  })
+  return result.code === 0 && !result.timedOut
+}
+
+// Why: an intentional upstream rebase drops released commits; a published backup tag keeps them auditable.
+function publishedRewriteBackup(cwd, priorCommit) {
+  const namespace = `refs/remotes/fork/${REWRITE_BACKUP_PREFIX}`
+  const backups = git(cwd, ['for-each-ref', '--format=%(refname)', `${namespace}*`])
+    .split(/\r?\n/)
+    .filter(Boolean)
+  const preserving = backups.find((ref) => isAncestor(cwd, priorCommit, ref))
+  return preserving ? preserving.slice('refs/remotes/fork/'.length) : undefined
 }
 
 function assertForkPromotion({ cwd, manifestPath, metadata, provenance }) {
@@ -174,6 +195,7 @@ function assertForkPromotion({ cwd, manifestPath, metadata, provenance }) {
     provenance?.commit !== source.commit ||
     provenance?.publishedCommit !== source.commit ||
     provenance?.priorCommit !== source.priorCommit ||
+    provenance?.priorCommitPreservedBy !== source.priorCommitPreservedBy ||
     provenance?.version !== metadata.version ||
     JSON.stringify(provenance?.auditedRefs) !== JSON.stringify(source.auditedRefs)
   ) {
