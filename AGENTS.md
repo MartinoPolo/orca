@@ -4,7 +4,7 @@
 
 ## Fork Patches
 
-- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build, or `pnpm run build:fork:installer` for the same build as a normal NSIS installer under `MPX_APPS/Orca-Stable`.
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source that `main` still contains, or that a published `backup/main-before-*` tag preserves after an intentional upstream rebase; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build, or `pnpm run build:fork:installer` for the same build as a normal NSIS installer under `MPX_APPS/Orca-Stable`.
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths. Packaged CLI smoke checks use the shared bounded, hidden process runner.

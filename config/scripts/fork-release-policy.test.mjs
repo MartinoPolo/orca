@@ -177,6 +177,37 @@ describe('fork release safety', () => {
     writeFileSync(f.manifestPath, JSON.stringify(manifest))
     expect(() => check(f)).toThrow(/does not resolve to exactly one commit|Git rev-parse failed/)
   })
+  it('accepts a rewritten main only when a published backup tag preserves the prior commit', () => {
+    const f = fixture()
+    git(f.cwd, 'tag', 'backup/main-before-rebase', f.later)
+    git(f.cwd, 'checkout', '--orphan', 'rebased')
+    const rebased = commit(f.cwd, 'rebased')
+    git(f.cwd, 'branch', '-D', 'main')
+    git(f.cwd, 'branch', '-m', 'main')
+    git(f.cwd, 'push', '--force', f.bare, 'main')
+    expect(() => check(f)).toThrow(/Previous released commit was dropped/)
+
+    git(f.cwd, 'push', f.bare, 'refs/tags/backup/main-before-rebase')
+    const source = check(f)
+    expect(source).toMatchObject({
+      commit: rebased,
+      priorCommit: f.prior,
+      priorCommitPreservedBy: 'backup/main-before-rebase'
+    })
+    const candidate = {
+      cwd: f.cwd,
+      manifestPath: f.manifestPath,
+      metadata: {
+        orcaManualUpdatesOnly: true,
+        version: 'candidate',
+        orcaBuildSource: { commit: rebased, branch: 'main', repository: 'MartinoPolo/orca' }
+      },
+      provenance: { ...source, version: 'candidate' }
+    }
+    expect(assertForkPromotion(candidate).commit).toBe(rebased)
+    git(f.cwd, 'push', f.bare, ':refs/tags/backup/main-before-rebase')
+    expect(() => assertForkPromotion(candidate)).toThrow(/Previous released commit was dropped/)
+  })
   it('rejects a replaced history without the prior commit and mismatched candidate source', () => {
     const f = fixture()
     git(f.cwd, 'checkout', '--orphan', 'replacement')
