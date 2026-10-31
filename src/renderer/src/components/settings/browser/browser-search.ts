@@ -149,12 +149,12 @@ export function getBrowserPaneSearchEntries(
     },
     {
       title: t(
-        'auto.components.settings.BrowserTerminalLinkActionsSetting.title',
-        'Terminal URL clicks'
+        'auto.components.settings.BrowserTerminalLinkActionsSetting.titleV2',
+        'Terminal link clicks'
       ),
       description: t(
-        'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV2',
-        'Control clicks on detected URLs printed in terminal panes and chat transcripts.'
+        'auto.components.settings.BrowserTerminalLinkActionsSetting.descriptionV3',
+        'Control clicks on detected URLs and file paths in terminal panes and chat transcripts.'
       ),
       keywords: getTerminalLinkActionSearchKeywords(platform, t)
     },

@@ -17,6 +17,7 @@ import {
 import {
   getTerminalHtmlFileOpenHint,
   getTerminalOrcaFileOpenHint,
+  getTerminalSystemAppFileOpenHint,
   getTerminalWorktreePathOpenHint,
   getTerminalFileOpenHint
 } from '../terminal-link-open-hints'
@@ -25,6 +26,8 @@ import { getTerminalBufferPositionForMouseEvent } from '../../input/pointer/term
 import type { TerminalLinkActionContext } from '../terminal-link-action-request'
 import { handleTerminalFileLink } from './terminal-file-link-actions'
 import { showFileLinkOpenFailureToast } from '@/lib/files/open/file-link-open-failure-toast'
+import { fileLinkOpensInSystemApp } from '../../../../../../shared/file-link-system-app-kinds'
+import { useAppStore } from '@/store'
 
 export type LinkHandlerDeps = {
   worktreeId: string
@@ -162,13 +165,15 @@ export function createFilePathLinkProvider(
                   : true
                 const hint = target.isKnownWorktreeRoot
                   ? getTerminalWorktreePathOpenHint(canOpenWithSystemDefault, showActions)
-                  : canOpenWithSystemDefault
-                    ? isHtmlFilePath(mappedPath)
-                      ? getTerminalHtmlFileOpenHint(localHtmlFileDestinations(), showActions)
-                      : showActions
-                        ? openLinkHint
-                        : getTerminalFileOpenHint(false)
-                    : getTerminalOrcaFileOpenHint(showActions)
+                  : fileLinkOpensInSystemApp(useAppStore.getState().settings, mappedPath)
+                    ? getTerminalSystemAppFileOpenHint(showActions)
+                    : canOpenWithSystemDefault
+                      ? isHtmlFilePath(mappedPath)
+                        ? getTerminalHtmlFileOpenHint(localHtmlFileDestinations(), showActions)
+                        : showActions
+                          ? openLinkHint
+                          : getTerminalFileOpenHint(false)
+                      : getTerminalOrcaFileOpenHint(showActions)
                 linkTooltip.textContent = `${mappedPath} (${hint})`
                 linkTooltip.style.display = ''
               },
@@ -234,7 +239,7 @@ export function installFilePathLinkClickFallback(
         wslDistro: deps.wslDistro,
         terminalHandle: deps.getRuntimeTerminalHandleForPane?.(paneId) ?? null,
         pathExistsCache: deps.pathExistsCache,
-        openWithSystemDefault: Boolean(event.shiftKey),
+        shiftKey: event.shiftKey,
         sourceTabId: deps.sourceTabId,
         onOpenFailure: showFileLinkOpenFailureToast
       }

@@ -11,6 +11,7 @@ import { DEFAULT_NATIVE_CHAT_IDLE_STOP_MINUTES } from './native-chat/native-chat
 import { DEFAULT_BROWSER_MEMORY_SAVER_HOURS } from './browser/guest-lifecycle/browser-memory-saver'
 import { DEFAULT_DISABLED_TUI_AGENTS } from './agent-launch/catalog/tui-agent-selection'
 import { UI_LANGUAGE_SYSTEM } from './ui-language'
+import { FILE_LINK_SYSTEM_APP_KINDS } from './file-link-system-app-kinds'
 import {
   DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
   DEFAULT_LEFT_SIDEBAR_TINT_OPACITY
@@ -150,6 +151,7 @@ export function buildDefaultSettings(args: {
     terminalLinkActionPopoverEnabled: true,
     terminalLinkClickBehavior: 'actions',
     terminalUrlMiddleClickBehavior: 'open',
+    fileLinkSystemAppKinds: [...FILE_LINK_SYSTEM_APP_KINDS],
     browserExtensionsEnabled: true,
     agentDefaultSurface: 'terminal',
     nativeChatResumeWorkOnRestart: true,

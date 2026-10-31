@@ -42,6 +42,8 @@ export function getTerminalLinkActionSearchKeywords(
       'disable'
     ),
     'link click behavior',
+    'file links',
+    'default app',
     'open directly',
     'modifier-click only',
     'middle click',

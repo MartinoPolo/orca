@@ -8254,8 +8254,6 @@
           "e4e5937469": "Verificar Atualizações do Servidor"
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "Cliques em URL no terminal",
-          "descriptionV2": "Controla cliques em URLs detectadas impressas em painéis de terminal e transcrições de chat.",
           "plainClickLabel": "Clique simples",
           "plainClickDescription": "Escolha se um clique com o botão esquerdo mostra ações, abre a URL, ou deixa a cargo do terminal. Cmd/Ctrl-clique sempre abre diretamente.",
           "plainClickAriaLabel": "Comportamento de URL no clique simples",

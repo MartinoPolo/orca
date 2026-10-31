@@ -29,6 +29,7 @@ import type { WorkspaceCleanupPolicySettings } from './workspace-cleanup/workspa
 import type { PRAutoRefreshSettings } from './review-refresh-policy'
 import type { NewTabMenuSettings } from './new-tab-menu/new-tab-menu-layout'
 import type { AgentLaunchProfileSettings } from './agent-launch-profiles'
+import type { FileLinkOpenSettings } from './file-link-system-app-kinds'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
 export type GlobalSettingsBase = AntigravityChatAuthSettings &
@@ -61,4 +62,5 @@ export type GlobalSettingsBase = AntigravityChatAuthSettings &
   WorkspaceCleanupPolicySettings &
   PRAutoRefreshSettings &
   NewTabMenuSettings &
-  AgentLaunchProfileSettings
+  AgentLaunchProfileSettings &
+  FileLinkOpenSettings

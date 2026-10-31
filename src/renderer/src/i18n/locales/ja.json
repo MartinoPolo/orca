@@ -12359,8 +12359,6 @@
           "f40f6ef17c": "太字のフォントの太さ"
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "ターミナル URL のクリック数",
-          "descriptionV2": "ターミナルペインおよびチャットトランスクリプトに出力される検出された URL のクリックを制御します。",
           "plainClickLabel": "プレーンクリック",
           "plainClickDescription": "左クリックで操作を表示するか、URL を開くか、ターミナルに任せるかを選択します。 Cmd/Ctrl キーを押しながらクリックすると、常に直接開きます。",
           "plainClickAriaLabel": "単純なクリック URL の動作",

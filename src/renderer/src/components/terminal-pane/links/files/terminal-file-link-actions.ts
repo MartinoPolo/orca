@@ -10,6 +10,8 @@ import { isHtmlFilePath, localHtmlFileDestinations } from './local-html-file-des
 import { isTerminalLinkDirectActivation } from '../gestures/terminal-link-activation'
 import { requestTerminalLinkAction } from '../terminal-link-action-request'
 import type { TerminalLinkActionContext } from '../terminal-link-action-request'
+import { fileLinkDirectClickOpensSystemApp } from './file-link-direct-click-target'
+import { fileLinkOpensInSystemApp } from '../../../../../../shared/file-link-system-app-kinds'
 import { resolveKnownWorktreeRootPathLink } from './terminal-worktree-path-link'
 import { translate } from '@/i18n/i18n'
 import {
@@ -62,7 +64,7 @@ export function handleTerminalFileLink(
     event?.preventDefault?.()
     openDetectedFilePath(filePath, line, column, {
       ...deps,
-      openWithSystemDefault: Boolean(event?.shiftKey)
+      openWithSystemDefault: fileLinkDirectClickOpensSystemApp(filePath, Boolean(event?.shiftKey))
     })
     return true
   }
@@ -186,6 +188,15 @@ export function buildFileLinkActions(
         }
       : null
   const secondaryActions = [openInGroupRow, revealRow].filter((row) => row !== null)
+  const openInOrcaRow = {
+    label: worktreeRoot
+      ? t('auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace', 'Switch workspace')
+      : looksLikeFolder
+        ? t('auto.components.terminal.pane.TerminalLinkActionPopover.openFolder', 'Open folder')
+        : t('auto.components.terminal.pane.TerminalLinkActionPopover.openFile', 'Open file'),
+    run: () => openDetectedFilePath(filePath, line, column, deps)
+  }
+  // Why: plain-click "open" runs the primary row, so it must be the file kind's default.
   const rows =
     !worktreeRoot && canOpenWithSystemDefault && isHtmlFilePath(mappedPath)
       ? buildHttpLinkActions(
@@ -195,26 +206,11 @@ export function buildFileLinkActions(
           undefined,
           t
         )
-      : {
-          primary: {
-            label: worktreeRoot
-              ? t(
-                  'auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace',
-                  'Switch workspace'
-                )
-              : looksLikeFolder
-                ? t(
-                    'auto.components.terminal.pane.TerminalLinkActionPopover.openFolder',
-                    'Open folder'
-                  )
-                : t(
-                    'auto.components.terminal.pane.TerminalLinkActionPopover.openFile',
-                    'Open file'
-                  ),
-            run: () => openDetectedFilePath(filePath, line, column, deps)
-          },
-          ...(systemDefaultRow ? { alternate: systemDefaultRow } : {})
-        }
+      : systemDefaultRow &&
+          !worktreeRoot &&
+          fileLinkOpensInSystemApp(useAppStore.getState().settings, mappedPath)
+        ? { primary: systemDefaultRow, alternate: openInOrcaRow }
+        : { primary: openInOrcaRow, ...(systemDefaultRow ? { alternate: systemDefaultRow } : {}) }
   return {
     destination: mappedPath,
     kind: worktreeRoot ? 'workspace' : 'file',

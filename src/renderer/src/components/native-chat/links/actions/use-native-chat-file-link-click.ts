@@ -7,6 +7,7 @@ import { useAppStore } from '../../../../store/index'
 import { routeNativeChatHref } from '../../../../../../shared/native-chat/native-chat-href-routing'
 import { resolveNativeChatFileLink } from './native-chat-file-link'
 import type { NativeChatFileLinkContext } from './native-chat-file-link-context'
+import { fileLinkDirectClickOpensSystemApp } from '@/components/terminal-pane/links/files/file-link-direct-click-target'
 import { nativeChatPlainLinkClickBehavior } from './native-chat-link-click-behavior'
 import { showFileLinkUnresolvedToast } from './native-chat-file-link-toasts'
 import {
@@ -46,7 +47,10 @@ export function useNativeChatFileLinkClick(
       if (behavior === 'open' || !request) {
         openDetectedFilePath(target.absolutePath, target.line, target.column, {
           ...nativeChatFileOpenDeps(target, context),
-          openWithSystemDefault: event.shiftKey
+          openWithSystemDefault: fileLinkDirectClickOpensSystemApp(
+            target.absolutePath,
+            event.shiftKey
+          )
         })
         return
       }

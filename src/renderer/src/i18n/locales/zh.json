@@ -12371,8 +12371,6 @@
           "f40f6ef17c": "粗体字体粗细"
         },
         "BrowserTerminalLinkActionsSetting": {
-          "title": "显示链接操作",
-          "descriptionV2": "控制如何点击终端窗格和聊天记录中检测到的网址",
           "plainClickLabel": "单击",
           "plainClickDescription": "选择左键单击时显示操作、打开网址，还是交由终端处理，Cmd/Ctrl+单击始终会直接打开",
           "plainClickAriaLabel": "单击网址时的行为",
