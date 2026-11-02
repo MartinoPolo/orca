@@ -289,11 +289,11 @@ export function normalizeClaudeEvent(
   // Reuse resolved state for compact ownership instead of folding twice (#15202).
   const effectiveState = resolvedStatus.stateName
   const ownPreviousLead = previousLead?.waitingAgentId ? previousLead.stateBeforeWait : previousLead
-  // Stamp (announce now, pair the later all-clear) only a held turn that already counts as finished; cancelled turns earn none.
+  // Only a failed held turn is announced at once (the stamp pairs its all-clear); monitors and crons hold Done like other background work.
   const turnCompletedAt =
     eventAgentId === undefined &&
     isTurnBoundary &&
-    outcome !== 'cancellation' &&
+    outcome === 'failure' &&
     isAgentStatusHeldOpenByChildWork({
       state: resolvedStatus.stateName,
       mainAgent: { state: reportedStateName }
