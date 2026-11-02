@@ -100,8 +100,6 @@ describe('Persisted Claude lead boundaries', () => {
       lastAssistantMessage: 'Lead finished.',
       subagents: [expect.objectContaining({ id: 'arestored-child', state: 'working' })]
     })
-    const turnCompletedAt = firstServer.getStatusSnapshot()[0]?.turnCompletedAt
-    expect(turnCompletedAt).toEqual(expect.any(Number))
     expect(firstServer._getStateForTests().lastStatusByPaneKey.get(PANE)?.hookEventName).toBe(
       'Stop'
     )
@@ -120,8 +118,7 @@ describe('Persisted Claude lead boundaries', () => {
         state: 'done',
         agentType: 'claude',
         prompt: 'finish after child',
-        lastAssistantMessage: 'Lead finished.',
-        turnCompletedAt
+        lastAssistantMessage: 'Lead finished.'
       })
       expect(server.getStatusSnapshot()[0]?.restoredUnconfirmed).toBeUndefined()
       expect(server.getStatusSnapshot()[0]?.subagents).toBeUndefined()
@@ -141,7 +138,8 @@ describe('Persisted Claude lead boundaries', () => {
       firstServer,
       buildBody({ hook_event_name: 'SubagentStart', agent_id: 'arestored-child' })
     )
-    await postHookEvent(firstServer, buildBody({ hook_event_name: 'Stop' }))
+    // Only a failed held end carries the turn stamp the all-clear must repeat.
+    await postHookEvent(firstServer, buildBody({ hook_event_name: 'StopFailure' }))
     firstServer.flushStatusPersistSync()
     firstServer.stop()
 

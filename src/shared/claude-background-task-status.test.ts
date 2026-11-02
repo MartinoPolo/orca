@@ -173,37 +173,47 @@ describe('Claude background task status', () => {
     expect(state.claudeRunningNonAgentTaskPaneKeys.has(SOURCE_PANE)).toBe(false)
   })
 
-  // Completion notifications need turnCompletedAt while the pane remains working for monitoring; pin both predicates (STA-4119).
-  it('stamps the turn end when a finished lead falls back to monitoring', () => {
-    const state = createHookListenerState()
+  const heldLeadEnds = [
+    { eventName: 'Stop', stampType: 'undefined' },
+    { eventName: 'StopFailure', stampType: 'number' }
+  ]
 
-    claudeEvent(state, SOURCE_PANE, {
-      hook_event_name: 'UserPromptSubmit',
-      prompt: 'start the dev server'
-    })
-    const monitoring = claudeEvent(state, SOURCE_PANE, {
-      hook_event_name: 'Stop',
-      background_tasks: [RUNNING_SHELL]
-    })
+  // A failed lead end alerts while the pane stays working, so it needs turnCompletedAt; a normal end alerts at the all-clear. Pin both folds (STA-4119).
+  it.each(heldLeadEnds)(
+    'stamps a $eventName that falls back to monitoring as $stampType',
+    ({ eventName, stampType }) => {
+      const state = createHookListenerState()
 
-    expect(monitoring).toMatchObject({ state: 'working', workingMode: 'monitoring' })
-    expect(typeof monitoring?.turnCompletedAt).toBe('number')
-  })
+      claudeEvent(state, SOURCE_PANE, {
+        hook_event_name: 'UserPromptSubmit',
+        prompt: 'start the dev server'
+      })
+      const monitoring = claudeEvent(state, SOURCE_PANE, {
+        hook_event_name: eventName,
+        background_tasks: [RUNNING_SHELL]
+      })
 
-  it('stamps a lead that ends into a working subagent, which carries no monitoring mode', () => {
-    const state = createHookListenerState()
+      expect(monitoring).toMatchObject({ state: 'working', workingMode: 'monitoring' })
+      expect(typeof monitoring?.turnCompletedAt).toBe(stampType)
+    }
+  )
 
-    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'delegate' })
-    claudeEvent(state, SOURCE_PANE, { hook_event_name: 'SubagentStart', agent_id: 'child-1' })
-    const childWorking = claudeEvent(state, SOURCE_PANE, {
-      hook_event_name: 'Stop',
-      background_tasks: [{ id: 'child-1', type: 'subagent', status: 'running' }]
-    })
+  it.each(heldLeadEnds)(
+    'stamps a $eventName that ends into a working subagent, which carries no monitoring mode, as $stampType',
+    ({ eventName, stampType }) => {
+      const state = createHookListenerState()
 
-    // Child work keeps the spinner, but the ended lead still needs a notification stamp.
-    expect(childWorking).toMatchObject({ state: 'working', workingMode: undefined })
-    expect(typeof childWorking?.turnCompletedAt).toBe('number')
-  })
+      claudeEvent(state, SOURCE_PANE, { hook_event_name: 'UserPromptSubmit', prompt: 'delegate' })
+      claudeEvent(state, SOURCE_PANE, { hook_event_name: 'SubagentStart', agent_id: 'child-1' })
+      const childWorking = claudeEvent(state, SOURCE_PANE, {
+        hook_event_name: eventName,
+        background_tasks: [{ id: 'child-1', type: 'subagent', status: 'running' }]
+      })
+
+      expect(childWorking).toMatchObject({ state: 'working', workingMode: undefined })
+      expect(typeof childWorking?.turnCompletedAt).toBe(stampType)
+    }
+  )
 
   it('does not stamp a turn that is still running in the foreground', () => {
     const state = createHookListenerState()

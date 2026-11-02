@@ -55,7 +55,27 @@ function completionMeta(dispatchCompletion: ReturnType<typeof vi.fn>) {
 describe('completion notification when a lead turn ends into monitoring', () => {
   useAgentCompletionCoordinatorLifecycle()
 
-  it('announces completion when the turn ends but the pane stays working for a background shell', () => {
+  it('waits for a background shell instead of announcing a turn that ends into monitoring', () => {
+    const listener = createHookListenerState()
+    const { coordinator, dispatchCompletion } = createCoordinator()
+
+    coordinator.observeHookStatus(
+      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'start the dev server' })
+    )
+    const monitoring = hookPayload(listener, {
+      hook_event_name: 'Stop',
+      background_tasks: [RUNNING_SHELL]
+    })
+
+    expect(monitoring).toMatchObject({ state: 'working', workingMode: 'monitoring' })
+    expect(monitoring.turnCompletedAt).toBeUndefined()
+
+    coordinator.observeHookStatus(monitoring)
+
+    expect(dispatchCompletion).not.toHaveBeenCalled()
+  })
+
+  it('announces a failed turn at once while the pane stays working for a background shell', () => {
     const listener = createHookListenerState()
     const { coordinator, dispatchCompletion, dispatchHookLifecycle } = createCoordinator()
 
@@ -63,7 +83,7 @@ describe('completion notification when a lead turn ends into monitoring', () => 
       hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'start the dev server' })
     )
     const monitoring = hookPayload(listener, {
-      hook_event_name: 'Stop',
+      hook_event_name: 'StopFailure',
       background_tasks: [RUNNING_SHELL]
     })
 
@@ -81,30 +101,6 @@ describe('completion notification when a lead turn ends into monitoring', () => 
     expect(dispatchHookLifecycle).not.toHaveBeenCalledWith(
       expect.objectContaining({ state: 'done' })
     )
-  })
-
-  it('does not announce twice when the background shell later clears to done', () => {
-    const listener = createHookListenerState()
-    const { coordinator, dispatchCompletion } = createCoordinator()
-
-    coordinator.observeHookStatus(
-      hookPayload(listener, { hook_event_name: 'UserPromptSubmit', prompt: 'start the dev server' })
-    )
-    coordinator.observeHookStatus(
-      hookPayload(listener, { hook_event_name: 'Stop', background_tasks: [RUNNING_SHELL] })
-    )
-    expect(dispatchCompletion).toHaveBeenCalledTimes(1)
-
-    // The shell exits; the same turn's all-clear must not re-announce.
-    coordinator.observeHookStatus(
-      hookPayload(listener, {
-        hook_event_name: 'PostToolUse',
-        tool_name: 'KillShell',
-        background_tasks: []
-      })
-    )
-
-    expect(dispatchCompletion).toHaveBeenCalledTimes(1)
   })
 
   it('does not announce mid-turn while the agent is still working in the foreground', () => {

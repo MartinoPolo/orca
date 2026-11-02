@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ParsedAgentStatusPayload } from '../../../shared/agent-status-types'
+import { agentMainAgentVerdict } from '../../../shared/agent-main-agent-verdict'
 import { createHookListenerState } from '../../../shared/agent-hook-listener/listener-state'
 import { normalizeHookPayload } from '../../../shared/agent-hook-listener'
 import { makePaneKey } from '../../../shared/stable-pane-id'
@@ -11,6 +13,7 @@ const HOOK_DONE_QUIET_MS = 1_500
 const LEAF_ID = '11111111-1111-4111-8111-111111111111'
 const PANE_KEY = makePaneKey('tab-1', LEAF_ID)
 const WORKTREE_ID = 'wt-1'
+const START = 1_700_000_000_000
 
 type MockStoreState = {
   settings: {
@@ -46,6 +49,15 @@ vi.mock('@/components/terminal-pane/agent-hook-terminal-lifecycle', () => ({
 }))
 
 type HookRow = ParsedAgentStatusPayload & { stateStartedAt: number }
+type HookEvent = { at: number; payload: Record<string, unknown> }
+type Alert = {
+  at: number
+  state: string | undefined
+  verdict: string | null
+  body: string | undefined
+}
+type BackgroundTaskKind = 'shell' | 'subagent'
+type BackgroundTask = ReturnType<typeof runningTask>
 
 function pinStateStartedAt(
   previous: HookRow | undefined,
@@ -58,11 +70,141 @@ function pinStateStartedAt(
   }
 }
 
-describe('Claude background-turn completion notifications', () => {
+function runningTask(id: string, kind: BackgroundTaskKind, seconds: number) {
+  const description = `Sleep ${seconds} seconds`
+  return kind === 'shell'
+    ? { id, type: kind, status: 'running', description, command: `sleep ${seconds}` }
+    : { id, type: kind, status: 'running', description, agent_type: 'general-purpose' }
+}
+
+function subagentStart(task: BackgroundTask, at: number): HookEvent[] {
+  return task.type === 'subagent'
+    ? [
+        {
+          at,
+          payload: {
+            hook_event_name: 'SubagentStart',
+            agent_id: task.id,
+            agent_type: 'general-purpose'
+          }
+        }
+      ]
+    : []
+}
+
+function subagentStop(task: BackgroundTask, at: number): HookEvent[] {
+  return task.type === 'subagent'
+    ? [{ at, payload: { hook_event_name: 'SubagentStop', agent_id: task.id } }]
+    : []
+}
+
+function taskNotification(task: BackgroundTask): string {
+  const summary =
+    task.type === 'shell'
+      ? `Background command "${task.description}" completed (exit code 0)`
+      : `Agent "${task.description}" finished`
+  return [
+    '<task-notification>',
+    `<task-id>${task.id}</task-id>`,
+    '<status>completed</status>',
+    `<summary>${summary}</summary>`,
+    '</task-notification>'
+  ].join('\n')
+}
+
+/** Claude Code 2.1.309 capture: each background completion wakes the lead for another Stop. */
+function twoBackgroundTasksRun(
+  longKind: BackgroundTaskKind,
+  shortKind: BackgroundTaskKind
+): { events: HookEvent[]; finalStopAt: number } {
+  const long = runningTask('b3s6e2k21', longKind, 20)
+  const short = runningTask('bi5pak0ms', shortKind, 8)
+  const finalStopAt = START + 24_000
+  const events: HookEvent[] = [
+    {
+      at: START,
+      payload: {
+        hook_event_name: 'UserPromptSubmit',
+        prompt: 'Run two background Bash commands, reply STARTED, then report each result.'
+      }
+    },
+    ...subagentStart(long, START + 1_000),
+    ...subagentStart(short, START + 1_100),
+    {
+      at: START + 3_000,
+      payload: {
+        hook_event_name: 'Stop',
+        stop_hook_active: false,
+        last_assistant_message: 'STARTED',
+        background_tasks: [long, short],
+        session_crons: []
+      }
+    },
+    ...subagentStop(short, START + 10_900),
+    {
+      at: START + 11_000,
+      payload: { hook_event_name: 'UserPromptSubmit', prompt: taskNotification(short) }
+    },
+    {
+      at: START + 12_000,
+      payload: {
+        hook_event_name: 'Stop',
+        last_assistant_message: 'DONE-8',
+        background_tasks: [long],
+        session_crons: []
+      }
+    },
+    ...subagentStop(long, START + 22_900),
+    {
+      at: START + 23_000,
+      payload: { hook_event_name: 'UserPromptSubmit', prompt: taskNotification(long) }
+    },
+    {
+      at: finalStopAt,
+      payload: {
+        hook_event_name: 'Stop',
+        last_assistant_message: 'DONE-20',
+        background_tasks: [],
+        session_crons: []
+      }
+    }
+  ]
+  return { events, finalStopAt }
+}
+
+function capturedScenario(scenario: string): HookEvent[] {
+  return readFileSync(
+    new URL('../../../shared/__fixtures__/claude-task-notification-hooks.jsonl', import.meta.url),
+    'utf8'
+  )
+    .split('\n')
+    .filter(Boolean)
+    .map((line): { scenario: string; t: number; payload?: Record<string, unknown> } =>
+      JSON.parse(line)
+    )
+    .filter((record) => record.scenario === scenario && record.payload)
+    .map((record) => ({ at: START + Math.round(record.t * 1_000), payload: record.payload ?? {} }))
+}
+
+function heldSubagentRun(leadStop: Record<string, unknown>): HookEvent[] {
+  return [
+    { at: START, payload: { hook_event_name: 'UserPromptSubmit', prompt: 'review the PR' } },
+    {
+      at: START + 1_000,
+      payload: { hook_event_name: 'SubagentStart', agent_id: 'a1', agent_type: 'general-purpose' }
+    },
+    {
+      at: START + 6_000,
+      payload: { ...leadStop, background_tasks: [runningTask('a1', 'subagent', 30)] }
+    }
+  ]
+}
+
+describe('Claude background-work completion notifications', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.useFakeTimers()
-    vi.setSystemTime(1_700_000_000_000)
+    vi.setSystemTime(START)
     dispatchTerminalNotification.mockClear()
     dispatchAgentHookTerminalLifecycle.mockClear()
     mockStoreState = {
@@ -91,31 +233,26 @@ describe('Claude background-turn completion notifications', () => {
     vi.useRealTimers()
   })
 
-  async function play(events: { at: number; payload: Record<string, unknown> }[]): Promise<{
-    banners: { at: number; body: string | undefined; stateStartedAt: number | undefined }[]
-    rows: HookRow[]
-  }> {
+  async function play(events: HookEvent[]): Promise<{ alerts: Alert[]; rows: HookRow[] }> {
     const { observeAgentHookCompletionForNotification } =
       await import('./agent-hook-completion-notifications')
     const listener = createHookListenerState()
     const rows: HookRow[] = []
+    const alerts: Alert[] = []
     let previous: HookRow | undefined
-    const banners: {
-      at: number
-      body: string | undefined
-      stateStartedAt: number | undefined
-    }[] = []
 
     dispatchTerminalNotification.mockImplementation((_worktreeId, event) => {
-      banners.push({
+      const snapshot = event.agentStatusSnapshot
+      alerts.push({
         at: Date.now(),
-        body: event.agentStatusSnapshot?.lastAssistantMessage,
-        stateStartedAt: event.agentStatusSnapshot?.stateStartedAt
+        state: snapshot?.state,
+        verdict: snapshot ? agentMainAgentVerdict(snapshot) : null,
+        body: snapshot?.lastAssistantMessage
       })
     })
 
     for (const event of events) {
-      vi.setSystemTime(event.at)
+      vi.advanceTimersByTime(Math.max(0, event.at - Date.now()))
       const normalized = normalizeHookPayload(
         listener,
         'claude',
@@ -133,88 +270,86 @@ describe('Claude background-turn completion notifications', () => {
         worktreeId: WORKTREE_ID,
         payload: row
       })
-      vi.advanceTimersByTime(HOOK_DONE_QUIET_MS)
     }
+    vi.advanceTimersByTime(HOOK_DONE_QUIET_MS)
 
-    return { banners, rows }
+    return { alerts, rows }
   }
 
-  it('announces a subagent turn at Stop with that turn’s text, not when the child later drains', async () => {
-    const { banners, rows } = await play([
-      {
-        at: 1_700_000_000_000,
-        payload: { hook_event_name: 'UserPromptSubmit', prompt: 'review the PR' }
-      },
-      {
-        at: 1_700_000_001_000,
-        payload: {
-          hook_event_name: 'SubagentStart',
-          agent_id: 'a1',
-          agent_type: 'general-purpose'
-        }
-      },
-      {
-        at: 1_700_000_006_000,
-        payload: {
-          hook_event_name: 'Stop',
-          last_assistant_message: 'Which cells need hand-verification?',
-          background_tasks: [{ id: 'a1', type: 'subagent', status: 'running' }]
-        }
-      },
-      {
-        at: 1_700_000_055_000,
-        payload: { hook_event_name: 'SubagentStop', agent_id: 'a1' }
-      }
-    ])
+  it.each([
+    ['shells', 'shell', 'shell'],
+    ['subagents', 'subagent', 'subagent'],
+    ['subagent and shell', 'subagent', 'shell']
+  ] as const)(
+    'background %s: alerts done once, when the lead ends with nothing in flight',
+    async (_label, longKind, shortKind) => {
+      const { events, finalStopAt } = twoBackgroundTasksRun(longKind, shortKind)
+      const { alerts, rows } = await play(events)
 
-    const stop = rows.find((row) => row.lastAssistantMessage?.includes('hand-verification'))
-    expect(stop?.state).toBe('working')
-    expect(stop?.turnCompletedAt).toBe(1_700_000_006_000)
-    expect(banners).toHaveLength(1)
-    expect(banners[0]?.at).toBe(1_700_000_006_000)
-    expect(banners[0]?.body).toBe('Which cells need hand-verification?')
-    expect(banners[0]?.stateStartedAt).toBe(1_700_000_006_000)
+      expect(rows.find((row) => row.lastAssistantMessage === 'STARTED')?.state).toBe('working')
+      expect(alerts).toEqual([
+        { at: finalStopAt + HOOK_DONE_QUIET_MS, state: 'done', verdict: null, body: 'DONE-20' }
+      ])
+    }
+  )
+
+  it('alerts done once for the captured two-subagent run', async () => {
+    const events = capturedScenario('two-subagents-together')
+    const finalStopAt = events.findLast((event) => event.payload.hook_event_name === 'Stop')?.at
+    const { alerts } = await play(events)
+
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]?.state).toBe('done')
+    expect(alerts[0]?.at).toBeGreaterThan(finalStopAt ?? Number.POSITIVE_INFINITY)
   })
 
-  it('notifies each background-shell turn with a distinct notification identity', async () => {
-    const { banners } = await play([
+  it('alerts done when the last subagent drains without waking the lead', async () => {
+    const { alerts } = await play([
+      ...heldSubagentRun({
+        hook_event_name: 'Stop',
+        last_assistant_message: 'Which cells need hand-verification?'
+      }),
+      { at: START + 55_000, payload: { hook_event_name: 'SubagentStop', agent_id: 'a1' } }
+    ])
+
+    expect(alerts).toEqual([
       {
-        at: 1_700_000_000_000,
-        payload: { hook_event_name: 'UserPromptSubmit', prompt: 'start the server' }
-      },
+        at: START + 55_000 + HOOK_DONE_QUIET_MS,
+        state: 'done',
+        verdict: null,
+        body: 'Which cells need hand-verification?'
+      }
+    ])
+  })
+
+  it('alerts needs-input from a background subagent while the lead is held', async () => {
+    const { alerts } = await play([
+      ...heldSubagentRun({ hook_event_name: 'Stop', last_assistant_message: 'Review started.' }),
       {
-        at: 1_700_000_001_000,
+        at: START + 9_000,
         payload: {
-          hook_event_name: 'Stop',
-          last_assistant_message: 'Dev server is up.',
-          background_tasks: [{ id: 'shell-1', type: 'shell', status: 'running' }]
-        }
-      },
-      {
-        at: 1_700_000_010_000,
-        payload: { hook_event_name: 'UserPromptSubmit', prompt: 'add a route' }
-      },
-      {
-        at: 1_700_000_011_000,
-        payload: {
-          hook_event_name: 'Stop',
-          last_assistant_message: 'Route added.',
-          background_tasks: [{ id: 'shell-1', type: 'shell', status: 'running' }]
+          hook_event_name: 'PermissionRequest',
+          agent_id: 'a1',
+          agent_type: 'general-purpose',
+          tool_name: 'Bash',
+          tool_input: { command: 'git push' }
         }
       }
     ])
 
-    expect(banners).toHaveLength(2)
-    expect(banners[0]).toMatchObject({
-      at: 1_700_000_001_000,
-      body: 'Dev server is up.',
-      stateStartedAt: 1_700_000_001_000
-    })
-    expect(banners[1]).toMatchObject({
-      at: 1_700_000_011_000,
-      body: 'Route added.',
-      stateStartedAt: 1_700_000_011_000
-    })
-    expect(banners[0]?.stateStartedAt).not.toBe(banners[1]?.stateStartedAt)
+    expect(alerts.map(({ at, state }) => ({ at, state }))).toEqual([
+      { at: START + 9_000, state: 'waiting' }
+    ])
+  })
+
+  it('alerts a failed lead turn at once and not again when its background work drains', async () => {
+    const { alerts } = await play([
+      ...heldSubagentRun({ hook_event_name: 'StopFailure' }),
+      { at: START + 55_000, payload: { hook_event_name: 'SubagentStop', agent_id: 'a1' } }
+    ])
+
+    expect(alerts.map(({ at, verdict }) => ({ at, verdict }))).toEqual([
+      { at: START + 6_000, verdict: 'failure' }
+    ])
   })
 })

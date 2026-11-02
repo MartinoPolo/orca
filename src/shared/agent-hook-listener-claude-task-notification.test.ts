@@ -127,18 +127,18 @@ describe('Claude owed task notifications outside the captures', () => {
     expect(stopped?.payload.subagents).toBeUndefined()
   })
 
-  it('does not announce a turn end the main agent is about to resume from', () => {
+  it('does not announce a failed turn end the main agent is about to resume from', () => {
     const post = listener()
     launchAgent(post, 'a1')
     post({ hook_event_name: 'SubagentStop', agent_id: 'a1' })
 
-    // A stamped working row is announced at once; this Stop is ~100 ms from the wake-up turn.
-    const owedOnly = post({ hook_event_name: 'Stop', background_tasks: [] })
+    // A stamped working row is announced at once; this end is ~100 ms from the wake-up turn.
+    const owedOnly = post({ hook_event_name: 'StopFailure', background_tasks: [] })
     expect(owedOnly?.payload.turnCompletedAt).toBeUndefined()
 
     launchAgent(post, 'a2')
     const childRunning = post({
-      hook_event_name: 'Stop',
+      hook_event_name: 'StopFailure',
       background_tasks: [{ id: 'a2', type: 'subagent', status: 'running' }]
     })
     expect(childRunning?.payload.turnCompletedAt).toEqual(expect.any(Number))
