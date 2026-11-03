@@ -99,6 +99,7 @@ export function bindFreshSpawnFollowReset(session: ConnectPanePtySession): void 
     // Drain old background bytes before replay so deferred writes cannot overwrite the new image.
     flushTerminalOutput(session.pane.terminal)
     data = session.idleCursorReset.processOutput(data)
+    session.mouseTrackingLossProbe?.noteOrcaWrite(data)
     replayIntoTerminal(session.pane, session.deps.replayingPanesRef, data, {
       breadcrumbIdentity: {
         tabId: session.deps.tabId,
@@ -114,6 +115,7 @@ export function bindFreshSpawnFollowReset(session: ConnectPanePtySession): void 
     // Rebuild WebGL after replay parses, rather than when it is merely queued.
     flushTerminalOutput(session.pane.terminal)
     data = session.idleCursorReset.processOutput(data)
+    session.mouseTrackingLossProbe?.noteOrcaWrite(data)
     return replayIntoTerminalAsync(session.pane, session.deps.replayingPanesRef, data, {
       breadcrumbIdentity: {
         tabId: session.deps.tabId,

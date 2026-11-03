@@ -26,6 +26,8 @@ import { buildPaneTransportOptions } from './pane-transport-options'
 import { createUnservedSshRowTransport } from './unserved-ssh-pane-connect'
 import { createLegacyRelayBridgeTransport } from '../legacy-relay-bridge-transport'
 import { legacyRelayBridgePtyIdForPane } from '../legacy-relay-bridge-panes'
+import { installMouseTrackingLossProbe } from './mouse-tracking-loss-probe'
+import { redactPtyIdForDiagnostics } from '../../../../../shared/pty-delivery-diagnostics'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
 import type { PtyTransport } from '../pty-transport-types'
@@ -128,6 +130,18 @@ export function installPtyInputRecovery(session: ConnectPanePtySession): void {
     session.pane.terminal,
     session.sendDesktopQueryReplyImmediate
   )
+  session.mouseTrackingLossProbe = installMouseTrackingLossProbe({
+    terminal: session.pane.terminal,
+    wheelTarget: session.pane.container,
+    isReplaying: () => isPaneReplaying(session.deps.replayingPanesRef, session.pane.id),
+    identity: () => {
+      const ptyId = session.transport.getPtyId()
+      return {
+        paneId: session.pane.id,
+        ptyId: ptyId ? redactPtyIdForDiagnostics(ptyId) : null
+      }
+    }
+  })
 
   session.claimViewportForUserActivity = (input?: string): void => {
     const currentPtyId = session.transport.getPtyId()
