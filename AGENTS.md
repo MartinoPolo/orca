@@ -31,7 +31,7 @@ Add or update a one-to-three-sentence entry here for every fork-only patch.
 
 ## Installation
 
-Run `pnpm run build:fork:installer` from a clean, published fork `main`, validate its unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and run the installer. The package carries no Lab identity; only the Lab launcher's runtime `ORCA_LAB_ROOT` selects Lab. Updates are manual; never replace a running installation without approval.
+Run `pnpm run build:fork:installer` from a clean, published fork `main`, validate its unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and run the installer. Windows keeps a taskbar tray registration per executable path, so afterwards run `pnpm run prune:tray` to drop registrations of every Orca executable other than the installed app and the verified Lab build, and delete superseded `MPX_APPS/Orca-Stable` build and log directories. The package carries no Lab identity; only the Lab launcher's runtime `ORCA_LAB_ROOT` selects Lab. Updates are manual; never replace a running installation without approval.
 
 # Useful Commands
 
