@@ -1,10 +1,7 @@
 // SerializeAddon’s relative cursor math can land one column short after a full-width wrap-pending row. Restore source cursor coordinates with absolute CUP.
-// Compose DECSC and mouse-encoding state omitted by the serializer for callers that require them.
+// Compose DECSC and the mouse reporting state the serializer omits or leaves stale for callers that require them.
 
-import {
-  buildMouseEncodingRestoreSequence,
-  readTerminalMouseEncoding
-} from './terminal-mouse-encoding'
+import { buildMouseReportingRestoreSequence } from './terminal-mouse-encoding'
 
 type SerializeCursorTerminal = {
   cols: number
@@ -69,11 +66,11 @@ export function serializeWithAbsoluteCursor<TOpts>(
   if (serialized.length === 0) {
     return serialized
   }
-  // Why: the addon re-arms mouse tracking but not its encoding; restoring one without the other makes X10 reports.
-  const mouseEncodingRestore = serializesModes(opts)
-    ? buildMouseEncodingRestoreSequence(readTerminalMouseEncoding(terminal))
+  // Why: the addon re-arms mouse tracking but not its encoding, and never clears a reused destination's stale modes.
+  const mouseReportingRestore = serializesModes(opts)
+    ? buildMouseReportingRestoreSequence(terminal)
     : ''
-  return `${serialized}${mouseEncodingRestore}${buildAbsoluteCursorRestoreSequence(terminal, savedCursor)}`
+  return `${serialized}${mouseReportingRestore}${buildAbsoluteCursorRestoreSequence(terminal, savedCursor)}`
 }
 
 function serializesModes(opts: unknown): boolean {
