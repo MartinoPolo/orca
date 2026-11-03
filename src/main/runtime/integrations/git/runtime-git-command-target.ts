@@ -4,6 +4,7 @@ import type { Repo } from '../../../../shared/repository/repo-types'
 import type { GitPushTarget, GitWorktreeInfo, Worktree } from '../../../../shared/worktree/types'
 import type { GitRuntimeOptions } from '../../../git/command-runner/git-runtime-options'
 import { getWorktreeSharedLinkPaths } from '../../../git/worktrees/content-paths/worktree-shared-directories'
+import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import {
   ExecutionHostNotDispatchableError,
   resolveGitRouteForHost
@@ -31,7 +32,8 @@ export type RuntimeGitTarget = {
 
 export type RuntimeGitCommandHost = {
   resolveRuntimeGitTarget(selector: string): Promise<RuntimeGitTarget>
-  getRuntimeSettings(): SourceControlAiSettingsInput
+  getRuntimeSettings(): SourceControlAiSettingsInput &
+    Partial<Pick<GlobalSettings, 'claudeLaunchProfiles' | 'piLaunchProfiles'>>
   getCommitMessageAgentEnvironment?(): CommitMessageAgentEnvironmentResolvers | undefined
   /** `undefined` keeps cached metadata; `null` is the authoritative unlinked answer. */
   getWorktreeLinkedIssue?(worktreeId: string): number | null | undefined

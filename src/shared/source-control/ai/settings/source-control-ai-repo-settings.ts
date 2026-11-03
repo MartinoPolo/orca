@@ -136,6 +136,9 @@ export function normalizeRepoSourceControlAiOverrides(
   if (typeof value.enabled === 'boolean') {
     normalized.enabled = value.enabled
   }
+  if (typeof value.launchProfileId === 'string' && value.launchProfileId.trim()) {
+    normalized.launchProfileId = value.launchProfileId.trim()
+  }
   if (typeof value.customAgentCommand === 'string' && value.customAgentCommand.trim()) {
     normalized.customAgentCommand = value.customAgentCommand.trim()
   }

@@ -14,13 +14,17 @@ import type {
 import type { OrchestrationEntryCaller } from '../../../../../orchestration/addressing/orchestration-caller-identity'
 import type { OrchestrationPartyIdentity as OrchestrationCallerIdentity } from '../../../../../../../shared/orchestration/mailbox/orchestration-party-identity'
 import { resolveDispatchCallerWorktreeId } from '../../orchestration-caller-workspace'
-import { resolveWorkerStartModeOnHost } from '../../structured-workers/orchestration-worker-start-mode'
+import {
+  downgradeWorkerStartModeForLaunchProfile,
+  resolveWorkerStartModeOnHost
+} from '../../structured-workers/orchestration-worker-start-mode'
 import type { AgentLaunchModeReceipt as WorkerStartModeReceipt } from '../../../../../../../shared/agent-launch/contracts/agent-launch-intent'
 import { EXISTING_WORKTREE_SETUP, placeWorkerAgent } from './placement/worker-start-agent-placement'
 import { awaitStructuredWorkerSetupGate } from './readiness/worker-start-structured-setup-gate'
 import { assertOrchestrationWorktreeCreationSupported } from './placement/folder-worktree-placement'
 import { resolveWorkerWorktreeCreationTarget } from './placement/worker-worktree-creation'
 import type { WorkerStartInput } from './worker-start-input'
+import { resolveLocalWorkerLaunchProfile } from '../worker-launch-profile'
 import {
   persistGatedSetupSpawnFailure,
   persistWorkerReadinessStage,
@@ -136,8 +140,10 @@ export async function startLocalWorker(args: {
       resolvedWorktreeId: resolvedWorktree?.id
     })
   }
+  const launchProfile = resolveLocalWorkerLaunchProfile(runtime, agent, params)
   const hostMode = resolveWorkerStartModeOnHost(runtime, args.mode, resolvedWorktree?.id, agent)
-  let mode = chatWorkerMode(await hostMode, chat)
+  const chosenMode = chatWorkerMode(await hostMode, chat)
+  let mode = launchProfile ? downgradeWorkerStartModeForLaunchProfile(chosenMode) : chosenMode
 
   // Synchronous through the Dispatch insert, so nothing else claims the terminal in between.
   refuseClaimedWorkerTerminal(db, params.terminal, runtime, args.followUp?.of)
@@ -182,6 +188,7 @@ export async function startLocalWorker(args: {
       mode,
       agent,
       launchPreferences: launch.preferences,
+      ...(launchProfile ? { launchProfile } : {}),
       effects,
       onStage,
       followUp: args.followUp

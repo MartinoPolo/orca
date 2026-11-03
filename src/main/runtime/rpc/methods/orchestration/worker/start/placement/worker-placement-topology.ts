@@ -6,6 +6,7 @@ import type { OrcaRuntimeService } from '../../../../../../orca-runtime'
 import type { OrchestrationDb } from '../../../../../../orchestration/db/orchestration-db'
 import { createStructuredWorkerSession } from '../../../structured-workers/orchestration-structured-worker-session'
 import { dispatchReportMailbox } from '../../../../../../orchestration/workers/reports/dispatch-report-mailbox'
+import type { AgentLaunchProfile } from '../../../../../../../../shared/agent-launch-profiles'
 
 export type WorkerEffect = {
   kind: 'worktree' | 'terminal' | 'setup' | 'dispatch_input'
@@ -64,6 +65,7 @@ export async function createExistingWorktreeWorkerTerminal(args: {
   worktreeId: string
   agent: TuiAgent
   launchPreferences?: AgentLaunchPreferences
+  launchProfile?: AgentLaunchProfile
   taskId: string
   effects: WorkerEffect[]
 }): Promise<RuntimeTerminalCreate> {
@@ -73,6 +75,7 @@ export async function createExistingWorktreeWorkerTerminal(args: {
     launchSource: 'orchestration',
     suppressStartupUpdatePrompt: true,
     ...(args.launchPreferences ? { launchPreferences: args.launchPreferences } : {}),
+    ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
     title: `worker-${args.taskId}`,
     // Worker creation is background work and must not pull the sidebar away.
     surfaceOwner: false

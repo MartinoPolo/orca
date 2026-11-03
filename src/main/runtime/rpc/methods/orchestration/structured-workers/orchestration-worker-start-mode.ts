@@ -3,6 +3,7 @@
 import {
   decideAgentLaunchMode,
   downgradeAgentLaunchModeForHost,
+  downgradeAgentLaunchModeForLaunchProfile,
   readAgentLaunchModeSettings,
   resolveAgentLaunchModeOnHost,
   type AgentLaunchModeSettings,
@@ -60,6 +61,12 @@ export function downgradeWorkerStartModeForHost(
   support: { supported: boolean; reason?: 'agent' | 'remote' | 'wsl' } | null
 ): WorkerStartModeReceipt {
   return downgradeAgentLaunchModeForHost(receipt, support, WORKER_START_VOCABULARY)
+}
+
+export function downgradeWorkerStartModeForLaunchProfile(
+  receipt: WorkerStartModeReceipt
+): WorkerStartModeReceipt {
+  return downgradeAgentLaunchModeForLaunchProfile(receipt, WORKER_START_VOCABULARY)
 }
 
 export function readWorkerStartModeSettings(

@@ -2,6 +2,7 @@ import type { SessionOptionValue } from '../../../../shared/native-chat/input/na
 import type { RuntimeTerminalCreate } from '../../../../shared/terminal/runtime/runtime-terminal-create-contract'
 import type { AgentLaunchPreferences } from '../../../../shared/agent-session/agent-session-host-authority'
 import type { CreateWorktreeArgs } from '../../../../shared/worktree/create-types'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import type {
   AutomationWorkspaceProvenance,
   CliWorkspaceProvenance,
@@ -90,6 +91,8 @@ export type RuntimeManagedWorktreeCreateArgs = {
   startupSuppressUpdatePrompt?: boolean
   /** Main-internal: the startup terminal's tab title, such as an automation run's. */
   startupTitle?: string
+  /** Main-internal: the named profile whose command and account root `startupAgent` runs under. */
+  startupLaunchProfile?: AgentLaunchProfile
   startupCwd?: string
   /** The surface behind a host-built startup agent (`startupAgent` or `startupDraft`). */
   startupLaunchSource?: string

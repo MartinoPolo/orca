@@ -73,7 +73,8 @@ const DOWNGRADE_DETAIL: Record<AgentLaunchDowngradeReason, string> = {
     "on Windows this agent's chat runs on agy, which is missing, outdated, or not signed in with a personal Google account",
   structured_unsupported_on_host: 'the execution host cannot create one here',
   chat_runtime_not_installed:
-    "its chat runtime isn't installed on this host (install it from a new chat tab in Orca)"
+    "its chat runtime isn't installed on this host (install it from a new chat tab in Orca)",
+  launch_profile: "a launch profile runs its own command and account root, which a chat can't"
 }
 
 const BLOCKER_REASON: Record<StructuredNativeChatBlocker, AgentLaunchDowngradeReason> = {
@@ -253,6 +254,15 @@ export function downgradeAgentLaunchModeForStructuredRefusal(
     ...fallback,
     detail: `${receipt.reason === 'requested' ? 'You asked for' : 'Your default is'} a structured chat session, but the host refused to create one here; started ${vocabulary.terminal} instead.`
   }
+}
+
+export function downgradeAgentLaunchModeForLaunchProfile(
+  receipt: AgentLaunchModeReceipt,
+  vocabulary: AgentLaunchModeVocabulary
+): AgentLaunchModeReceipt {
+  return receipt.mode === 'structured'
+    ? downgraded('launch_profile', vocabulary, receipt.reason === 'requested')
+    : receipt
 }
 
 /** Phase is derived from successful materialization, never from a support lookup's availability. */

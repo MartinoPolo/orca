@@ -10,6 +10,7 @@ import { resolveUnattendedSetupDecision } from '../../../../../../../workspace-h
 import { OrchestrationError } from '../../../../../../orchestration/orchestration-error'
 import { parseWorkspaceKey } from '../../../../../../../../shared/workspace/identity/workspace-scope'
 import type { WorkerEffect, WorkerSetupReceipt } from './worker-placement-topology'
+import type { AgentLaunchProfile } from '../../../../../../../../shared/agent-launch-profiles'
 
 /** The repo a new worker worktree is created in, and its parent for `new-child`. */
 export type WorkerWorktreeCreationTarget = {
@@ -114,6 +115,7 @@ export async function createWorkerWorktree(args: {
   promisedAgentChat?: boolean
   onWorkspaceCreated?: (worktreeId: string) => void
   launchPreferences?: AgentLaunchPreferences
+  launchProfile?: AgentLaunchProfile
   effects: WorkerEffect[]
 }): Promise<{
   worktree: Awaited<ReturnType<OrcaRuntimeService['showManagedWorktree']>>
@@ -151,7 +153,8 @@ export async function createWorkerWorktree(args: {
           startupAgent: args.agent,
           startupLaunchSource: 'orchestration',
           startupSuppressUpdatePrompt: true,
-          ...(args.launchPreferences ? { startupLaunchPreferences: args.launchPreferences } : {})
+          ...(args.launchPreferences ? { startupLaunchPreferences: args.launchPreferences } : {}),
+          ...(args.launchProfile ? { startupLaunchProfile: args.launchProfile } : {})
         }
       : {}),
     activate: false,

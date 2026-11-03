@@ -4,6 +4,7 @@ import type {
   SleepingAgentLaunchConfig
 } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import type { AgentLaunchRuntime } from '../../../../shared/agent-launch/startup/agent-launch-runtime'
 import type { SessionOptionValue } from '../../../../shared/native-chat/input/native-chat-session-options'
 import type {
@@ -52,6 +53,8 @@ export type TerminalCreateOptions = {
   /** Account routing env merged over `startupAgent`'s plan env; an input to that plan, like
    *  `agentArgs`, so not part of `callerSuppliedLaunch`. */
   accountEnv?: Record<string, string>
+  /** A named profile for `startupAgent` on a local workspace; its account root outranks host account routing. */
+  launchProfile?: AgentLaunchProfile
   sessionOptions?: Readonly<Record<string, SessionOptionValue>>
   launchPreferences?: AgentLaunchPreferences
   terminalKittyKeyboardProtocol?: boolean

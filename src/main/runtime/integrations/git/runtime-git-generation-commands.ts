@@ -12,6 +12,8 @@ import { SSH_HOST_NOT_SERVED_MESSAGE } from '../../../providers/ssh-host-not-ser
 import { loadPullRequestLinkedIssue } from '../../../source-control/pull-request-linked-issue'
 import { resolveHostedReviewBodyForGeneration } from '../../../source-control/pull-request-template'
 import { prepareLocalCommitMessageAgentEnv } from '../../../text-generation/execution/commit-message-agent-environment'
+import type { ResolvedSourceControlAiGenerationParams } from '../../../../shared/source-control/ai/source-control-ai-operation-resolution'
+import { prepareSourceControlGenerationEnvironment } from '../../../text-generation/execution/source-control-launch-profile-environment'
 import {
   cancelGenerateCommitMessageLocal,
   cancelGeneratePullRequestFieldsLocal,
@@ -105,11 +107,7 @@ export class RuntimeGitGenerationCommands {
           return { success: false, ...textGenerationFailure('noStagedChanges') }
         }
         context = withLinkedIssueDraftContext(context, linkedIssueForTarget(this.host, target))
-        const localEnv = await prepareLocalCommitMessageAgentEnv(
-          resolvedSettings.params.agentId,
-          this.host.getCommitMessageAgentEnvironment?.(),
-          localAgentRuntimeTargetForTarget(target)
-        )
+        const localEnv = await this.prepareGenerationEnvironment(target, resolvedSettings.params)
         if (!localEnv.ok) {
           return { success: false, error: localEnv.error }
         }
@@ -118,7 +116,7 @@ export class RuntimeGitGenerationCommands {
         }
         return generateCommitMessageFromContext(
           context,
-          resolvedSettings.params,
+          localEnv.params,
           localTextGenerationTargetForTarget(target, localEnv.env)
         )
       }
@@ -220,17 +218,13 @@ export class RuntimeGitGenerationCommands {
       ...(linkedIssueDetails ? { linkedIssueDetails } : {})
     }
 
-    const localEnv = await prepareLocalCommitMessageAgentEnv(
-      resolvedSettings.params.agentId,
-      this.host.getCommitMessageAgentEnvironment?.(),
-      localAgentRuntimeTargetForTarget(target)
-    )
+    const localEnv = await this.prepareGenerationEnvironment(target, resolvedSettings.params)
     if (!localEnv.ok) {
       return { success: false, error: localEnv.error }
     }
     return generatePullRequestFieldsFromContext(
       context,
-      resolvedSettings.params,
+      localEnv.params,
       localTextGenerationTargetForTarget(target, localEnv.env)
     )
   }
@@ -243,6 +237,19 @@ export class RuntimeGitGenerationCommands {
     }
     cancelGeneratePullRequestFieldsLocal(target.worktree.path)
     return { ok: true }
+  }
+
+  private prepareGenerationEnvironment(
+    target: Awaited<ReturnType<RuntimeGitCommandHost['resolveRuntimeGitTarget']>>,
+    params: ResolvedSourceControlAiGenerationParams
+  ): ReturnType<typeof prepareSourceControlGenerationEnvironment> {
+    return prepareSourceControlGenerationEnvironment({
+      params,
+      repoAi: target.repo?.sourceControlAi,
+      settings: this.host.getRuntimeSettings(),
+      resolvers: this.host.getCommitMessageAgentEnvironment?.(),
+      target: localAgentRuntimeTargetForTarget(target)
+    })
   }
 
   async discoverRuntimeCommitMessageModels(

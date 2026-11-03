@@ -8,6 +8,8 @@ import {
 import { resolveStartupShell, type AgentStartupShell } from './tui-agent-startup-shell'
 import { terminalSessionOptionInputs } from './tui-agent-launch-command'
 import { resolveLocalWindowsAgentStartupShell } from '../../shell/launch/windows-terminal-shell'
+import type { AgentLaunchProfile } from '../../agent-launch-profiles'
+import { buildAgentLaunchProfileEnv, isProfileAgent } from '../../agent-launch-profile-agents'
 
 /** The settings slice a launch reads; hosts pass their whole `GlobalSettings` row. */
 export type AgentStartupSettings = Partial<
@@ -53,6 +55,8 @@ export function resolveAgentStartupPlanInputs(args: {
   sessionOptionsYieldToAgentArgs?: boolean
   /** Orca types into this launch after start (worker, automation, handoff), not a user. */
   suppressStartupUpdatePrompt?: boolean
+  /** A host-scoped named profile whose command and account root replace the agent's defaults. */
+  launchProfile?: AgentLaunchProfile
 }): AgentStartupPlanInputs {
   const { agent, platform, isRemote, sessionOptions } = args
   const settings = agentLaunchPermissionSettings(agent, args.settings, sessionOptions)
@@ -63,21 +67,30 @@ export function resolveAgentStartupPlanInputs(args: {
       isRemote,
       terminalWindowsShell: settings.terminalWindowsShell
     })
+  const { launchProfile } = args
+  if (launchProfile && !isProfileAgent(agent)) {
+    throw new Error(`Launch profiles are not available for ${agent}.`)
+  }
+  const cmdOverrides = launchProfile
+    ? { ...settings.agentCmdOverrides, [agent]: launchProfile.command }
+    : (settings.agentCmdOverrides ?? {})
+  const agentEnv = resolveTuiAgentLaunchEnv(agent, settings, platform)
   const options = terminalSessionOptionInputs({
     agent,
     settings,
     agentArgs: args.agentArgs,
     sessionOptions,
     yieldToAgentArgs: args.sessionOptionsYieldToAgentArgs,
-    command: settings.agentCmdOverrides?.[agent],
+    command: cmdOverrides[agent],
     extraAgentArgs: args.extraAgentArgs,
     shell: resolveStartupShell(platform, shell)
   })
   return {
     agent,
-    cmdOverrides: settings.agentCmdOverrides ?? {},
+    // The resume snapshot records both, so cold restore reopens the profile's account.
+    cmdOverrides,
     agentArgs: options.agentArgs ?? null,
-    agentEnv: resolveTuiAgentLaunchEnv(agent, settings, platform),
+    agentEnv: launchProfile ? { ...agentEnv, ...buildAgentLaunchProfileEnv(agent, launchProfile) } : agentEnv,
     platform,
     shell,
     isRemote,

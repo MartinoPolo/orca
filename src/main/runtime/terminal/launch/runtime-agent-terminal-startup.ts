@@ -39,6 +39,7 @@ import { resolveStartupShell } from '../../../../shared/agent-launch/startup/tui
 import { resolveWslSessionContext } from '../../../daemon/pty-subprocess/wsl-session-context'
 import { isTuiAgentEnabled } from '../../../../shared/agent-launch/catalog/tui-agent-selection'
 import { resolveWslHostAgentLaunchInputs } from './wsl-host-agent-terminal-launch'
+import { assertLaunchProfileRunsLocally } from '../../launch-profile-host-guard'
 
 /** No launch command could be built for a requested `startupAgent`. */
 export class AgentLaunchUnbuildableError extends Error {}
@@ -177,6 +178,7 @@ async function buildRuntimeAgentTerminalStartupOptions(
   if (opts.startupPrompt && !forceLine && !agentPromptRidesLaunchCommand(agent)) {
     throw new Error(`Agent ${agent} does not take a startup prompt on its launch command.`)
   }
+  assertLaunchProfileRunsLocally(opts.launchProfile, isRemote, runtime.platform)
   const scope = {
     inputs: resolveWslHostAgentLaunchInputs(
       resolveAgentStartupPlanInputs({
@@ -188,7 +190,8 @@ async function buildRuntimeAgentTerminalStartupOptions(
         ...(opts.extraAgentArgs !== undefined ? { extraAgentArgs: opts.extraAgentArgs } : {}),
         shell: agentLaunchQuotingShell(runtime),
         sessionOptions: sessionOptions ?? host.toSessionOptions(opts.launchPreferences),
-        ...(opts.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {})
+        ...(opts.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
+        ...(opts.launchProfile ? { launchProfile: opts.launchProfile } : {})
       }),
       opts.env?.PATH
     ),
@@ -294,8 +297,9 @@ export async function prepareHostAgentTerminalLaunch(
   accounts: Pick<RuntimeAccountController, 'prepareHostAgentLaunch' | 'hostLaunchEnvFor'>
 ): Promise<TerminalCreateOptions> {
   const launch = applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported)
-  // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing.
-  if (workspace.connectionId) {
+  // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing;
+  // a launch profile already pinned its own account root.
+  if (workspace.connectionId || opts.launchProfile) {
     return launch
   }
   if (launch.launchAgent) {

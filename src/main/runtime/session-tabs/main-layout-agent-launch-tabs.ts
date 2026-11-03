@@ -10,6 +10,7 @@ import { parseExecutionHostId } from '../../../shared/execution-host'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import type { RuntimePtyWorktreeRecord } from '../terminal/records/runtime-terminal-state-records'
 import type { TerminalIdentityReadContext } from '../terminal/query/terminal-identity-read-context'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 
 /** Where the tab landed against where the launch asked for it, as the window reports it. */
 function placementFallback(
@@ -36,6 +37,14 @@ export abstract class OrcaRuntimeWithMainLayoutAgentLaunchTabs extends OrcaRunti
     return ORCA_LAYOUT_OWNER_IS_MAIN
       ? !!pty && this.getPtyLivenessVerdict(pty.ptyId)?.status !== 'exited'
       : pty?.connected === true
+  }
+
+  /** The agent a pane was launched as and the environment that launch recorded for resume. */
+  getTerminalLaunchEnvironmentForPaneKey(
+    paneKey: string
+  ): { agent: TuiAgent | null; agentEnv: Record<string, string> } | null {
+    const pty = this.getPtyRecordForPaneKey(paneKey)
+    return pty ? { agent: pty.launchAgent, agentEnv: { ...pty.launchConfig?.agentEnv } } : null
   }
 
   /** Whether main's layout holds the tab's workspace, so main writes the tab itself. */

@@ -6,7 +6,7 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
     path: ['orchestration', 'worker-start'],
     summary: 'Start one supervised worker on the Run home or a connected Orca server',
     usage:
-      'orca orchestration worker-start (--task <task_id> | --spec <text> | --spec-file <path|->) [--keep-open] [--on <saved-environment>] [--worktree <current|selector|new-child|new-top-level>] (--agent <agent> | --terminal <handle>) [--task-title <text>] [--deps <json_array>] [--parent <task_id>] [--model <id>] [--effort <level>] [--name <name>] [--repo <selector>] [--base-branch <ref>] [--display-name <text>] [--comment <text>] [--setup <run|skip|inherit>] [--retry-of <dispatch_id>] [--timeout-ms <n>] [--run <run_id>] [--from <handle>] [--retry-request <id>] [--json]',
+      'orca orchestration worker-start (--task <task_id> | --spec <text> | --spec-file <path|->) [--keep-open] [--on <saved-environment>] [--worktree <current|selector|new-child|new-top-level>] (--agent <agent> | --terminal <handle>) [--task-title <text>] [--deps <json_array>] [--parent <task_id>] [--model <id>] [--effort <level>] [--launch-profile <name|default>] [--name <name>] [--repo <selector>] [--base-branch <ref>] [--display-name <text>] [--comment <text>] [--setup <run|skip|inherit>] [--retry-of <dispatch_id>] [--timeout-ms <n>] [--run <run_id>] [--from <handle>] [--retry-request <id>] [--json]',
     allowedFlags: [
       ...GLOBAL_FLAGS,
       'task',
@@ -27,6 +27,7 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
       'agent',
       'model',
       'effort',
+      'launch-profile',
       'terminal',
       'retry-of',
       'timeout-ms',
@@ -43,6 +44,7 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
       'A terminal the user kept open takes --terminal work and stays kept open.',
       '--agent takes an Orca agent id enabled on the worker server, such as claude, codex, cursor, antigravity, muse, zcode, opencode, or opencode2.',
       '--model supports Claude, Codex, Cursor, Antigravity, Grok, and Muse opaque provider model ids; --effort requires --model. OMP also takes its model roles and selectors (such as @worker or provider/model:level), with --effort as its thinking level. Neither can combine with --terminal. OpenCode model selection requires an existing worktree, a verified execution-host CLI, and an available model; effort is unsupported. Pi takes a provider/id --model and maps --effort to its --thinking level (off, minimal, low, medium, high, xhigh, max). Other agents, including zcode, launch with the model from their own config.',
+      "Claude and Pi workers run under the coordinator's own launch profile (account) when the coordinator runs the same agent; --launch-profile <name> picks a profile from Settings and --launch-profile default the built-in account. A profile worker starts in a terminal on a workspace on this computer; it cannot combine with --terminal or --on.",
       'Finished workers close on their own unless started with --keep-open; a worker started in a new worktree (new-child or new-top-level) is kept open, so release it when no one will use its chat.',
       'New worktrees use agent-first creation; without --setup, setup runs unless the project turns it off. Repository start-immediately runs setup beside the agent; wait-for-setup gates agent readiness and task input.',
       'New worktrees without --name get the name Orca gives an unnamed workspace; the receipt names it. Servers older than this change still require --name.',

@@ -14,6 +14,7 @@ import { RepositorySourceControlAiActionRows } from './RepositorySourceControlAi
 import { RepositorySourceControlAiCustomCommand } from './RepositorySourceControlAiCustomCommand'
 import { RepositorySourceControlAiEnablement } from './RepositorySourceControlAiEnablement'
 import { RepositorySourceControlAiHostedReviewDefaults } from './RepositorySourceControlAiHostedReviewDefaults'
+import { RepositorySourceControlAiLaunchProfile } from './RepositorySourceControlAiLaunchProfile'
 import { normalizeRepoAiDraft } from './repository-source-control-ai-draft'
 import { useRepositorySourceControlAiGlobalUx } from './repository-source-control-ai-global-ux'
 import { getSettingOwnershipSummary } from '../../page/setting-ownership'
@@ -60,6 +61,7 @@ export function RepositorySourceControlAiSection({
     actionDirtyById,
     savingActionIds,
     updateEnablement,
+    updateLaunchProfile,
     updateCustomCommand,
     updateHostedReviewDefault,
     updateActionMode,
@@ -102,6 +104,11 @@ export function RepositorySourceControlAiSection({
           value={displayRepoAi.enabled}
           source={source}
           onChange={updateEnablement}
+        />
+        <RepositorySourceControlAiLaunchProfile
+          value={displayRepoAi.launchProfileId}
+          settings={settings}
+          onChange={updateLaunchProfile}
         />
         <RepositorySourceControlAiCustomCommand
           value={displayRepoAi.customAgentCommand}

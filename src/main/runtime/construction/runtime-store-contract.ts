@@ -112,6 +112,8 @@ export type RuntimeStore = {
   setMobileClientTabSelections?: Store['setMobileClientTabSelections']
   getSettings(): {
     browserClientHostedRemoteEnabled?: GlobalSettings['browserClientHostedRemoteEnabled']
+    claudeLaunchProfiles?: GlobalSettings['claudeLaunchProfiles']
+    piLaunchProfiles?: GlobalSettings['piLaunchProfiles']
     autoRenameBranchFromWork?: GlobalSettings['autoRenameBranchFromWork']
     nativeChatAutoName?: GlobalSettings['nativeChatAutoName']
     notifications?: GlobalSettings['notifications']

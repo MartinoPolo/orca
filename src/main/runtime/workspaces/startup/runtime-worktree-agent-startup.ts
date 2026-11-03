@@ -29,6 +29,8 @@ import { detectAgentsOnHost } from '../../../preflight/workspace-agent-detection
 import { agentCommandOverrideDetectionOptions } from '../../../preflight/installed-agent-detection'
 import type { RuntimeStore } from '../../construction/runtime-store-contract'
 import type { RuntimeManagedWorktreeCreateArgs } from '../creation/runtime-managed-worktree-create-types'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
+import { assertLaunchProfileRunsLocally } from '../../launch-profile-host-guard'
 
 export type WorktreeStartupDraftPaste = { agent: TuiAgent; content: string }
 export type WorktreeStartupFollowup = { agent: TuiAgent; prompt: string }
@@ -181,6 +183,7 @@ export async function buildWorktreeStartupForAgent(
     ) => Parameters<typeof buildAgentStartupPlan>[0]['sessionOptions'] | undefined
     /** Caller delivers any uncarried prompt; report typed-line carry. Absent preserves CLI behavior. */
     onPromptCarry?: (carried: boolean) => void
+    launchProfile?: AgentLaunchProfile
   }
 ): Promise<{
   agent: TuiAgent
@@ -193,6 +196,7 @@ export async function buildWorktreeStartupForAgent(
     throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
   }
   const { platform, shell, launchRuntime } = environment.getLaunchRuntime(agent)
+  assertLaunchProfileRunsLocally(environment.launchProfile, repoIsRemote(repo), platform)
   const resolvedInputs = resolveAgentStartupPlanInputs({
     agent,
     settings,
@@ -202,6 +206,7 @@ export async function buildWorktreeStartupForAgent(
     ...(environment.agentArgs !== undefined ? { agentArgs: environment.agentArgs } : {}),
     ...(environment.extraAgentArgs ? { extraAgentArgs: environment.extraAgentArgs } : {}),
     ...(environment.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
+    ...(environment.launchProfile ? { launchProfile: environment.launchProfile } : {}),
     sessionOptions:
       environment.sessionOptions ?? environment.toSessionOptions(environment.launchPreferences)
   })
@@ -269,6 +274,7 @@ export async function resolveWorktreeCreateAgentStartup(
       suppressStartupUpdatePrompt?: boolean
       launchSource?: string
       onPromptCarry?: (carried: boolean) => void
+      launchProfile?: AgentLaunchProfile
     }
   ) =>
     | Promise<{
@@ -293,7 +299,8 @@ export async function resolveWorktreeCreateAgentStartup(
     ...(args.startupExtraAgentArgs ? { extraAgentArgs: args.startupExtraAgentArgs } : {}),
     ...(args.startupSuppressUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
     ...(args.startupLaunchSource ? { launchSource: args.startupLaunchSource } : {}),
-    ...(args.onStartupPromptCarry ? { onPromptCarry: args.onStartupPromptCarry } : {})
+    ...(args.onStartupPromptCarry ? { onPromptCarry: args.onStartupPromptCarry } : {}),
+    ...(args.startupLaunchProfile ? { launchProfile: args.startupLaunchProfile } : {})
   })
   return args.startupAccountEnv
     ? {

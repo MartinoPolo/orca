@@ -18,7 +18,7 @@ import { resolveRegisteredWorktreePath } from '../worktrees/removal/registered-w
 import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
 import { withLinkedIssueDraftContext } from '../../../shared/source-control/ai/recipes/source-control-ai-action-variables'
 import { resolveSourceControlAiLinkedIssue } from '../source-control/source-control-ai-linked-issue'
-import { prepareLocalCommitMessageAgentEnv } from '../../text-generation/execution/commit-message-agent-environment'
+import { prepareSourceControlGenerationEnvironment } from '../../text-generation/execution/source-control-launch-profile-environment'
 import {
   CANCELED_GENERATION_RESULT,
   runCancelableLocalGeneration
@@ -58,14 +58,10 @@ export function registerFilesystemGitCommitGenerationHandlers(
           ? { agentCmdOverrides: args.agentCmdOverrides }
           : {})
       }
+      const repo = await getRepoForSourceControlAi(store, args)
       const resolvedSettings = args.sourceControlAiResolvedParams
         ? { ok: true as const, params: args.sourceControlAiResolvedParams }
-        : resolveCommitMessageSettings(
-            requestSettings,
-            discoveryHostKey,
-            'commitMessage',
-            await getRepoForSourceControlAi(store, args)
-          )
+        : resolveCommitMessageSettings(requestSettings, discoveryHostKey, 'commitMessage', repo)
       if (!resolvedSettings.ok) {
         return {
           success: false,
@@ -106,11 +102,13 @@ export function registerFilesystemGitCommitGenerationHandlers(
             context,
             resolveSourceControlAiLinkedIssue(store, args, worktreePath)
           )
-          const localEnv = await prepareLocalCommitMessageAgentEnv(
-            resolvedSettings.params.agentId,
-            commitMessageAgentEnv,
-            getLocalAgentRuntimeTarget(gitOptions)
-          )
+          const localEnv = await prepareSourceControlGenerationEnvironment({
+            params: resolvedSettings.params,
+            repoAi: repo?.sourceControlAi,
+            settings: baseSettings,
+            resolvers: commitMessageAgentEnv,
+            target: getLocalAgentRuntimeTarget(gitOptions)
+          })
           if (!localEnv.ok) {
             return { success: false, error: localEnv.error }
           }
@@ -119,7 +117,7 @@ export function registerFilesystemGitCommitGenerationHandlers(
           }
           return generateCommitMessageFromContext(
             context,
-            resolvedSettings.params,
+            localEnv.params,
             getLocalTextGenerationTarget(worktreePath, gitOptions, localEnv.env)
           )
         }

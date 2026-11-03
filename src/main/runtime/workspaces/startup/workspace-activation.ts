@@ -11,6 +11,7 @@ import type { Repo } from '../../../../shared/repository/repo-types'
 import type { TerminalWorkspaceLaunchScope } from '../../orchestration/terminal-authority/structured-sessions/runtime-legacy-worker-terminal-recovery-types'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { RuntimeTerminalWait } from '../../../../shared/terminal/runtime/runtime-terminal-contracts'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import {
   type WorktreeStartupDraftPaste,
   type WorktreeStartupFollowup,
@@ -180,6 +181,7 @@ export abstract class OrcaRuntimeWithActivateManagedWorktree extends OrcaRuntime
       suppressStartupUpdatePrompt?: boolean
       launchSource?: string
       onPromptCarry?: (carried: boolean) => void
+      launchProfile?: AgentLaunchProfile
       /** The existing workspace it starts in; absent is a new workspace of `repo`. */
       launchScope?: TerminalWorkspaceLaunchScope
     }
@@ -187,20 +189,15 @@ export abstract class OrcaRuntimeWithActivateManagedWorktree extends OrcaRuntime
     if (!this.store) {
       throw new Error('runtime_unavailable')
     }
+    const { launchScope, ...startupInputs } = launchInputs ?? {}
     return buildWorktreeStartupForAgent({
       repo,
       agent,
       ...(prompt !== undefined ? { prompt } : {}),
       ...(launchPreferences ? { launchPreferences } : {}),
-      ...(launchInputs?.agentArgs !== undefined ? { agentArgs: launchInputs.agentArgs } : {}),
-      ...(launchInputs?.sessionOptions ? { sessionOptions: launchInputs.sessionOptions } : {}),
-      ...(launchInputs?.extraAgentArgs ? { extraAgentArgs: launchInputs.extraAgentArgs } : {}),
-      ...(launchInputs?.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
-      ...(launchInputs?.launchSource ? { launchSource: launchInputs.launchSource } : {}),
-      ...(launchInputs?.onPromptCarry ? { onPromptCarry: launchInputs.onPromptCarry } : {}),
+      ...startupInputs,
       settings: this.store.getSettings(),
-      getLaunchRuntime: (agent) =>
-        this.resolveStartupAgentLaunchRuntime(repo, agent, launchInputs?.launchScope),
+      getLaunchRuntime: (agent) => this.resolveStartupAgentLaunchRuntime(repo, agent, launchScope),
       toSessionOptions: (preferences) => this.toAgentSessionOptions(preferences)
     })
   }
