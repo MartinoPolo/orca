@@ -50,4 +50,24 @@ describe('pane serializer mouse encoding', () => {
     expect(data.endsWith(`${ESC}[?1006h`)).toBe(true)
     expect(data.lastIndexOf(`${ESC}[?1006h`)).toBeGreaterThan(data.lastIndexOf(`${ESC}[?1049h`))
   })
+
+  it('states the default encoding while a program tracks the mouse', async () => {
+    const data = await serializePaneAfter(`${ESC}[?1049h${ESC}[?1003hlegacy`)
+    expect(data).not.toContain(`${ESC}[?1006h`)
+    expect(data.endsWith(`${ESC}[?1006l`)).toBe(true)
+  })
+
+  it('only clears stale mouse modes when no program tracks the mouse', async () => {
+    const data = await serializePaneAfter('plain shell')
+    expect(data).toContain(
+      `${ESC}[?9l${ESC}[?1000l${ESC}[?1002l${ESC}[?1003l${ESC}[?1006l${ESC}[?1016l`
+    )
+    for (const mode of [9, 1000, 1002, 1003, 1006, 1016]) {
+      expect(data).not.toContain(`${ESC}[?${mode}h`)
+    }
+  })
+
+  it('keeps an empty snapshot empty', async () => {
+    expect(await serializePaneAfter(`${ESC}[?1006h`)).toBe('')
+  })
 })
