@@ -27,6 +27,7 @@ import type { TerminalInputKind } from '../../shared/terminal-input-kind'
 import type { RuntimePtyController } from './runtime-pty-controller-contract'
 import type { RuntimeAgentRowSnapshot } from './runtime-worktree-agent-rows'
 import type { WorkerTerminalHostScope } from '../../shared/worker-terminal-host-scope'
+import type { AgentLaunchProfile } from '../../shared/agent-launch-profiles'
 
 export type TerminalCreateOptions = {
   command?: string
@@ -63,6 +64,8 @@ export type TerminalCreateOptions = {
   /** Account routing env merged over `startupAgent`'s plan env; an input to that plan, like
    *  `agentArgs`, so not part of `callerSuppliedLaunch`. */
   accountEnv?: Record<string, string>
+  /** A named profile for `startupAgent` on a local workspace; its account root outranks host account routing. */
+  launchProfile?: AgentLaunchProfile
   launchPreferences?: AgentLaunchPreferences
   terminalKittyKeyboardProtocol?: boolean
   terminalImageViewerSupported?: boolean

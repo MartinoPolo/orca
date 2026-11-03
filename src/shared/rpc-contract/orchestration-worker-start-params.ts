@@ -29,11 +29,21 @@ export const WorkerStartParams = z
     agent: OptionalString,
     model: OptionalWorkerLaunchPreference,
     effort: OptionalWorkerLaunchPreference,
+    /** A named Claude or Pi launch profile, or `default`; absent inherits the coordinator's. */
+    launchProfile: OptionalWorkerLaunchPreference,
     retryOf: OptionalString,
     timeoutMs: OptionalFiniteNumber,
     devMode: z.boolean().optional()
   })
   .superRefine((params, ctx) => {
+    // A reused terminal keeps its account, and a remote server resolves profiles from its own settings.
+    if (params.launchProfile && (params.terminal || params.on)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['launchProfile'],
+        message: '--launch-profile cannot combine with --terminal or --on'
+      })
+    }
     if (!params.task && !params.spec) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

@@ -14,7 +14,7 @@ import {
 } from '../../text-generation/commit-message-text-generation'
 import { getCommitMessageModelDiscoveryHostKey } from '../../../shared/commit-message-host-key'
 import { getPullRequestDraftContext } from '../../text-generation/pull-request-context'
-import { prepareLocalCommitMessageAgentEnv } from '../../text-generation/commit-message-agent-environment'
+import { prepareSourceControlGenerationEnvironment } from '../../text-generation/source-control-launch-profile-environment'
 import { SSH_HOST_NOT_SERVED_MESSAGE } from '../../providers/ssh-host-not-served-error'
 import { resolveRegisteredWorktreePath } from '../registered-worktree-roots-cache'
 import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
@@ -64,14 +64,10 @@ export function registerFilesystemGitPullRequestGenerationHandlers(
           ? { agentCmdOverrides: args.agentCmdOverrides }
           : {})
       }
+      const repo = await getRepoForSourceControlAi(store, args)
       const resolvedSettings = args.sourceControlAiResolvedParams
         ? { ok: true as const, params: args.sourceControlAiResolvedParams }
-        : resolveCommitMessageSettings(
-            requestSettings,
-            discoveryHostKey,
-            'pullRequest',
-            await getRepoForSourceControlAi(store, args)
-          )
+        : resolveCommitMessageSettings(requestSettings, discoveryHostKey, 'pullRequest', repo)
       if (!resolvedSettings.ok) {
         return {
           success: false,
@@ -138,17 +134,19 @@ export function registerFilesystemGitPullRequestGenerationHandlers(
         ...(args.provider ? { provider: args.provider } : {}),
         ...(linkedIssueDetails ? { linkedIssueDetails } : {})
       }
-      const localEnv = await prepareLocalCommitMessageAgentEnv(
-        resolvedSettings.params.agentId,
-        commitMessageAgentEnv,
-        getLocalAgentRuntimeTarget(gitOptions)
-      )
+      const localEnv = await prepareSourceControlGenerationEnvironment({
+        params: resolvedSettings.params,
+        repoAi: repo?.sourceControlAi,
+        settings: baseSettings,
+        resolvers: commitMessageAgentEnv,
+        target: getLocalAgentRuntimeTarget(gitOptions)
+      })
       if (!localEnv.ok) {
         return { success: false, error: localEnv.error }
       }
       return generatePullRequestFieldsFromContext(
         context,
-        resolvedSettings.params,
+        localEnv.params,
         getLocalTextGenerationTarget(worktreePath, gitOptions, localEnv.env)
       )
     }

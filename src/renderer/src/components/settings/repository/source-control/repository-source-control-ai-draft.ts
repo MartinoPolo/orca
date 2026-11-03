@@ -98,6 +98,14 @@ export function withRepoAiEnabled(
   return normalizeRepoAiDraft(next)
 }
 
+export function withRepoAiLaunchProfile(
+  base: RepoSourceControlAiOverrides,
+  launchProfileId: string | undefined
+): RepoSourceControlAiOverrides {
+  const { launchProfileId: _previous, ...rest } = base
+  return normalizeRepoAiDraft(launchProfileId === undefined ? rest : { ...rest, launchProfileId })
+}
+
 export function withRepoAiCustomCommand(
   base: RepoSourceControlAiOverrides,
   customAgentCommand: string | undefined

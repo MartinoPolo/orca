@@ -27,7 +27,8 @@ import {
   withRepoAiActionRecipeText,
   withRepoAiCustomCommand,
   withRepoAiEnabled,
-  withRepoAiHostedReviewDefault
+  withRepoAiHostedReviewDefault,
+  withRepoAiLaunchProfile
 } from './repository-source-control-ai-draft'
 import { ACTION_MODE_INHERIT, DEFAULT_AGENT_VALUE } from './repository-source-control-ai-labels'
 import { createRepoAiPersistQueue } from './repository-source-control-ai-persist-queue'
@@ -160,6 +161,11 @@ export function useRepositorySourceControlAiGlobalUx({
   const updateEnablement = (value: boolean | undefined): void => {
     commitImmediate(withRepoAiEnabled(immediateRepoAiRef.current, value))
     persist((base) => withRepoAiEnabled(base, value))
+  }
+
+  const updateLaunchProfile = (value: string | undefined): void => {
+    commitImmediate(withRepoAiLaunchProfile(immediateRepoAiRef.current, value))
+    persist((base) => withRepoAiLaunchProfile(base, value))
   }
 
   const commitCustomCommand = (value: string | undefined): void => {
@@ -301,6 +307,7 @@ export function useRepositorySourceControlAiGlobalUx({
     actionDirtyById,
     savingActionIds,
     updateEnablement,
+    updateLaunchProfile,
     updateCustomCommand: (value: string | undefined) => setCustomCommandDraft(value ?? ''),
     commitCustomCommand,
     updateHostedReviewDefault,

@@ -103,6 +103,8 @@ export type RuntimeStore = {
   getMobileClientTabSelections?: Store['getMobileClientTabSelections']
   setMobileClientTabSelections?: Store['setMobileClientTabSelections']
   getSettings(): {
+    claudeLaunchProfiles?: GlobalSettings['claudeLaunchProfiles']
+    piLaunchProfiles?: GlobalSettings['piLaunchProfiles']
     autoRenameBranchFromWork?: GlobalSettings['autoRenameBranchFromWork']
     nativeChatAutoName?: GlobalSettings['nativeChatAutoName']
     notifications?: GlobalSettings['notifications']

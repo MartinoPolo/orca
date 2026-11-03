@@ -3,7 +3,10 @@ import { printResult } from '../../format'
 import { getOptionalStringFlag, getPresentStringFlag } from '../../flags'
 import { RuntimeClientError } from '../../runtime-client'
 import type { RuntimeStatus } from '../../../shared/runtime-types'
-import { ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY } from '../../../shared/protocol-version'
+import {
+  ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY,
+  ORCHESTRATION_WORKER_LAUNCH_PROFILE_RUNTIME_CAPABILITY
+} from '../../../shared/protocol-version'
 import { callOrchestrationMutation } from './mutation-request'
 import { getOptionalPositiveIntegerValueFlag } from './numeric-flags'
 import { isDevCliInvocation } from './runtime-compatibility'
@@ -16,17 +19,34 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
     const terminal = getPresentStringFlag(flags, 'terminal')
     const model = getOptionalStringFlag(flags, 'model')
     const effort = getOptionalStringFlag(flags, 'effort')
-    if (model || effort) {
+    const launchProfile = getOptionalStringFlag(flags, 'launch-profile')
+    const requiredCapabilities = [
+      ...(model || effort
+        ? [
+            {
+              capability: ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY,
+              feature: 'worker model or effort overrides'
+            }
+          ]
+        : []),
+      ...(launchProfile
+        ? [
+            {
+              capability: ORCHESTRATION_WORKER_LAUNCH_PROFILE_RUNTIME_CAPABILITY,
+              feature: 'worker launch profiles'
+            }
+          ]
+        : [])
+    ]
+    if (requiredCapabilities.length > 0) {
       const status = await client.call<RuntimeStatus>('status.get')
-      if (
-        !status.result.capabilities?.includes(
-          ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY
-        )
-      ) {
-        throw new RuntimeClientError(
-          'incompatible_runtime',
-          'The connected Orca runtime does not support worker model or effort overrides. Update or restart Orca and try again.'
-        )
+      for (const { capability, feature } of requiredCapabilities) {
+        if (!status.result.capabilities?.includes(capability)) {
+          throw new RuntimeClientError(
+            'incompatible_runtime',
+            `The connected Orca runtime does not support ${feature}. Update or restart Orca and try again.`
+          )
+        }
       }
     }
     const task = getOptionalStringFlag(flags, 'task')
@@ -63,6 +83,7 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       agent: getOptionalStringFlag(flags, 'agent'),
       model,
       effort,
+      launchProfile,
       terminal,
       retryOf: getOptionalStringFlag(flags, 'retry-of'),
       timeoutMs: getOptionalPositiveIntegerValueFlag(flags, 'timeout-ms'),

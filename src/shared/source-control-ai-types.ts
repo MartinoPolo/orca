@@ -52,6 +52,8 @@ export type SourceControlAiSettingsPatch =
 
 export type RepoSourceControlAiOverrides = {
   enabled?: boolean
+  /** A Claude or Pi launch profile id; local text generation with that agent runs under its account. */
+  launchProfileId?: string
   customAgentCommand?: string
   modelOverridesByOperation?: Partial<Record<SourceControlAiOperation, SourceControlAiModelChoice>>
   instructionsByOperation?: Partial<Record<SourceControlAiOperation, string | null>>

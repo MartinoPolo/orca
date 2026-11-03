@@ -37,6 +37,7 @@ import { resolveStartupShell } from '../../shared/tui-agent-startup-shell'
 import { resolveWslSessionContext } from '../daemon/wsl-session-context'
 import { isTuiAgentEnabled } from '../../shared/tui-agent-selection'
 import { resolveWslHostAgentLaunchInputs } from './wsl-host-agent-terminal-launch'
+import { assertLaunchProfileRunsLocally } from './launch-profile-host-guard'
 
 /** No launch command could be built for a requested `startupAgent`. */
 export class AgentLaunchUnbuildableError extends Error {}
@@ -166,6 +167,7 @@ async function buildRuntimeAgentTerminalStartupOptions(
   if (opts.startupPrompt && !forceLine && !agentPromptRidesLaunchCommand(agent)) {
     throw new Error(`Agent ${agent} does not take a startup prompt on its launch command.`)
   }
+  assertLaunchProfileRunsLocally(opts.launchProfile, isRemote, runtime.platform)
   const scope = {
     inputs: resolveWslHostAgentLaunchInputs(
       resolveAgentStartupPlanInputs({
@@ -176,7 +178,8 @@ async function buildRuntimeAgentTerminalStartupOptions(
         ...(opts.agentArgs !== undefined ? { agentArgs: opts.agentArgs } : {}),
         shell: agentLaunchQuotingShell(runtime),
         sessionOptions: host.toSessionOptions(opts.launchPreferences),
-        ...(opts.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {})
+        ...(opts.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
+        ...(opts.launchProfile ? { launchProfile: opts.launchProfile } : {})
       }),
       opts.env?.PATH
     ),

@@ -12,10 +12,12 @@ import type {
 } from '../../../../orchestration/orchestration-caller-identity'
 import { resolveDispatchCallerWorktreeId } from '../../orchestration-caller-workspace'
 import {
+  downgradeWorkerStartModeForLaunchProfile,
   resolveWorkerStartModeOnHost,
   type WorkerStartModeReceipt
 } from '../../orchestration-worker-start-mode'
 import { EXISTING_WORKTREE_SETUP, placeWorkerAgent } from './worker-start-agent-placement'
+import { resolveLocalWorkerLaunchProfile } from './worker-launch-profile'
 import { awaitStructuredWorkerSetupGate } from './worker-start-structured-setup-gate'
 import { assertOrchestrationWorktreeCreationSupported } from './folder-worktree-placement'
 import { resolveWorkerWorktreeCreationTarget } from './worker-worktree-creation'
@@ -130,8 +132,10 @@ export async function startLocalWorker(args: {
       resolvedWorktreeId: resolvedWorktree?.id
     })
   }
+  const launchProfile = resolveLocalWorkerLaunchProfile(runtime, agent, params)
   const hostMode = resolveWorkerStartModeOnHost(runtime, args.mode, resolvedWorktree?.id, agent)
-  let mode = chatWorkerMode(await hostMode, chat)
+  const chosenMode = chatWorkerMode(await hostMode, chat)
+  let mode = launchProfile ? downgradeWorkerStartModeForLaunchProfile(chosenMode) : chosenMode
 
   const started = createLocalWorkerStartDispatch(args, {
     params,
@@ -169,6 +173,7 @@ export async function startLocalWorker(args: {
       mode,
       agent,
       launchPreferences: launch.preferences,
+      ...(launchProfile ? { launchProfile } : {}),
       effects,
       onStage: (stage) => {
         failedStage = stage

@@ -19,6 +19,8 @@ import {
 import { detectAgentsOnHost } from '../preflight/workspace-agent-detection'
 import type { RuntimeStore } from './runtime-store-contract'
 import type { RuntimeManagedWorktreeCreateArgs } from './runtime-managed-worktree-create-types'
+import type { AgentLaunchProfile } from '../../shared/agent-launch-profiles'
+import { assertLaunchProfileRunsLocally } from './launch-profile-host-guard'
 
 export type WorktreeStartupDraftPaste = { agent: TuiAgent; content: string }
 export type WorktreeStartupFollowup = { agent: TuiAgent; prompt: string }
@@ -150,6 +152,7 @@ export function buildWorktreeStartupForAgent(
     ) => Parameters<typeof buildAgentStartupPlan>[0]['sessionOptions'] | undefined
     /** Caller delivers any uncarried prompt; report typed-line carry. Absent preserves CLI behavior. */
     onPromptCarry?: (carried: boolean) => void
+    launchProfile?: AgentLaunchProfile
   }
 ): {
   agent: TuiAgent
@@ -162,6 +165,7 @@ export function buildWorktreeStartupForAgent(
     throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
   }
   const { platform, shell, launchRuntime } = environment.getLaunchRuntime(agent)
+  assertLaunchProfileRunsLocally(environment.launchProfile, repoIsRemote(repo), platform)
   const planInputs = resolveAgentStartupPlanInputs({
     agent,
     settings,
@@ -171,6 +175,7 @@ export function buildWorktreeStartupForAgent(
     ...(environment.agentArgs !== undefined ? { agentArgs: environment.agentArgs } : {}),
     ...(environment.extraAgentArgs ? { extraAgentArgs: environment.extraAgentArgs } : {}),
     ...(environment.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
+    ...(environment.launchProfile ? { launchProfile: environment.launchProfile } : {}),
     sessionOptions: environment.toSessionOptions(environment.launchPreferences)
   })
   const prompt = environment.prompt ?? ''
@@ -230,6 +235,7 @@ export function resolveWorktreeCreateAgentStartup(
       suppressStartupUpdatePrompt?: boolean
       launchSource?: string
       onPromptCarry?: (carried: boolean) => void
+      launchProfile?: AgentLaunchProfile
     }
   ) => {
     agent: TuiAgent
@@ -246,7 +252,8 @@ export function resolveWorktreeCreateAgentStartup(
     ...(args.startupExtraAgentArgs ? { extraAgentArgs: args.startupExtraAgentArgs } : {}),
     ...(args.startupSuppressUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {}),
     ...(args.startupLaunchSource ? { launchSource: args.startupLaunchSource } : {}),
-    ...(args.onStartupPromptCarry ? { onPromptCarry: args.onStartupPromptCarry } : {})
+    ...(args.onStartupPromptCarry ? { onPromptCarry: args.onStartupPromptCarry } : {}),
+    ...(args.startupLaunchProfile ? { launchProfile: args.startupLaunchProfile } : {})
   })
   return args.startupAccountEnv
     ? {

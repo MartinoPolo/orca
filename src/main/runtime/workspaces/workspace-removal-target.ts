@@ -315,8 +315,9 @@ export abstract class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRu
       toSessionOptions: (preferences) => this.toAgentSessionOptions(preferences)
     })
     const launch = applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported)
-    // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing.
-    if (workspace.connectionId) {
+    // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing;
+    // a launch profile already pinned its own account root.
+    if (workspace.connectionId || opts.launchProfile) {
       return launch
     }
     if (launch.launchAgent) {

@@ -1,4 +1,5 @@
 import type { AgentLaunchPreferences } from '../../shared/agent-session-host-authority'
+import type { AgentLaunchProfile } from '../../shared/agent-launch-profiles'
 import type { CreateWorktreeArgs } from '../../shared/worktree/create-types'
 import type {
   AutomationWorkspaceProvenance,
@@ -76,6 +77,8 @@ export type RuntimeManagedWorktreeCreateArgs = {
   startupExtraAgentArgs?: string
   /** Main-internal: Orca, not a user, types into the startup agent once it starts. */
   startupSuppressUpdatePrompt?: boolean
+  /** Main-internal: the named profile whose command and account root `startupAgent` runs under. */
+  startupLaunchProfile?: AgentLaunchProfile
   startupCwd?: string
   /** The surface behind a host-built startup agent (`startupAgent` or `startupDraft`). */
   startupLaunchSource?: string

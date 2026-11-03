@@ -795,7 +795,11 @@
       "resumeClaudeProfileAmbiguous": "This Claude session matches more than one configured profile. Make the account directories distinct before resuming.",
       "composerProfileUnavailable": "This {{agentLabel}} profile is unavailable for the selected workspace target. Choose another target or agent.",
       "composerProfileAgentChanged": "The selected agent is no longer available. Select another agent before creating the workspace.",
-      "pendingCreationAccountMismatch": "This linked workspace has a pending creation with a different {{agentLabel}} account. Open that creation to finish or retry it before submitting again."
+      "pendingCreationAccountMismatch": "This linked workspace has a pending creation with a different {{agentLabel}} account. Open that creation to finish or retry it before submitting again.",
+      "sourceControlAccountLabel": "Text generation account",
+      "sourceControlAccountHelper": "Commit messages and pull request details in this repository run under this profile when they use its agent. Applies on this computer only.",
+      "sourceControlAccountDefault": "Default account",
+      "sourceControlAccountOption": "{{profileName}} ({{agentName}})"
     },
     "agents": {
       "permissionsTitle": "Permissions",

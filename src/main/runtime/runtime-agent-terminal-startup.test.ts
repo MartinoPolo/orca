@@ -99,3 +99,49 @@ describe('host agent planner', () => {
     expect(launch.launchRuntime?.pty.shellOverride).toBe('wsl.exe')
   })
 })
+
+describe('host agent planner with a launch profile', () => {
+  const launchProfile = {
+    id: 'work',
+    name: 'ccw',
+    command: 'ccw',
+    agentDirectory: 'C:\\Users\\me\\.claude-work'
+  }
+
+  it("runs the profile's command and pins its account root over the plan", async () => {
+    const launch = await resolveAgentTerminalCreateOptions(
+      workspace,
+      { startupAgent: 'claude', agentArgs: null, launchProfile },
+      host
+    )
+    expect(launch.command).toBe('ccw')
+    expect(launch.env).toMatchObject({
+      CLAUDE_CONFIG_DIR: launchProfile.agentDirectory
+    })
+    expect(launch.launchConfig?.agentEnv).toMatchObject({
+      CLAUDE_CONFIG_DIR: launchProfile.agentDirectory
+    })
+  })
+
+  it('refuses a profile on an SSH or WSL workspace instead of launching another account', async () => {
+    const ssh = resolveAgentTerminalCreateOptions(
+      { ...workspace, connectionId: 'ssh-1' },
+      { startupAgent: 'claude', launchProfile },
+      host
+    )
+    await expect(ssh).rejects.toThrow('runs only in workspaces on this computer')
+    const wsl = resolveAgentTerminalCreateOptions(
+      workspace,
+      {
+        startupAgent: 'claude',
+        launchProfile,
+        launchRuntime: {
+          platform: 'linux',
+          pty: { shellOverride: 'wsl.exe', terminalWindowsWslDistro: 'Ubuntu' }
+        }
+      },
+      host
+    )
+    await expect(wsl).rejects.toThrow('runs only in workspaces on this computer')
+  })
+})

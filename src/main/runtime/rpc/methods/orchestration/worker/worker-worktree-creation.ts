@@ -2,6 +2,7 @@
 
 import type { AgentLaunchPreferences } from '../../../../../../shared/agent-session-host-authority'
 import type { TuiAgent } from '../../../../../../shared/tui-agent'
+import type { AgentLaunchProfile } from '../../../../../../shared/agent-launch-profiles'
 import { suggestCreatureNameForPaths } from '../../../../../../shared/worktree-name-suggestion'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { OrchestrationDb } from '../../../../orchestration/db'
@@ -93,6 +94,7 @@ export async function createWorkerWorktree(args: {
   promisedAgentChat?: boolean
   onWorkspaceCreated?: (worktreeId: string) => void
   launchPreferences?: AgentLaunchPreferences
+  launchProfile?: AgentLaunchProfile
   effects: WorkerEffect[]
 }): Promise<{
   worktree: Awaited<ReturnType<OrcaRuntimeService['showManagedWorktree']>>
@@ -122,7 +124,8 @@ export async function createWorkerWorktree(args: {
           startupAgent: args.agent,
           startupLaunchSource: 'orchestration',
           startupSuppressUpdatePrompt: true,
-          ...(args.launchPreferences ? { startupLaunchPreferences: args.launchPreferences } : {})
+          ...(args.launchPreferences ? { startupLaunchPreferences: args.launchPreferences } : {}),
+          ...(args.launchProfile ? { startupLaunchProfile: args.launchProfile } : {})
         }
       : {}),
     activate: false,

@@ -139,6 +139,7 @@ export type AgentLaunchModeReason =
   | 'codex_on_windows'
   | 'structured_unsupported_on_host'
   | 'chat_runtime_not_installed'
+  | 'launch_profile'
 
 /** Restates `WorkerStartModeReceipt` in surface-neutral terms so orchestration's receipt and a
  *  mobile or renderer launch report the same vocabulary. */

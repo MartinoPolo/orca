@@ -4,6 +4,7 @@
 
 import type { AgentLaunchPreferences } from '../../../../../../shared/agent-session-host-authority'
 import type { TuiAgent } from '../../../../../../shared/tui-agent'
+import type { AgentLaunchProfile } from '../../../../../../shared/agent-launch-profiles'
 import { executeAgentLaunch } from '../../../../../agent-launch/agent-launch-executor'
 import type { AgentLaunchSurfaceFactory } from '../../../../../agent-launch/agent-launch-surface-factories'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
@@ -51,6 +52,8 @@ type WorkerAgentPlacementArgs = {
   mode: WorkerStartModeReceipt
   agent: TuiAgent | undefined
   launchPreferences: AgentLaunchPreferences | undefined
+  /** Only with a terminal mode: a chat cannot run a profile's own command. */
+  launchProfile?: AgentLaunchProfile
   effects: WorkerEffect[]
   /** Attributes a throw to the step that was running, the way the caller's own stages do. */
   onStage: (stage: string) => void
@@ -138,6 +141,7 @@ async function launchWorkerAgent(
             promisedAgentChat,
             onWorkspaceCreated,
             ...(args.launchPreferences ? { launchPreferences: args.launchPreferences } : {}),
+            ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
             effects: args.effects
           })
           return {
@@ -208,6 +212,7 @@ function workerSurfaceFactory(
         worktreeId,
         agent,
         ...(args.launchPreferences ? { launchPreferences: args.launchPreferences } : {}),
+        ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
         taskId: args.taskId,
         effects: args.effects
       })

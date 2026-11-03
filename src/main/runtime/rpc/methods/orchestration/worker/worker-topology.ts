@@ -1,6 +1,7 @@
 import type { AgentLaunchPreferences } from '../../../../../../shared/agent-session-host-authority'
 import { narrowStructuredLaunchSeedOptions } from '../../../../../../shared/native-chat/input/native-chat-session-option-defaults'
 import type { TuiAgent } from '../../../../../../shared/tui-agent'
+import type { AgentLaunchProfile } from '../../../../../../shared/agent-launch-profiles'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { OrchestrationDb } from '../../../../orchestration/db'
 import { createStructuredWorkerSession } from '../../orchestration-structured-worker-session'
@@ -63,6 +64,7 @@ export async function createExistingWorktreeWorkerTerminal(args: {
   worktreeId: string
   agent: TuiAgent
   launchPreferences?: AgentLaunchPreferences
+  launchProfile?: AgentLaunchProfile
   taskId: string
   effects: WorkerEffect[]
 }): Promise<{ handle: string; warning?: string }> {
@@ -72,6 +74,7 @@ export async function createExistingWorktreeWorkerTerminal(args: {
     launchSource: 'orchestration',
     suppressStartupUpdatePrompt: true,
     ...(args.launchPreferences ? { launchPreferences: args.launchPreferences } : {}),
+    ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
     title: `worker-${args.taskId}`,
     // Worker creation is background work and must not pull the sidebar away.
     surfaceOwner: false

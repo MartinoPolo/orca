@@ -10,6 +10,8 @@ import {
 import { resolveStartupShell, type AgentStartupShell } from './tui-agent-startup-shell'
 import { hasExtraAgentArgs, mergeExtraAgentArgs } from './automation-extra-agent-args'
 import { resolveLocalWindowsAgentStartupShell } from './windows-terminal-shell'
+import type { AgentLaunchProfile } from './agent-launch-profiles'
+import { buildAgentLaunchProfileEnv, isProfileAgent } from './agent-launch-profile-agents'
 
 /** The settings slice a launch reads; hosts pass their whole `GlobalSettings` row. */
 export type AgentStartupSettings = Partial<
@@ -53,6 +55,8 @@ export function resolveAgentStartupPlanInputs(args: {
   sessionOptions?: Record<string, SessionOptionValue> | undefined
   /** Orca types into this launch after start (worker, automation, handoff), not a user. */
   suppressStartupUpdatePrompt?: boolean
+  /** A host-scoped named profile whose command and account root replace the agent's defaults. */
+  launchProfile?: AgentLaunchProfile
 }): AgentStartupPlanInputs {
   const { agent, platform, isRemote, sessionOptions } = args
   const settings = agentLaunchPermissionSettings(agent, args.settings, sessionOptions)
@@ -84,11 +88,23 @@ export function resolveAgentStartupPlanInputs(args: {
     }
     agentArgs = merged.agentArgs
   }
+  const cmdOverrides = settings.agentCmdOverrides ?? {}
+  const agentEnv = resolveTuiAgentLaunchEnv(agent, settings, platform)
+  const { launchProfile } = args
+  if (launchProfile && !isProfileAgent(agent)) {
+    throw new Error(`Launch profiles are not available for ${agent}.`)
+  }
   return {
     agent,
-    cmdOverrides: settings.agentCmdOverrides ?? {},
+    // The resume snapshot records both, so cold restore reopens the profile's account.
+    cmdOverrides: launchProfile
+      ? { ...cmdOverrides, [agent]: launchProfile.command }
+      : cmdOverrides,
     agentArgs,
-    agentEnv: resolveTuiAgentLaunchEnv(agent, settings, platform),
+    agentEnv:
+      launchProfile && isProfileAgent(agent)
+        ? { ...agentEnv, ...buildAgentLaunchProfileEnv(agent, launchProfile) }
+        : agentEnv,
     platform,
     shell,
     isRemote,

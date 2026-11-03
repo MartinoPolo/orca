@@ -35,6 +35,19 @@ the workspace host; session reuse requires the same account root. Headless and
 paired-server dispatch refuse pinned automations. Model and effort come from the
 automation's extra agent arguments.
 
+Orchestration workers inherit the coordinator's profile when they run the same agent:
+`worker-start` matches the coordinator pane's hook-reported transcript, else the account
+root its launch recorded. `--launch-profile <name|id>` picks a profile and `default` the
+built-in account; a reused `--terminal` keeps its account and `--on` refuses the flag.
+Profile workers start in a terminal, because a chat cannot run the profile's command, and
+only on local-native workspaces.
+
+A repository's Source Control AI settings may pin a text generation account. Local commit
+message and pull request generation with that profile's agent runs its command under its
+account root instead of managed-account routing; other agents keep their built-in account.
+A deleted profile or a WSL worktree fails generation rather than switching accounts. On
+Windows the command is spawned without a shell, so a POSIX wrapper needs a `.cmd` shim.
+
 Claude hook installation covers configured local profile roots and is reconciled when
 profiles are saved; remote profile roots are not hooked. Pi's relay spawn preparation
 installs its status extension directly into the selected account root.
