@@ -292,6 +292,7 @@ export function createPanePtyBinding(session: ConnectPanePtySession): PanePtyBin
       session.onDataDisposable.dispose()
       session.userInputActivityDisposable?.dispose()
       session.terminalCapabilityRepliesDisposable.dispose()
+      session.mouseTrackingLossProbe?.dispose()
       session.onResizeDisposable.dispose()
       session.pane.container.removeEventListener(
         PANE_PTY_RESIZE_HOLD_FLUSH_EVENT,

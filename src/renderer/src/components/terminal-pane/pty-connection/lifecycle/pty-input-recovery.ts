@@ -4,6 +4,9 @@ import { registerUndeliverableWriteHandler } from '@/lib/pane-manager/terminal-o
 import { requestTerminalPaneRecovery } from '../../render-health/recovery/terminal-pane-recovery'
 import { discardTerminalOutput } from '@/lib/pane-manager/terminal-output/pane-terminal-output-queue-registry'
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
+import { installMouseTrackingLossProbe } from '../input/mouse-tracking-loss-probe'
+import { isPaneReplaying } from '../../snapshots/replay-guard'
+import { redactPtyIdForDiagnostics } from '../../../../../../shared/terminal/pty/diagnostics/pty-delivery-diagnostics'
 
 // Bound connect grace so wedged RPCs cannot suppress input recovery forever; late reattach does not authorize killing pre-existing sessions.
 const TRANSPORT_CONNECT_SETTLE_GRACE_MS = 60_000
@@ -66,4 +69,16 @@ export function installPtyInputRecovery(session: ConnectPanePtySession): void {
       })
     }
   )
+  session.mouseTrackingLossProbe = installMouseTrackingLossProbe({
+    terminal: session.pane.terminal,
+    wheelTarget: session.pane.container,
+    isReplaying: () => isPaneReplaying(session.deps.replayingPanesRef, session.pane.id),
+    identity: () => {
+      const ptyId = session.transport.getPtyId()
+      return {
+        paneId: session.pane.id,
+        ptyId: ptyId ? redactPtyIdForDiagnostics(ptyId) : null
+      }
+    }
+  })
 }
