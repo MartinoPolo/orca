@@ -63,12 +63,12 @@ export abstract class OrcaRuntimeWithWriteOrchestrationPointerPty extends OrcaRu
     return hostId ? { executionHostId: hostId } : {}
   }
 
-  protected resolvePaneAgentIdentityField(
+  protected resolvePaneAgentFields(
     launchAgent: TuiAgent | null | undefined,
     foregroundAgent: TerminalAgent | null | undefined,
     title: string | null,
     paneKey: string | null
-  ): { agentIdentity?: TerminalAgent } {
+  ): Pick<RuntimeTerminalSummary, 'agentIdentity' | 'agentSession'> {
     const hookRow = paneKey
       ? selectRuntimeHookAgentRowForPane(this.getAgentProviderSessionRowsForPaneFn?.(paneKey) ?? [])
       : null
@@ -80,7 +80,23 @@ export abstract class OrcaRuntimeWithWriteOrchestrationPointerPty extends OrcaRu
       foregroundAgent,
       title
     })
-    return agentIdentity ? { agentIdentity } : {}
+    if (!agentIdentity) {
+      return {}
+    }
+    const providerSession = hookRow?.providerSession
+    // A session another agent reported in this pane would route callers to the wrong conversation.
+    if (!providerSession || hookRow.providerSessionAgentType !== agentIdentity) {
+      return { agentIdentity }
+    }
+    return {
+      agentIdentity,
+      agentSession: {
+        id: providerSession.id,
+        ...(providerSession.transcriptPath
+          ? { transcriptPath: providerSession.transcriptPath }
+          : {})
+      }
+    }
   }
 
   /** A user's pane name from the saved layout: every client's pane rename lands there. */
@@ -133,7 +149,7 @@ export abstract class OrcaRuntimeWithWriteOrchestrationPointerPty extends OrcaRu
       preview: leaf.preview,
       ...(leaf.lastExitCause ? { exitCause: leaf.lastExitCause } : {}),
       ...this.terminalExecutionHostField(leaf.ptyId, leaf.worktreeId),
-      ...this.resolvePaneAgentIdentityField(
+      ...this.resolvePaneAgentFields(
         pty?.launchAgent ?? pty?.launchCommandAgent,
         pty?.foregroundAgent,
         title,

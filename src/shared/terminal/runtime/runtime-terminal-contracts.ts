@@ -12,6 +12,11 @@ import type { TerminalPaneLayoutNode } from '../../workspace-layout/terminal-tab
 import type { TerminalAgent } from '../../agent-status/identity/terminal-agent'
 import type { TuiAgent } from '../../agent-launch/catalog/tui-agent'
 
+export type RuntimeTerminalAgentSession = Pick<
+  AgentSessionResume.AgentProviderSessionMetadata,
+  'id' | 'transcriptPath'
+>
+
 export type RuntimeTerminalSummary = {
   handle: string
   ptyId: string | null
@@ -33,6 +38,8 @@ export type RuntimeTerminalSummary = {
   preview: string
   /** Host-resolved observed agent identity; absent when unknown. Does not imply launch support. */
   agentIdentity?: TerminalAgent
+  /** Hook-reported session of the `agentIdentity` agent; absent when unknown, owned by another agent, or the host predates it. */
+  agentSession?: RuntimeTerminalAgentSession
   /** Absent while running or when the host predates the field; never infer a clean finish. */
   exitCause?: TerminalExitCause
   /** Absent when the host predates the field or could not name the execution host. */
