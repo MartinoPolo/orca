@@ -151,9 +151,18 @@ describe('headless hook agent-status projection (#11761)', () => {
       })
     ])
 
-    expect((await runtime.listTerminals()).terminals).toEqual([
-      expect.objectContaining({ agentIdentity: 'claude' })
-    ])
+    const [terminal] = (await runtime.listTerminals()).terminals
+    expect(terminal).toMatchObject({ agentIdentity: 'claude' })
+    // The Codex session belongs to another agent than the one the pane is identified as.
+    expect(terminal?.agentSession).toBeUndefined()
+  })
+
+  it('names the hook-reported session of the identified agent in terminal identity', async () => {
+    const runtime = await createRuntimeWithHookRows([hookRow()])
+    const [terminal] = (await runtime.listTerminals()).terminals
+    expect(terminal).toMatchObject({ agentIdentity: 'claude' })
+    const { id, transcriptPath } = PROVIDER_SESSION
+    expect(terminal?.agentSession).toEqual({ id, transcriptPath })
   })
 
   it('carries the hook state, tool and interactivePrompt to paired clients', async () => {
