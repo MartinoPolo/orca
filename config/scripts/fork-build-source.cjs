@@ -39,7 +39,7 @@ function writeForkBuildSource({ cwd, proofPath, source, version }) {
 
 function assertForkBuildSource({ cwd, proofPath, source, version }) {
   if (!fs.existsSync(proofPath)) {
-    throw new Error('Fork build proof is missing; run build:fork')
+    throw new Error('Fork build proof is missing; run build:fork:installer')
   }
   if (!fs.lstatSync(proofPath).isFile()) {
     throw new Error('Fork build proof must be a regular file')

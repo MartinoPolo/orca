@@ -9,18 +9,6 @@ const { assertForkReleaseSource } = require('./fork-release-policy.cjs')
 const { writeForkBuildSource } = require('./fork-build-source.cjs')
 const { runProcess } = require('@orca/process-host')
 const root = path.resolve(import.meta.dirname, '../..')
-const INSTALLER_FLAG = '--installer'
-
-function parseTarget(args) {
-  const unknown = args.filter((argument) => argument !== INSTALLER_FLAG)
-  if (unknown.length > 0) {
-    throw new Error(`Unknown build:fork arguments: ${unknown.join(' ')}`)
-  }
-  // Why: the package is identity-neutral; only the Lab launcher's runtime ORCA_LAB_ROOT selects Lab.
-  return args.includes(INSTALLER_FLAG)
-    ? { name: 'installer', appRoot: 'Orca-Stable', builderArgs: [] }
-    : { name: 'lab', appRoot: 'Orca-Lab', builderArgs: ['--dir'] }
-}
 
 function sha256(filePath) {
   return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
@@ -49,16 +37,17 @@ async function execute(stage, program, args, env, logDirectory) {
 
 async function main() {
   if (process.platform !== 'win32' || process.arch !== 'x64') {
-    throw new Error('build:fork currently supports Windows x64 only')
+    throw new Error('build:fork:installer currently supports Windows x64 only')
   }
   if (!process.env.MPX_APPS) {
     throw new Error('MPX_APPS is required')
   }
-  const target = parseTarget(process.argv.slice(2))
-  const labRoot = path.join(process.env.MPX_APPS, 'Orca-Lab')
-  const targetRoot = path.join(process.env.MPX_APPS, target.appRoot)
-  const manifestPath = path.join(labRoot, 'verified-build.json')
-  const source = assertForkReleaseSource({ cwd: root, manifestPath })
+  const unknownArguments = process.argv.slice(2)
+  if (unknownArguments.length > 0) {
+    throw new Error(`Unknown build:fork:installer arguments: ${unknownArguments.join(' ')}`)
+  }
+  const targetRoot = path.join(process.env.MPX_APPS, 'Orca-Stable')
+  const source = assertForkReleaseSource({ cwd: root })
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:T.Z]/g, '')
@@ -76,7 +65,6 @@ async function main() {
     ORCA_LOCAL_BUILD_VERSION: version,
     ORCA_BUILD_COMMIT: source.commit
   }
-  delete env.ORCA_LAB_ROOT
   const logDirectory = path.join(targetRoot, 'logs', version)
   fs.mkdirSync(logDirectory, { recursive: true })
   const proofPath = path.join(root, 'out', 'fork-build-source.json')
@@ -90,11 +78,7 @@ async function main() {
     env,
     logDirectory
   )
-  const builtSource = assertForkReleaseSource({
-    cwd: root,
-    manifestPath,
-    expectedCommit: source.commit
-  })
+  const builtSource = assertForkReleaseSource({ cwd: root, expectedCommit: source.commit })
   writeForkBuildSource({ cwd: root, proofPath, source: builtSource, version })
   await execute(
     'package',
@@ -103,7 +87,6 @@ async function main() {
       path.join(root, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js'),
       '--win',
       '--x64',
-      ...target.builderArgs,
       '--config',
       'config/electron-builder.config.cjs',
       `--config.directories.output=${output}`
@@ -111,16 +94,12 @@ async function main() {
     env,
     logDirectory
   )
-  const completed = assertForkReleaseSource({
-    cwd: root,
-    manifestPath,
-    expectedCommit: source.commit
-  })
+  const completed = assertForkReleaseSource({ cwd: root, expectedCommit: source.commit })
   if (fs.existsSync(path.join(output, 'source-provenance.json'))) {
     throw new Error('Build provenance already exists')
   }
   const installerPath = path.join(output, 'orca-windows-setup.exe')
-  if (target.name === 'installer' && !fs.existsSync(installerPath)) {
+  if (!fs.existsSync(installerPath)) {
     throw new Error(`Installer is missing: ${installerPath}`)
   }
   fs.writeFileSync(
@@ -129,8 +108,7 @@ async function main() {
       {
         ...completed,
         version,
-        target: target.name,
-        ...(target.name === 'installer' ? { installerSha256: sha256(installerPath) } : {}),
+        installerSha256: sha256(installerPath),
         builtAt: new Date().toISOString()
       },
       null,
@@ -138,11 +116,7 @@ async function main() {
     )}\n`,
     { flag: 'wx' }
   )
-  console.log(
-    target.name === 'installer'
-      ? `Fork installer: ${installerPath}`
-      : `Fork Lab build: ${path.join(output, 'win-unpacked')}`
-  )
+  console.log(`Fork installer: ${installerPath}`)
 }
 
 main().catch((error) => {

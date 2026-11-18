@@ -1,4 +1,3 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
@@ -33,14 +32,8 @@ export function selectStaleOrcaRegistrations(registrations, keptExecutablePaths)
   })
 }
 
-function keptExecutablePaths() {
-  const paths = [path.join(process.env.LOCALAPPDATA, 'Programs', 'orca', 'Orca.exe')]
-  const manifestPath = path.join(process.env.MPX_APPS ?? '', 'Orca-Lab', 'verified-build.json')
-  if (process.env.MPX_APPS && fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-    paths.push(path.join(manifest.build.directory, 'Orca.exe'))
-  }
-  return paths
+function installedExecutablePath() {
+  return path.join(process.env.LOCALAPPDATA, 'Programs', 'orca', 'Orca.exe')
 }
 
 async function runRegistry(args) {
@@ -62,7 +55,9 @@ async function main() {
     throw new Error('prune:tray supports Windows only')
   }
   const output = await runRegistry(['query', NOTIFY_ICON_SETTINGS, '/s', '/v', 'ExecutablePath'])
-  const stale = selectStaleOrcaRegistrations(parseTrayRegistrations(output), keptExecutablePaths())
+  const stale = selectStaleOrcaRegistrations(parseTrayRegistrations(output), [
+    installedExecutablePath()
+  ])
   for (const { key, executablePath } of stale) {
     await runRegistry(['delete', key, '/f'])
     console.log(`Removed tray registration: ${executablePath}`)

@@ -421,13 +421,12 @@ module.exports = {
       if (!/^\d+\.\d+\.\d+-local\.\d{14}\.g[0-9a-f]{8}$/.test(localBuildVersion ?? '')) {
         throw new Error('Fork manual packaging requires a unique local build version')
       }
-      if (!/^[0-9a-f]{40}$/.test(process.env.ORCA_BUILD_COMMIT ?? '') || !process.env.MPX_APPS) {
-        throw new Error('Fork manual packaging requires ORCA_BUILD_COMMIT and MPX_APPS')
+      if (!/^[0-9a-f]{40}$/.test(process.env.ORCA_BUILD_COMMIT ?? '')) {
+        throw new Error('Fork manual packaging requires ORCA_BUILD_COMMIT')
       }
       const cwd = resolve(__dirname, '..')
       const source = assertForkReleaseSource({
         cwd,
-        manifestPath: join(process.env.MPX_APPS, 'Orca-Lab', 'verified-build.json'),
         expectedCommit: process.env.ORCA_BUILD_COMMIT
       })
       assertForkBuildSource({

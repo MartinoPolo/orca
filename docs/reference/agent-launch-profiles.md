@@ -57,7 +57,7 @@ installs its status extension directly into the selected account root.
 A desktop test requires disposable user data **and** disposable agent homes. The
 E2E home helper does not remove every inherited agent-directory variable; explicitly
 isolate Pi/OMP/Prime directories and hook endpoints as well as the test home.
-Packaged Lab GUI probes use the Lab environment builder and explicit account roots;
+Packaged GUI probes use explicit account roots;
 preserve Windows known-folder variables so Electron can resolve `appData`.
 Always set `ORCA_BACKGROUND_LAUNCH=1`. Never reuse a live transcript for a
 disposable-session test.

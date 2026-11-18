@@ -1,11 +1,9 @@
-const fs = require('node:fs')
 const path = require('node:path')
 const { runProcessSync } = require('@orca/process-host')
 
 const REPOSITORY = 'MartinoPolo/orca'
 const FORK_URL = 'https://github.com/MartinoPolo/orca.git'
 const SHA = /^[0-9a-f]{40}$/
-const REWRITE_BACKUP_PREFIX = 'backup/main-before-'
 
 function git(cwd, args) {
   const result = runProcessSync({
@@ -24,61 +22,7 @@ function git(cwd, args) {
   return result.stdout.trim()
 }
 
-function previousSource(cwd, manifest) {
-  if (manifest.source !== undefined) {
-    if (
-      !SHA.test(manifest.source?.commit ?? '') ||
-      manifest.source.repository !== REPOSITORY ||
-      manifest.source.branch !== 'main'
-    ) {
-      throw new Error('Previous Lab source identity is invalid')
-    }
-    return manifest.source.commit
-  }
-  const suffix = /\.(?:g)?([0-9a-f]{7,39})$/.exec(manifest.version ?? '')?.[1]
-  if (!suffix) {
-    throw new Error('Previous Lab manifest lacks an unambiguous source commit')
-  }
-  const matches = git(cwd, ['rev-parse', `--disambiguate=${suffix}`])
-    .split(/\r?\n/)
-    .filter(Boolean)
-  if (
-    matches.length !== 1 ||
-    !SHA.test(matches[0]) ||
-    git(cwd, ['cat-file', '-t', matches[0]]) !== 'commit'
-  ) {
-    throw new Error('Previous Lab version suffix does not resolve to exactly one commit')
-  }
-  return matches[0]
-}
-
-function checkPreviousArtifact(manifest) {
-  if (
-    !manifest.build?.directory ||
-    !manifest.buildHashes?.asar ||
-    !manifest.buildHashes?.executable
-  ) {
-    throw new Error('Previous Lab artifact identity is missing')
-  }
-  const crypto = require('node:crypto')
-  for (const { name, relative } of [
-    { name: 'asar', relative: ['resources', 'app.asar'] },
-    { name: 'executable', relative: ['Orca.exe'] }
-  ]) {
-    const file = path.join(manifest.build.directory, ...relative)
-    const hash = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
-    if (hash !== manifest.buildHashes[name]) {
-      throw new Error(`Previous Lab ${name} artifact changed`)
-    }
-  }
-}
-
-function assertForkReleaseSource({
-  cwd = process.cwd(),
-  manifestPath,
-  expectedCommit,
-  fetch = true
-} = {}) {
+function assertForkReleaseSource({ cwd = process.cwd(), expectedCommit, fetch = true } = {}) {
   if (
     git(cwd, ['rev-parse', '--show-toplevel']).replaceAll('\\', '/').toLowerCase() !==
     path.resolve(cwd).replaceAll('\\', '/').toLowerCase()
@@ -102,8 +46,7 @@ function assertForkReleaseSource({
       '--prune',
       'fork',
       '+refs/heads/main:refs/remotes/fork/main',
-      '+refs/heads/martas/*:refs/remotes/fork/martas/*',
-      `+refs/tags/${REWRITE_BACKUP_PREFIX}*:refs/remotes/fork/${REWRITE_BACKUP_PREFIX}*`
+      '+refs/heads/martas/*:refs/remotes/fork/martas/*'
     ])
   }
   const commit = git(cwd, ['rev-parse', 'HEAD'])
@@ -131,79 +74,13 @@ function assertForkReleaseSource({
       throw new Error(`Invalid development ref: ${ref.name}`)
     }
   }
-  let priorCommit = null
-  let priorCommitPreservedBy
-  if (manifestPath && fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-    checkPreviousArtifact(manifest)
-    priorCommit = previousSource(cwd, manifest)
-    if (!isAncestor(cwd, priorCommit, commit)) {
-      priorCommitPreservedBy = publishedRewriteBackup(cwd, priorCommit)
-      if (!priorCommitPreservedBy) {
-        throw new Error('Previous released commit was dropped')
-      }
-    }
-  }
   return {
     repository: REPOSITORY,
     branch: 'main',
     commit,
     publishedCommit: commit,
-    priorCommit,
-    ...(priorCommitPreservedBy ? { priorCommitPreservedBy } : {}),
     auditedRefs: refs
   }
 }
 
-function isAncestor(cwd, ancestor, descendant) {
-  const result = runProcessSync({
-    program: 'git',
-    args: ['merge-base', '--is-ancestor', ancestor, descendant],
-    cwd,
-    timeoutMs: 20000
-  })
-  return result.code === 0 && !result.timedOut
-}
-
-// Why: an intentional upstream rebase drops released commits; a published backup tag keeps them auditable.
-function publishedRewriteBackup(cwd, priorCommit) {
-  const namespace = `refs/remotes/fork/${REWRITE_BACKUP_PREFIX}`
-  const backups = git(cwd, ['for-each-ref', '--format=%(refname)', `${namespace}*`])
-    .split(/\r?\n/)
-    .filter(Boolean)
-  const preserving = backups.find((ref) => isAncestor(cwd, priorCommit, ref))
-  return preserving ? preserving.slice('refs/remotes/fork/'.length) : undefined
-}
-
-function assertForkPromotion({ cwd, manifestPath, metadata, provenance }) {
-  if (
-    metadata.orcaManualUpdatesOnly !== true ||
-    metadata.orcaBuildSource?.repository !== REPOSITORY ||
-    metadata.orcaBuildSource?.branch !== 'main' ||
-    !SHA.test(metadata.orcaBuildSource?.commit ?? '')
-  ) {
-    throw new Error('Candidate package lacks verified fork source metadata')
-  }
-  const source = assertForkReleaseSource({
-    cwd,
-    manifestPath,
-    expectedCommit: metadata.orcaBuildSource.commit
-  })
-  if (
-    provenance?.repository !== source.repository ||
-    provenance?.branch !== 'main' ||
-    provenance?.commit !== source.commit ||
-    provenance?.publishedCommit !== source.commit ||
-    provenance?.priorCommit !== source.priorCommit ||
-    provenance?.priorCommitPreservedBy !== source.priorCommitPreservedBy ||
-    provenance?.version !== metadata.version ||
-    JSON.stringify(provenance?.auditedRefs) !== JSON.stringify(source.auditedRefs)
-  ) {
-    throw new Error(
-      'Candidate build provenance does not match current published main and audited refs'
-    )
-  }
-  return source
-}
-
-module.exports = { assertForkReleaseSource, assertForkPromotion, REPOSITORY }
+module.exports = { assertForkReleaseSource, REPOSITORY }
