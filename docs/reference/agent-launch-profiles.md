@@ -29,11 +29,11 @@ WSL, and paired snapshots are never interpreted with local roots. Session histor
 pins local Pi and Claude transcripts to the profile that owns them when that agent
 has profiles configured.
 
-Automations may pin a profile by id. Dispatch resolves it from the dispatching desktop
-client's settings and fails the run when the profile is deleted or cannot launch on
-the workspace host; session reuse requires the same account root. Headless and
-paired-server dispatch refuse pinned automations. Model and effort come from the
-automation's extra agent arguments.
+Automations may pin a profile by id. The desktop app's main process resolves it from its
+settings at dispatch and fails the run when the profile is deleted, the automation runs in
+Chat, or the workspace is not local-native (SSH, WSL); session reuse requires the same
+account root. Headless and paired-server dispatch refuse pinned automations. Model and
+effort come from the automation's launch settings or extra agent arguments.
 
 Orchestration workers inherit the coordinator's profile when they run the same agent:
 `worker-start` matches the coordinator pane's hook-reported transcript, else the account

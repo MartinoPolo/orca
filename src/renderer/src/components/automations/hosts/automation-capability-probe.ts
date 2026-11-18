@@ -189,6 +189,21 @@ export async function assertEnvironmentSupportsExtraAgentArgs(
   }
 }
 
+/** Profiles are this desktop's local accounts, so only automations it dispatches can pin one. */
+function assertAgentProfileAuthority(
+  authority: AutomationAuthorityRef,
+  agentProfileId: string | undefined
+): void {
+  if (authority.kind !== 'desktop' && agentProfileId?.trim()) {
+    throw new AutomationHostScopeUnsupportedError(
+      translate(
+        'automations.agentProfile.pairedHostUnsupported',
+        'Launch profiles apply only to automations this desktop runs. Use the default account for a paired server.'
+      )
+    )
+  }
+}
+
 /** Old hosts keep their terminal contract; an explicit chat must refuse before a move creates anything. */
 export async function prepareAutomationLaunchSetup<
   T extends AutomationCreateInput | AutomationUpdateInput
@@ -196,6 +211,7 @@ export async function prepareAutomationLaunchSetup<
   authority: AutomationAuthorityRef,
   input: T
 ): Promise<Omit<T, 'launchSetupPatch'> & Pick<AutomationCreateInput, 'launchSetupPatch'>> {
+  assertAgentProfileAuthority(authority, input.agentProfileId)
   const { launchSetupPatch, ...legacy } = input
   if (launchSetupPatch === undefined) {
     await assertExtraAgentArgsSupported(authority, input.extraAgentArgs)

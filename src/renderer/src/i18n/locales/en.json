@@ -25393,6 +25393,13 @@
     "promptPlaceholderFilesOnly": "Add a prompt (optional): @ for files"
   },
   "automations": {
+    "agentProfile": {
+      "label": "Account",
+      "defaultAccount": "Default account",
+      "missingProfile": "Deleted profile",
+      "chatUnsupported": "Launch profiles run only in a terminal. Switch to Terminal or use the default account.",
+      "pairedHostUnsupported": "Launch profiles apply only to automations this desktop runs. Use the default account for a paired server."
+    },
     "runFailures": {
       "noDispatchHost": "No Orca window was available to launch the automation.",
       "unevaluableSchedule": "Orca could not evaluate this automation and skipped the occurrence.",

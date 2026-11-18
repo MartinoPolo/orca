@@ -20,6 +20,7 @@ export function buildAutomationEditDraft(automation: Automation): AutomationDraf
     agentId: automation.agentId,
     surface: automation.launchSetup?.surface ?? automation.surface ?? 'terminal',
     extraAgentArgs: setup.extraAgentArgs ?? '',
+    ...(automation.agentProfileId ? { agentProfileId: automation.agentProfileId } : {}),
     ...(setup.launchPreferences !== undefined
       ? { launchPreferences: setup.launchPreferences }
       : {}),

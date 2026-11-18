@@ -17,6 +17,7 @@ import { AutomationRunLaunchError, type AutomationLaunch } from './automation-la
 import { AutomationDispatchRefusedError } from '../dispatch/automation-launch-runner'
 import { buildAutomationWorktreeCreateArgs } from './automation-workspace-create'
 import type { AutomationRunTargetResult } from '../ownership/run-target-resolution'
+import type { AgentLaunchProfile } from '../../../shared/agent-launch-profiles'
 
 const TERMINAL_ONLY_MESSAGE = 'An automation starts a terminal agent only.'
 
@@ -38,9 +39,10 @@ export async function launchAutomationTerminalAgent(
     run: Pick<AutomationRun, 'id' | 'title' | 'scheduledFor' | 'trigger'>
     target: Extract<AutomationRunTargetResult, { ok: true }>
     runs: readonly AutomationRun[]
+    launchProfile?: AgentLaunchProfile
   }
 ): Promise<AutomationTerminalAgentLaunch> {
-  const { automation, run, target } = request
+  const { automation, run, target, launchProfile } = request
   const agent = automation.agentId
   const selectedTarget =
     automation.workspaceMode === 'existing'
@@ -89,6 +91,7 @@ export async function launchAutomationTerminalAgent(
           },
           ...create,
           startupAgent,
+          ...(launchProfile ? { startupLaunchProfile: launchProfile } : {}),
           ...(startupPrompt ? { startupPrompt } : {})
         })
         const startup = created.startupTerminal
@@ -134,6 +137,7 @@ export async function launchAutomationTerminalAgent(
             title: run.title,
             suppressStartupUpdatePrompt: true,
             ...automationTerminalLaunchInputs(automation),
+            ...(launchProfile ? { launchProfile } : {}),
             // Run now is the user's act and may start a stopped WSL distro; a scheduled run never does.
             ...(run.trigger === 'scheduled' ? {} : { wslUserAct: true as const }),
             surfaceOwner: false

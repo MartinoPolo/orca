@@ -18,6 +18,7 @@ import {
   assertAutomationExtraAgentArgs,
   storedExtraAgentArgs
 } from '../../../shared/automations/launch/automation-extra-agent-args-record'
+import { storedAutomationAgentProfileId } from '../../../shared/automations/launch/automation-agent-profile'
 import { nextAutomationOccurrenceAfter } from '../../../shared/automations/scheduling/automation-schedule-occurrences'
 import { deriveAutomationExecutionTargetForCreate } from '../../../shared/automations/ownership/automation-execution-target'
 import {
@@ -98,6 +99,7 @@ export function createAutomation(
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
   const setup = applyAutomationLaunchSetupPatch(input)
   const extraAgentArgs = storedExtraAgentArgs(setup.extraAgentArgs)
+  const agentProfileId = storedAutomationAgentProfileId(input.agentId, input.agentProfileId)
   const automation: Automation = {
     id: randomUUID(),
     ...automationCreateIdentity(input),
@@ -111,6 +113,7 @@ export function createAutomation(
       : {}),
     ...(setup.agentArgs !== undefined ? { agentArgs: setup.agentArgs } : {}),
     ...(extraAgentArgs !== undefined ? { extraAgentArgs } : {}),
+    ...(agentProfileId !== undefined ? { agentProfileId } : {}),
     // Prefer authority-local contexts; client-assigned runtime IDs cannot identify this store's host.
     runContext: contexts.runContext ?? input.runContext ?? null,
     sourceContext: contexts.sourceContext ?? input.sourceContext ?? null,

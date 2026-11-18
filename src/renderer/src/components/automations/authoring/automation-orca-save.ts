@@ -5,10 +5,9 @@ import {
 } from './automation-recorded-target'
 import { capturedAutomationOwner } from '../hosts/automation-captured-owner'
 import {
-  automationChatSupport,
   automationDraftLaunchSetup,
   automationCopyLaunchSetup,
-  automationLaunchWorkspace
+  automationSaveSurface
 } from './automation-launch-surface'
 import { toast } from 'sonner'
 import type {
@@ -167,16 +166,12 @@ export async function saveOrcaAutomation(
     return
   }
 
-  const surface =
-    time.surface === 'chat' &&
-    draft.surface === undefined &&
-    automationChatSupport(
-      useAppStore.getState(),
-      draft,
-      automationLaunchWorkspace(draft, setupResolution ?? undefined)
-    ) === false
-      ? 'terminal'
-      : time.surface
+  const surface = automationSaveSurface(
+    useAppStore.getState(),
+    draft,
+    time.surface,
+    setupResolution ?? undefined
+  )
   const launchSetup = automationDraftLaunchSetup(
     {
       launchSetupPatch: draft.launchSetupPatch,
@@ -192,6 +187,8 @@ export async function saveOrcaAutomation(
     ...(edited('prompt') ? { prompt: draft.prompt } : {}),
     ...(edited('precheckCommand') || edited('precheckTimeoutSeconds') ? { precheck } : {}),
     ...(edited('agentId') ? { agentId: draft.agentId } : {}),
+    // An empty id clears a saved profile.
+    ...(edited('agentProfileId') ? { agentProfileId: draft.agentProfileId ?? '' } : {}),
     ...(!currentAutomation ||
     draft.launchSetupPatch ||
     edited('surface') ||
@@ -225,6 +222,7 @@ export async function saveOrcaAutomation(
     prompt: currentAutomation ? currentAutomation.prompt : draft.prompt,
     precheck: currentAutomation ? currentAutomation.precheck : precheck,
     agentId: currentAutomation ? currentAutomation.agentId : draft.agentId,
+    ...(draft.agentProfileId ? { agentProfileId: draft.agentProfileId } : {}),
     ...launchSetup,
     runContext: currentAutomation ? currentAutomation.runContext : runContext,
     projectId: currentAutomation ? currentAutomation.projectId : draft.projectId,

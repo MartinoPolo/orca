@@ -13,6 +13,7 @@ import type {
 } from '../../../shared/automations/automation-definition'
 import { normalizeAutomationPrecheck } from '../../../shared/automations/launch/automation-precheck'
 import { assertAutomationExtraAgentArgs } from '../../../shared/automations/launch/automation-extra-agent-args-record'
+import { applyAutomationAgentProfileUpdate } from '../../../shared/automations/launch/automation-agent-profile'
 import { nextAutomationOccurrenceAfter } from '../../../shared/automations/scheduling/automation-schedule-occurrences'
 import {
   applyAutomationExecutionTarget,
@@ -218,6 +219,7 @@ export function mergeAutomationUpdate(
     delete merged[key]
   }
   Object.assign(merged, automationCanonicalLaunchSetup(launchSetupUpdate))
+  applyAutomationAgentProfileUpdate(merged, definedUpdates, current)
   assertAutomationExtraAgentArgs(merged)
   const previousPin = automationWorkspaceSshPin(operations.state, current.workspaceId)
   const workspaceSshPin = automationWorkspaceSshPin(operations.state, merged.workspaceId)

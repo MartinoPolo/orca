@@ -15,7 +15,8 @@ export function startOrcadAutomations(
   const service = createRuntimeAutomationService({
     store,
     runtime,
-    allowRemoteHostScheduling: true
+    allowRemoteHostScheduling: true,
+    launchesProfiles: false
   })
   stopScheduler = () => service.stop()
   // Stop before final profile flush so runs cannot persist afterward.

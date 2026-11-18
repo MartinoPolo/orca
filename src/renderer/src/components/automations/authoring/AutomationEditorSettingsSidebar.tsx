@@ -18,6 +18,7 @@ import { AutomationSessionField } from './AutomationSessionField'
 import { AutomationSetupDecisionField } from './AutomationSetupDecisionField'
 import { AutomationWorkspaceField } from './AutomationWorkspaceField'
 import { AutomationDestinationField } from './AutomationDestinationField'
+import { AutomationAgentProfileField } from './AutomationAgentProfileField'
 import type { AutomationCreateDestinationControl } from './use-automation-create-destination'
 import type { AutomationDraft } from './AutomationEditorDialog'
 
@@ -93,6 +94,12 @@ export function AutomationEditorSettingsSidebar({
               onDraftChange={onDraftChange}
             />
           </Field>
+          <AutomationAgentProfileField
+            draft={draft}
+            settings={settings}
+            surface={surface}
+            onDraftChange={onDraftChange}
+          />
         </div>
         {destination ? (
           <div className="mb-4">

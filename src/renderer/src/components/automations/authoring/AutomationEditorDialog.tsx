@@ -49,6 +49,8 @@ export type AutomationDraft = {
   surface?: 'chat' | 'terminal'
   /** Saved as-is; empty means none. */
   extraAgentArgs: string
+  /** Launch profile (account) id; absent launches the agent's built-in account. */
+  agentProfileId?: string
   launchPreferences?: AutomationLaunchPreferences
   agentArgs?: string | null
   launchSetupPatch?: AutomationLaunchSetupPatch & { legacyOnly?: true }

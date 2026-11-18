@@ -120,6 +120,7 @@ export class RuntimeAutomationController {
         precheck: input.precheck,
         agentId: input.agentId,
         extraAgentArgs: input.extraAgentArgs,
+        agentProfileId: input.agentProfileId,
         launchSetupPatch: input.launchSetupPatch,
         runContext: input.runContext,
         sourceContext: input.sourceContext,

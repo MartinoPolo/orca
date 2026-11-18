@@ -28,6 +28,7 @@ import {
 } from './terminal-retention/run-terminal-workspace-session'
 import { automationRunSetupSkip } from './launch/automation-run-setup-skip'
 import { automationSystemSettled } from './dispatch/automation-wake-settle'
+import * as launchAccount from './launch/automation-launch-account'
 
 const MAX_REMEMBERED_LAUNCHES = 256
 
@@ -38,8 +39,11 @@ export function createRuntimeAutomationService(input: {
   codexUsage?: AutomationUsageClient
   /** Only server processes execute remote_host_service schedules. */
   allowRemoteHostScheduling: boolean
+  /** Launch profiles are the desktop user's local accounts; other hosts refuse pinned automations. */
+  launchesProfiles: boolean
 }): AutomationService {
   const { store, runtime, claudeUsage, codexUsage } = input
+  const profileSettings = () => (input.launchesProfiles ? store.getSettings() : null)
   // Launch handles remain usable before pane-key lookup resolves.
   const launchedHandles = new Map<string, string>()
   const observer = createRuntimeAutomationRunTerminalObserver(runtime, {
@@ -161,6 +165,8 @@ export function createRuntimeAutomationService(input: {
     onAutomationsChanged: (payload) => runtime.notifyAutomationsChanged(payload),
     allowRemoteHostScheduling: input.allowRemoteHostScheduling,
     chatDispatcher: async (request) => {
+      // A chat cannot run a profile's command, so a pinned chat run fails here.
+      launchAccount.resolveAutomationLaunchAccount(request.automation, profileSettings())
       const { terminalHandle, ...launched } = await launchAutomationChatAgent(runtime, {
         ...request,
         runs: store.listAutomationRuns(request.automation.id)
@@ -186,7 +192,12 @@ export function createRuntimeAutomationService(input: {
       launch: async (request) => {
         const { terminalHandle, ...launched } = await launchAutomationTerminalAgent(runtime, {
           ...request,
-          runs: store.listAutomationRuns(request.automation.id)
+          ...launchAccount.resolveAutomationTerminalLaunchAccount(
+            runtime,
+            request.automation,
+            store.listAutomationRuns(request.automation.id),
+            profileSettings()
+          )
         })
         const launch = {
           ...launched,

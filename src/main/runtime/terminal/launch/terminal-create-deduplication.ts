@@ -24,6 +24,7 @@ import {
 } from '../../../../shared/execution-host'
 import { resolveWorktreeLaunchHost } from '../../workspaces/catalog/worktree-launch-host-repo'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
+import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import type { TerminalWorkspaceLaunchScope } from '../../orchestration/terminal-authority/structured-sessions/runtime-legacy-worker-terminal-recovery-types'
 
 export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRuntimeWithCreateAgentSession {
@@ -190,6 +191,7 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
       agentArgs?: string | null
       sessionOptions?: Readonly<Record<string, SessionOptionValue>>
       extraAgentArgs?: string
+      launchProfile?: AgentLaunchProfile
       suppressStartupUpdatePrompt?: boolean
       /** Run now is the user's act; a scheduled run is background and a stopped WSL distro holds it. */
       wslUserAct?: true
@@ -217,6 +219,7 @@ export abstract class OrcaRuntimeWithTerminalCreateDeduplication extends OrcaRun
         ...(opts.agentArgs !== undefined ? { agentArgs: opts.agentArgs } : {}),
         ...(opts.sessionOptions !== undefined ? { sessionOptions: opts.sessionOptions } : {}),
         ...(opts.extraAgentArgs !== undefined ? { extraAgentArgs: opts.extraAgentArgs } : {}),
+        ...(opts.launchProfile ? { launchProfile: opts.launchProfile } : {}),
         ...(prompt && commandPrompt ? { startupPrompt: prompt } : {}),
         startupPromptCarry: 'force-line',
         startupPromptDelivery: 'auto-submit',

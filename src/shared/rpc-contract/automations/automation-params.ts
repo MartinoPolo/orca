@@ -189,6 +189,8 @@ export const AutomationRuns = z.object({
 
 // Why strict: null or a non-string must fail rather than fall back to "omitted", which preserves.
 const ExtraAgentArgs = z.string({ message: 'Extra agent arguments must be text.' }).optional()
+// Why strict: an empty string clears a saved profile, so it must not collapse into "omitted".
+const AgentProfileId = z.string({ message: 'Launch profile id must be text.' }).optional()
 
 export const AutomationCanonicalLaunchSetup = z.strictObject({
   surface: z.enum(['chat', 'terminal']).optional(),
@@ -259,6 +261,7 @@ export const AutomationCreate = z.object({
   precheck: AutomationPrecheck,
   agentId: TuiAgent,
   extraAgentArgs: ExtraAgentArgs,
+  agentProfileId: AgentProfileId,
   launchSetupPatch: AutomationLaunchSetupPatch.optional(),
   runContext: WorkspaceRunContext,
   sourceContext: TaskSourceContext,
@@ -283,6 +286,7 @@ export const AutomationUpdateFields = z.object({
   precheck: AutomationPrecheck,
   agentId: TuiAgent.optional(),
   extraAgentArgs: ExtraAgentArgs,
+  agentProfileId: AgentProfileId,
   launchSetupPatch: AutomationLaunchSetupPatch.optional(),
   runContext: WorkspaceRunContext,
   sourceContext: TaskSourceContext,

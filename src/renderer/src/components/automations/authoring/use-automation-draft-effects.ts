@@ -146,7 +146,8 @@ export function useAutomationDraftEffects({
                   ? { copy: { surface: current.surface } }
                   : { arguments: { kind: 'legacy-extras' as const, value: '' } },
               launchArgumentsInput: undefined,
-              extraAgentArgs: ''
+              extraAgentArgs: '',
+              agentProfileId: undefined
             }
           : {}),
         missedRunGraceMinutes: template.missedRunGraceMinutes ?? current.missedRunGraceMinutes,

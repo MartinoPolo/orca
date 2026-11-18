@@ -85,6 +85,8 @@ export function pickAutomationLaunch(
     ...current,
     ...setup,
     agentId,
+    // A launch profile belongs to one agent.
+    ...(rebound ? { agentProfileId: undefined } : {}),
     extraAgentArgs: setup.extraAgentArgs ?? '',
     launchPreferences: setup.launchPreferences,
     agentArgs: setup.agentArgs,

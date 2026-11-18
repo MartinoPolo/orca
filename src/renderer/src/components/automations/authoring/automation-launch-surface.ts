@@ -82,6 +82,20 @@ export function automationChatSupport(
       : null
 }
 
+/** A chat draft saves as a terminal automation once its host proves it cannot run Chat. */
+export function automationSaveSurface(
+  state: AgentLaunchRouteStore,
+  draft: AutomationDraft,
+  requested: 'chat' | 'terminal',
+  destination?: AutomationCreateDestinationResolution
+): 'chat' | 'terminal' {
+  return requested === 'chat' &&
+    draft.surface === undefined &&
+    automationChatSupport(state, draft, automationLaunchWorkspace(draft, destination)) === false
+    ? 'terminal'
+    : requested
+}
+
 export function automationDraftSurface(
   draft: AutomationDraft,
   settings: GlobalSettings | null,
