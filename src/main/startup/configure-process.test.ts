@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 vi.mock('electron', () => {
   const paths = new Map<string, string>([['appData', '/tmp/app-data']])
@@ -106,10 +106,6 @@ describe('patchPackagedProcessPath', () => {
 })
 
 describe('configureDevUserDataPath', () => {
-  // Suites launched from an Orca Lab terminal inherit the Lab opt-in.
-  beforeEach(() => vi.stubEnv('ORCA_LAB_ROOT', undefined))
-  afterEach(() => vi.unstubAllEnvs())
-
   it('rejects an E2E launch whose Node home escaped the disposable profile', async () => {
     const { configureDevUserDataPath } = await import('./configure-process')
     const originalE2EUserDataDir = process.env.ORCA_E2E_USER_DATA_DIR

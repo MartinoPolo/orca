@@ -4,8 +4,6 @@ import type { AppIdentity } from '../../../shared/app-lifecycle/identity/app-ide
 
 const BASE_APP_NAME = 'Orca'
 const BASE_APP_USER_MODEL_ID = 'com.stablyai.orca'
-const LAB_APP_NAME = 'Orca Lab'
-const LAB_APP_USER_MODEL_ID = 'com.stablyai.orca.lab'
 const MAX_LABEL_LENGTH = 80
 
 export type DevInstanceIdentity = AppIdentity & {
@@ -14,11 +12,9 @@ export type DevInstanceIdentity = AppIdentity & {
   appName: string
 }
 
-/** Electron fixes the Keychain service before ready. Rename dev and isolated Lab only; ordinary packaged builds retain their CFBundleName-derived encryption keys. */
-export function shouldApplyPreReadyAppName(
-  identity: Pick<AppIdentity, 'isDev'> & { appName?: string }
-): boolean {
-  return identity.isDev || identity.appName === LAB_APP_NAME
+/** Electron fixes the Keychain service before ready. Rename dev only; packaged forks must retain their CFBundleName-derived encryption keys. */
+export function shouldApplyPreReadyAppName(identity: Pick<AppIdentity, 'isDev'>): boolean {
+  return identity.isDev
 }
 
 function cleanEnvValue(value: string | undefined): string | null {
@@ -59,18 +55,16 @@ export function getDevInstanceIdentity(
   env: NodeJS.ProcessEnv = process.env
 ): DevInstanceIdentity {
   if (!isDev) {
-    const isLab = Boolean(env.ORCA_LAB_ROOT)
-    const appName = isLab ? LAB_APP_NAME : BASE_APP_NAME
     return {
-      name: appName,
-      appName,
+      name: BASE_APP_NAME,
+      appName: BASE_APP_NAME,
       isDev: false,
       devLabel: null,
       devBranch: null,
       devWorktreeName: null,
       devRepoRoot: null,
       dockBadgeLabel: null,
-      appUserModelId: isLab ? LAB_APP_USER_MODEL_ID : BASE_APP_USER_MODEL_ID
+      appUserModelId: BASE_APP_USER_MODEL_ID
     }
   }
 

@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
@@ -7,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { runProcessSync } from '@orca/process-host'
 
 const require = createRequire(import.meta.url)
-const { assertForkReleaseSource, assertForkPromotion } = require('./fork-release-policy.cjs')
+const { assertForkReleaseSource } = require('./fork-release-policy.cjs')
 const directories = []
 const forkUrl = 'https://github.com/MartinoPolo/orca.git'
 
@@ -40,27 +39,10 @@ function fixture() {
   git(cwd, 'push', bare, 'main')
   const later = commit(cwd, 'later')
   git(cwd, 'push', bare, 'main')
-  const artifact = join(root, 'old', 'win-unpacked')
-  mkdirSync(join(artifact, 'resources'), { recursive: true })
-  writeFileSync(join(artifact, 'Orca.exe'), 'old executable')
-  writeFileSync(join(artifact, 'resources', 'app.asar'), 'old asar')
-  const hash = (file) => createHash('sha256').update(readFileSync(file)).digest('hex')
-  const manifestPath = join(root, 'verified-build.json')
-  writeFileSync(
-    manifestPath,
-    JSON.stringify({
-      version: `1.4.197-local.20260924100739.${prior.slice(0, 8)}`,
-      build: { directory: artifact },
-      buildHashes: {
-        executable: hash(join(artifact, 'Orca.exe')),
-        asar: hash(join(artifact, 'resources', 'app.asar'))
-      }
-    })
-  )
-  return { cwd, bare, root, prior, later, artifact, manifestPath }
+  return { cwd, bare, prior, later }
 }
 function check(f) {
-  return assertForkReleaseSource({ cwd: f.cwd, manifestPath: f.manifestPath })
+  return assertForkReleaseSource({ cwd: f.cwd })
 }
 
 afterEach(() => {
@@ -69,43 +51,21 @@ afterEach(() => {
   }
 })
 describe('fork release safety', () => {
-  it('accepts merged published main, resolves verified legacy source, and audits refs', () => {
+  it('accepts published main and audits refs', () => {
     const f = fixture()
     git(f.cwd, 'branch', 'feature', f.prior)
     git(f.cwd, 'push', f.bare, `${f.prior}:refs/heads/martas/done`)
     const source = check(f)
-    expect(source).toMatchObject({ commit: f.later, priorCommit: f.prior, branch: 'main' })
+    expect(source).toMatchObject({ commit: f.later, branch: 'main' })
     expect(source.auditedRefs.map((ref) => ref.name)).toEqual([
       'refs/heads/feature',
       'refs/remotes/fork/martas/done'
     ])
-    const candidate = {
-      cwd: f.cwd,
-      manifestPath: f.manifestPath,
-      metadata: {
-        orcaManualUpdatesOnly: true,
-        version: 'candidate',
-        orcaBuildSource: { commit: f.later, branch: 'main', repository: 'MartinoPolo/orca' }
-      },
-      provenance: { ...source, version: 'candidate' }
-    }
-    expect(assertForkPromotion(candidate).commit).toBe(f.later)
-    expect(() =>
-      assertForkPromotion({
-        ...candidate,
-        provenance: { ...candidate.provenance, auditedRefs: [] }
-      })
-    ).toThrow(/provenance does not match/)
   })
-  it('rejects an invalid fork remote and malformed previous source without legacy fallback', () => {
+  it('rejects an invalid fork remote', () => {
     const f = fixture()
     git(f.cwd, 'remote', 'set-url', 'fork', 'https://github.com/stablyai/orca.git')
     expect(() => check(f)).toThrow(/fork remote must be/)
-    git(f.cwd, 'remote', 'set-url', 'fork', forkUrl)
-    const manifest = JSON.parse(readFileSync(f.manifestPath, 'utf8'))
-    manifest.source = { repository: 'MartinoPolo/orca', branch: 'main', commit: 'invalid' }
-    writeFileSync(f.manifestPath, JSON.stringify(manifest))
-    expect(() => check(f)).toThrow(/Previous Lab source identity is invalid/)
   })
   it('rejects feature checkout, dirty source, and unpublished main', () => {
     const f = fixture()
@@ -134,19 +94,6 @@ describe('fork release safety', () => {
       { name: 'refs/heads/pending', commit: pendingCommit },
       { name: 'refs/remotes/fork/martas/pending', commit: pendingCommit }
     ])
-    const candidate = {
-      cwd: f.cwd,
-      manifestPath: f.manifestPath,
-      metadata: {
-        orcaManualUpdatesOnly: true,
-        version: 'candidate',
-        orcaBuildSource: { commit: f.later, branch: 'main', repository: 'MartinoPolo/orca' }
-      },
-      provenance: { ...source, version: 'candidate' }
-    }
-    expect(assertForkPromotion(candidate).commit).toBe(f.later)
-    git(f.cwd, 'push', f.bare, ':refs/heads/martas/pending')
-    expect(() => assertForkPromotion(candidate)).toThrow(/provenance does not match/)
   })
   it('prunes deleted personal remote branches and retains local pending branches', () => {
     const f = fixture()
@@ -160,84 +107,10 @@ describe('fork release safety', () => {
     git(f.cwd, 'push', f.bare, ':refs/heads/martas/removed')
     expect(check(f).auditedRefs).toEqual([{ name: 'refs/heads/pending', commit: pendingCommit }])
   })
-  it('rejects dropped release ancestry, tampered artifact and ambiguous legacy identity', () => {
+  it('rejects a build whose expected source is no longer published main', () => {
     const f = fixture()
-    writeFileSync(join(f.artifact, 'Orca.exe'), 'tampered')
-    expect(() => check(f)).toThrow(/artifact changed/)
-    writeFileSync(join(f.artifact, 'Orca.exe'), 'old executable')
-    git(f.cwd, 'reset', '--hard', f.prior)
-    git(f.cwd, 'push', '--force', f.bare, 'main')
-    git(f.cwd, 'fetch', 'fork')
-    git(f.cwd, 'reset', '--hard', f.later)
-    const other = commit(f.cwd, 'new tip')
-    git(f.cwd, 'push', '--force', f.bare, 'main')
-    expect(check(f).commit).toBe(other)
-    const manifest = JSON.parse(readFileSync(f.manifestPath, 'utf8'))
-    manifest.version = '1.4.197-local.20260924100739.deadbeef'
-    writeFileSync(f.manifestPath, JSON.stringify(manifest))
-    expect(() => check(f)).toThrow(/does not resolve to exactly one commit|Git rev-parse failed/)
-  })
-  it('accepts a rewritten main only when a published backup tag preserves the prior commit', () => {
-    const f = fixture()
-    git(f.cwd, 'tag', 'backup/main-before-rebase', f.later)
-    git(f.cwd, 'checkout', '--orphan', 'rebased')
-    const rebased = commit(f.cwd, 'rebased')
-    git(f.cwd, 'branch', '-D', 'main')
-    git(f.cwd, 'branch', '-m', 'main')
-    git(f.cwd, 'push', '--force', f.bare, 'main')
-    expect(() => check(f)).toThrow(/Previous released commit was dropped/)
-
-    git(f.cwd, 'push', f.bare, 'refs/tags/backup/main-before-rebase')
-    const source = check(f)
-    expect(source).toMatchObject({
-      commit: rebased,
-      priorCommit: f.prior,
-      priorCommitPreservedBy: 'backup/main-before-rebase'
-    })
-    const candidate = {
-      cwd: f.cwd,
-      manifestPath: f.manifestPath,
-      metadata: {
-        orcaManualUpdatesOnly: true,
-        version: 'candidate',
-        orcaBuildSource: { commit: rebased, branch: 'main', repository: 'MartinoPolo/orca' }
-      },
-      provenance: { ...source, version: 'candidate' }
-    }
-    expect(assertForkPromotion(candidate).commit).toBe(rebased)
-    git(f.cwd, 'push', f.bare, ':refs/tags/backup/main-before-rebase')
-    expect(() => assertForkPromotion(candidate)).toThrow(/Previous released commit was dropped/)
-  })
-  it('rejects a replaced history without the prior commit and mismatched candidate source', () => {
-    const f = fixture()
-    git(f.cwd, 'checkout', '--orphan', 'replacement')
-    git(f.cwd, 'rm', '-f', 'tracked.txt')
-    const replacement = commit(f.cwd, 'replacement')
-    git(f.cwd, 'branch', '-D', 'main')
-    git(f.cwd, 'branch', '-m', 'main')
-    git(f.cwd, 'push', '--force', f.bare, 'main')
-    expect(() => check(f)).toThrow(/Previous released commit was dropped/)
-    git(f.cwd, 'reset', '--hard', f.later)
-    git(f.cwd, 'push', '--force', f.bare, 'main')
-    const source = check(f)
-    expect(() =>
-      assertForkPromotion({
-        cwd: f.cwd,
-        manifestPath: f.manifestPath,
-        metadata: {
-          orcaManualUpdatesOnly: true,
-          version: 'candidate',
-          orcaBuildSource: { commit: replacement, branch: 'main', repository: 'MartinoPolo/orca' }
-        },
-        provenance: { ...source, version: 'candidate' }
-      })
-    ).toThrow(/Build source changed/)
-    expect(() =>
-      assertForkReleaseSource({
-        cwd: f.cwd,
-        manifestPath: f.manifestPath,
-        expectedCommit: replacement
-      })
-    ).toThrow(/Build source changed/)
+    expect(() => assertForkReleaseSource({ cwd: f.cwd, expectedCommit: f.prior })).toThrow(
+      /Build source changed/
+    )
   })
 })

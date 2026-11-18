@@ -4,7 +4,7 @@
 
 ## Fork Patches
 
-- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean published `main` and a verified previous Lab source that `main` still contains, or that a published `backup/main-before-*` tag preserves after an intentional upstream rebase; pending development refs are recorded but excluded. Use `pnpm run build:fork` for a provenance-stamped Windows x64 Lab build, or `pnpm run build:fork:installer` for the same build as a normal NSIS installer under `MPX_APPS/Orca-Stable`.
+- **Implemented:** `ORCA_MANUAL_UPDATES_ONLY=1` disables automatic updates and publishing for custom builds without weakening signature checks. Fork manual packages require a clean local `main` matching freshly fetched `fork/main` and an `out/fork-build-source.json` proof of the compiled output; pending development refs are recorded but excluded. `pnpm run build:fork:installer` writes a provenance-stamped Windows x64 NSIS installer under `MPX_APPS/Orca-Stable`.
 - **Implemented:** Exclude private `notes/` deployment evidence and previous `dist/` builds from packages, including when packaging to an alternate output directory.
 - **Implemented:** Require the pinned pnpm directly so self-downloading wrappers cannot rewrite the environment lockfile.
 - **Implemented:** Keep verification portable with discovered Git Bash executables, platform-correct fixtures, and Git-compatible patch diff paths. Packaged CLI smoke checks use the shared bounded, hidden process runner.
@@ -27,14 +27,13 @@
 - **Implemented:** Sidebar agent lists start expanded; compact lists offer a collapse row only above three top-level agents. Explicit collapse choices survive sidebar remounts within the renderer session.
 - **Implemented:** Terminal tab headers mark launch identity (Pi blue for every account, Claude orange, command launches green) with a bottom strip, softened on inactive tabs; only the active tab fills with its identity tint. Unread (yellow) and attention (red: needs input, interrupted, or failed) fill any tab, so a filled inactive tab always needs the user. Manual swatches, Automatic, and No color choices remain; ordinary terminals stay neutral, and command provenance persists as an optional `launchKind` layout creation fact.
 - **Implemented:** Terminal and chat file links route by kind: text stays in Orca's editor, while images, PDFs, audio/video, and other binary files open with the OS default app (downloaded first over SSH). Each kind is configurable under Settings → Browser → Terminal link clicks; Shift+Cmd/Ctrl-click and the popover's primary row follow the per-kind default.
-- **Implemented:** `ORCA_LAB_ROOT` gives packaged builds a fail-closed separate Orca profile and storage while sharing the normal shell, development tools, and agent configuration. It retains a distinct Orca Lab identity and native window title without enabling E2E mode; see [`docs/reference/orca-lab-isolation.md`](docs/reference/orca-lab-isolation.md).
 - **Implemented:** `terminal list` (and its RPC) reports each terminal's optional `agentSession` (`{ id, transcriptPath? }`): the hook-reported session of the pane's published `agentIdentity` agent, absent when unknown or reported by another agent, so local tools can address a specific agent session's terminal. Mobile already receives the same session through `session.tabs` agent status and needs no change.
 
 Add or update a one-to-three-sentence entry here for every fork-only patch.
 
 ## Installation
 
-Run `pnpm run build:fork:installer` from a clean, published fork `main`, validate its unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and run the installer. Windows keeps a taskbar tray registration per executable path, so afterwards run `pnpm run prune:tray` to drop registrations of every Orca executable other than the installed app and the verified Lab build, and delete superseded `MPX_APPS/Orca-Stable` build and log directories. The package carries no Lab identity; only the Lab launcher's runtime `ORCA_LAB_ROOT` selects Lab. Updates are manual; never replace a running installation without approval.
+Run `pnpm run build:fork:installer` from a clean, published fork `main`, validate its unpacked build with isolated data in background mode, then stop Orca, back up its installation/profile/registry, and run the installer. Windows keeps a taskbar tray registration per executable path, so afterwards run `pnpm run prune:tray` to drop registrations of every Orca executable other than the installed app, and delete superseded `MPX_APPS/Orca-Stable` build and log directories. Updates are manual; never replace a running installation without approval.
 
 # Useful Commands
 

@@ -12,7 +12,6 @@ const source = {
   branch: 'main',
   commit: 'a'.repeat(40),
   publishedCommit: 'a'.repeat(40),
-  priorCommit: null,
   auditedRefs: []
 }
 const version = '1.4.197-local.20260924100739.gaaaaaaaa'
