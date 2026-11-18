@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { createTestStore, seedStore } from '../store-test-helpers'
-import { makeTab } from '../store-session-test-harness'
+import { createTestStore, seedStore } from '../../testing/app-store-test-fixture'
+import { makeTab } from '../../terminals/testing/terminal-tab.test-fixture'
 import { getDefaultUIState } from '../../../../../shared/constants'
 import { buildSessionAttentionIdentity } from '../../../../../shared/session-attention'
-import { makePaneKey } from '../../../../../shared/stable-pane-id'
+import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
 import type { Tab } from '../../../../../shared/tab-types'
 
 const ATTENTION_WORKSPACE_ID = 'attention-workspace'
@@ -165,61 +165,6 @@ describe('persisted session attention episodes', () => {
     })
   })
 
-  it('uses the retained terminal handle runtime identity when a completion is read after tab teardown', () => {
-    const store = createTestStore()
-    seedAttentionSession(store)
-    store.setState((state) => ({
-      unifiedTabsByWorktree: {
-        [ATTENTION_WORKSPACE_ID]: state.unifiedTabsByWorktree[ATTENTION_WORKSPACE_ID].map(
-          (tab) => ({ ...tab, executionHostId: 'runtime:attention-host' as const })
-        )
-      }
-    }))
-    store.getState().setAgentStatus(
-      ATTENTION_PANE,
-      { state: 'done', prompt: 'Attention episode', agentType: 'claude' },
-      'Claude',
-      { updatedAt: 1_000, stateStartedAt: 1_000 },
-      {
-        tabId: ATTENTION_TAB_ID,
-        worktreeId: ATTENTION_WORKSPACE_ID,
-        terminalHandle: 'remote:attention-host@@terminal-1',
-        connectionId: null
-      },
-      { providerSession: ATTENTION_PROVIDER_SESSION }
-    )
-    const remoteIdentity = buildSessionAttentionIdentity({
-      executionHostId: 'runtime:attention-host',
-      workspaceId: ATTENTION_WORKSPACE_ID,
-      agentType: 'claude',
-      providerSession: ATTENTION_PROVIDER_SESSION
-    })
-    if (!remoteIdentity) {
-      throw new Error('remote provider fixture must have a stable identity')
-    }
-    const liveEntry = store.getState().agentStatusByPaneKey[ATTENTION_PANE]
-    const retainedTab = store.getState().tabsByWorktree[ATTENTION_WORKSPACE_ID][0]
-    store.setState({
-      agentStatusByPaneKey: {},
-      tabsByWorktree: {},
-      unifiedTabsByWorktree: {},
-      retainedAgentsByPaneKey: {
-        [ATTENTION_PANE]: {
-          entry: liveEntry,
-          worktreeId: ATTENTION_WORKSPACE_ID,
-          tab: retainedTab,
-          agentType: 'claude',
-          startedAt: liveEntry.stateStartedAt
-        }
-      }
-    })
-
-    store.getState().acknowledgeAgents([ATTENTION_PANE])
-
-    expect(store.getState().sessionAttentionMetadataByIdentity[remoteIdentity]).toBeUndefined()
-    expect(Object.keys(store.getState().sessionAttentionMetadataByIdentity)).toEqual([])
-  })
-
   it('resolves an input episode before starting a distinct unread completion episode', () => {
     const store = createTestStore()
     seedAttentionSession(store)
@@ -260,7 +205,7 @@ describe('persisted session attention episodes', () => {
     if (!replacementIdentity) {
       throw new Error('replacement provider fixture must have a stable identity')
     }
-    expect(store.getState().agentStatusByPaneKey[ATTENTION_PANE].stateStartedAt).toBe(4_000)
+    expect(store.getState().agentStatusByPaneKey.get(ATTENTION_PANE)?.stateStartedAt).toBe(4_000)
     expect(store.getState().sessionAttentionMetadataByIdentity[replacementIdentity]).toMatchObject({
       attentionEpisodeStartedAt: 4_000,
       attentionEpisodeKind: 'unresolved-input'

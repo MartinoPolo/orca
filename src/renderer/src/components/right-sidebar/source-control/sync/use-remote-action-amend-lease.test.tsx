@@ -3,22 +3,19 @@ import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useSourceControlRemoteActionRunner } from './use-remote-action-runner'
 import { runAmendAndForcePushFlow } from './amend-and-force-push-flow'
-import type { SourceControlActionError } from './action-error'
+import { getWorktreeOperationStore } from '../panel/worktree-operation-store'
 
 vi.mock('@/lib/workspace/ownership/connection-context', () => ({ getConnectionId: () => undefined }))
 const OWNER_TARGET = { kind: 'local' as const }
+let setupCount = 0
 
 function setup(pushLease?: {
   expectedHead: string
   pushTarget: { remoteName: string; branchName: string }
 }) {
   const pushBranch = vi.fn(async () => {})
-  let errors: Record<string, SourceControlActionError | null> = {}
-  const setRemoteActionErrors: Parameters<
-    typeof useSourceControlRemoteActionRunner
-  >[0]['setRemoteActionErrors'] = (update) => {
-    errors = typeof update === 'function' ? update(errors) : update
-  }
+  setupCount += 1
+  const operationStore = getWorktreeOperationStore(`worktree-${setupCount}`, null, undefined)
   const handleCommit: Parameters<
     typeof useSourceControlRemoteActionRunner
   >[0]['handleCommit'] = async (_message, options) => {
@@ -36,29 +33,27 @@ function setup(pushLease?: {
       fetchBranch: vi.fn(async () => {}),
       grouped: { staged: [], unstaged: [], untracked: [] },
       handleCommit,
+      operationStore,
       pullBranch: vi.fn(async () => {}),
       pushBranch,
       rebaseFromBase: vi.fn(async () => {}),
       refreshActiveGitStatusAfterMutation: vi.fn(async () => {}),
       refreshBranchCompareRef: { current: async () => {} },
       refreshGitHistoryRef: { current: async () => {} },
-      remoteActionErrorSequenceByWorktreeRef: { current: {} },
       remoteStatus: undefined,
       remoteStatusForActions: undefined,
-      setRemoteActionErrors,
       syncBranch: vi.fn(async () => {}),
       worktreePath: '/repo'
     })
   )
   return {
     pushBranch,
-    readErrors: () => errors,
+    readError: () => operationStore.getState().remoteActionError,
     run: () =>
       runAmendAndForcePushFlow({
-        activeWorktreeId: 'worktree',
         handleCommit,
         runRemoteAction: result.current.runRemoteAction,
-        setRemoteActionErrors
+        operationStore
       })
   }
 }
@@ -68,9 +63,9 @@ describe('automatic amend push lease boundary', () => {
     const flow = setup()
     await flow.run()
     expect(flow.pushBranch).not.toHaveBeenCalled()
-    expect(flow.readErrors().worktree?.message).toContain('Commit amended locally.')
-    expect(flow.readErrors().worktree?.message).toContain('host did not provide a pre-amend lease')
-    expect(flow.readErrors().worktree?.message).toContain('Use Force Push from the menu to retry.')
+    expect(flow.readError()?.message).toContain('Commit amended locally.')
+    expect(flow.readError()?.message).toContain('host did not provide a pre-amend lease')
+    expect(flow.readError()?.message).toContain('Use Force Push from the menu to retry.')
   })
 
   it('passes the host-captured lease to the existing push action', async () => {

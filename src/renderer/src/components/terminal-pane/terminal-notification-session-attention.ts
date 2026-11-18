@@ -1,10 +1,10 @@
 import type { AppState } from '@/store/types'
 import { resolveEntrySessionPriority } from '@/store/slices/agent-status/session-attention-transition'
-import { agentMainAgentVerdict } from '../../../../shared/agent-main-agent-verdict'
-import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
+import { agentMainAgentVerdict } from '../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
+import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import type { NotificationSoundCategory } from '../../../../shared/notification-settings-types'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
-import type { AgentCompletionStatusSnapshot } from './agent-completion-coordinator-types'
+import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import type { AgentCompletionStatusSnapshot } from './agent-completion/agent-completion-coordinator-types'
 
 export function isStructuredSessionPane(
   state: AppState,
@@ -56,7 +56,6 @@ export function resolveNotificationSessionPriority(
   }
 ): number {
   const { worktreeId, paneKey, storedAgentStatus, eventAgentStatusSnapshot } = args
-  const retainedAgentStatus = paneKey ? state.retainedAgentsByPaneKey[paneKey]?.entry : undefined
   let identityEntry: AgentStatusEntry | undefined
   if (
     args.isStructuredSession &&
@@ -66,14 +65,14 @@ export function resolveNotificationSessionPriority(
   ) {
     identityEntry = storedAgentStatus
   } else if (eventAgentStatusSnapshot) {
-    identityEntry = [storedAgentStatus, retainedAgentStatus].find(
-      (entry) =>
-        entry?.worktreeId === worktreeId &&
-        entry.agentType === eventAgentStatusSnapshot.agentType &&
-        (entry.stateStartedAt === eventAgentStatusSnapshot.stateStartedAt ||
-          (eventAgentStatusSnapshot.localStateStartedAt !== undefined &&
-            entry.stateStartedAt === eventAgentStatusSnapshot.localStateStartedAt))
-    )
+    identityEntry =
+      storedAgentStatus?.worktreeId === worktreeId &&
+      storedAgentStatus.agentType === eventAgentStatusSnapshot.agentType &&
+      (storedAgentStatus.stateStartedAt === eventAgentStatusSnapshot.stateStartedAt ||
+        (eventAgentStatusSnapshot.localStateStartedAt !== undefined &&
+          storedAgentStatus.stateStartedAt === eventAgentStatusSnapshot.localStateStartedAt))
+        ? storedAgentStatus
+        : undefined
   } else if (storedAgentStatus?.worktreeId === worktreeId) {
     identityEntry = storedAgentStatus
   }

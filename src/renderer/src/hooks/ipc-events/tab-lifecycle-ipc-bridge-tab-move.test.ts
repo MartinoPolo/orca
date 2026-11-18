@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { TabMoveDirection } from '../../../shared/keybindings/types'
+import type { TabMoveDirection } from '../../../../shared/keybindings/types'
 import { registerTabLifecycleIpcBridge } from './tab-lifecycle-ipc-bridge'
 
 const { moveBrowserTabInDirection } = vi.hoisted(() => ({

@@ -6,6 +6,7 @@ import { SubscribedAgentLaunchPickerMenu } from '@/components/agent/AgentLaunchP
 import {
   agentPickerFreshLaunchInputs,
   type AgentPickerEntry,
+  type AgentPickerSurface,
   type AgentPickerDraft
 } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import React, { useCallback } from 'react'
@@ -91,6 +92,7 @@ export function useTabAgentMenuLaunch({
       row: NewTabAgentMenuRow,
       draft?: AgentPickerDraft,
       pickerEntry?: AgentPickerEntry,
+      _surface?: AgentPickerSurface,
       agentLaunchProfile?: AgentLaunchProfile
     ) => {
       if (

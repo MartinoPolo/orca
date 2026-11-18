@@ -110,10 +110,9 @@ export function useSourceControlCommitFlows(foundation: SourceControlPanelFounda
     worktreePath
   })
   const amendAndForcePush = useSourceControlAmendAndForcePush({
-    activeWorktreeId,
     handleCommit: commitAction.handleCommit,
     runRemoteAction: remoteActionRunner.runRemoteAction,
-    setRemoteActionErrors
+    operationStore
   })
   const conflictAbort = useSourceControlConflictAbort({
     activeRepoTarget,

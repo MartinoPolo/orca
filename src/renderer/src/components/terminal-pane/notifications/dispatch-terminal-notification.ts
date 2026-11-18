@@ -34,12 +34,12 @@ import type {
 } from '../../../../../shared/notification-settings-types'
 import { getNotificationWorkspaceLabels } from '../../../attention/notification-workspace-labels'
 import { createTerminalAttentionSurface } from './terminal-attention-surface'
-import { createStructuredAttentionSurface } from '../native-chat/structured-attention-surface'
+import { createStructuredAttentionSurface } from '../../native-chat/session/attention/structured-attention-surface'
 import {
   isStructuredSessionPane,
   resolveAgentSoundCategory,
   resolveNotificationSessionPriority
-} from './terminal-notification-session-attention'
+} from '../terminal-notification-session-attention'
 import {
   applyAgentAttention,
   resolveAgentAttention,

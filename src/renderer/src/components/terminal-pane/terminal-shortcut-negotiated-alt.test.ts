@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { TerminalKittyKeyboardModeTracker } from '../../../../shared/terminal-kitty-keyboard-mode-tracker'
-import { createTerminalOptionKittyReleaseTracker } from './terminal-option-kitty-release'
+import { TerminalKittyKeyboardModeTracker } from '../../../../shared/terminal/protocol/input-modes/terminal-kitty-keyboard-mode-tracker'
+import { createTerminalOptionKittyReleaseTracker } from './input/keyboard/terminal-option-kitty-release'
 import {
   resolveTerminalShortcutAction,
   type TerminalShortcutEvent
-} from './terminal-shortcut-policy'
+} from './input/keyboard/terminal-shortcut-policy'
 
 function event(overrides: Partial<TerminalShortcutEvent>): TerminalShortcutEvent {
   return {

@@ -85,7 +85,7 @@ function moveTabInDirection(
   if (group.tabOrder.length <= 1) {
     return false
   }
-  return moveTabToNewPaneColumn({ unifiedTabId: tab.id, groupId: group.id, direction })
+  return moveTabToNewPaneColumn({ unifiedTabId: tab.id, groupId: group.id, direction }) !== false
 }
 
 export function moveActiveTabInDirection(

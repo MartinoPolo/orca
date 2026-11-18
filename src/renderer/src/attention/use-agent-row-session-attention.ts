@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
-import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
+import type { DashboardAgentRow } from '@/components/dashboard/rows/dashboard-agent-row'
 import type { AgentDotState } from '@/components/AgentStateDot'
 import {
   getRepoExecutionHostId,
@@ -27,14 +27,12 @@ export function useAgentRowSessionAttention(
         workspaceId,
         agent.tab.id
       )
-      const retained = state.retainedAgentsByPaneKey[agent.paneKey]
       const identity = resolveSessionAttentionIdentity({
         workspaceId,
         agentType: agent.agentType,
         entry: agent.entry,
-        terminalTab: retained?.tab ?? agent.tab,
+        terminalTab: agent.tab,
         projectedTab,
-        capturedExecutionHostId: retained?.executionHostId,
         resolveFallbackExecutionHostId: () => {
           const defaultHostId = getSettingsFocusedExecutionHostId(state.settings)
           const worktree = state.getKnownWorktreeById(workspaceId)

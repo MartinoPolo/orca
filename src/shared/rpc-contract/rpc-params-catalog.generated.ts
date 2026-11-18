@@ -570,6 +570,7 @@ import {
   SkillsGetInstallProgressParams
 } from './skills/skills-params'
 import {
+  GitAmendCommit,
   GitBranchCompare,
   GitBranchDiff,
   GitBulkPaths,
@@ -589,6 +590,7 @@ import {
   GitGeneratePullRequestFields,
   GitHistory,
   GitPush,
+  GitPushWithLease,
   GitRebaseFromBase,
   GitRefs,
   GitRemoteCommitUrl,
@@ -1142,6 +1144,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'folderWorkspace.update': FolderWorkspaceUpdate,
   'git.abortMerge': WorktreeSelectorOfGitParams,
   'git.abortRebase': WorktreeSelectorOfGitParams,
+  'git.amendCommit': GitAmendCommit,
   'git.atRiskLocalFiles': WorktreeSelectorOfGitParams,
   'git.branchCompare': GitBranchCompare,
   'git.branchDiff': GitBranchDiff,

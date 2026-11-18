@@ -228,7 +228,7 @@ export function useTabBarCreateMenuController({
   const launchAgentFromNewTabEntry = (option: TabAgentLaunchOption) => {
     if (option.row) {
       if (option.agentProfile) {
-        return launchAgentRow(option.row, undefined, undefined, option.agentProfile)
+        return launchAgentRow(option.row, undefined, undefined, undefined, option.agentProfile)
       }
       return option.setup
         ? launchAgentRow(option.row, option.setup, option.pickerEntry)

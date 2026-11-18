@@ -1,4 +1,4 @@
-import { resolveGitBashPath } from '../git-bash'
+import { resolveGitBashPath } from '../../../../pty/shell-startup/git-bash'
 
 // MSYS rewrites paths and switches, so Windows hook tests also exercise Git Bash.
 export function findGitBash(): string {

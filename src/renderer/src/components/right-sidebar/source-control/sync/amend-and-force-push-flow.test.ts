@@ -6,10 +6,9 @@ import {
   type AmendAndForcePushDependencies
 } from './amend-and-force-push-flow'
 import type { RunRemoteActionResult } from './use-remote-action-runner'
+import { getWorktreeOperationStore } from '../panel/worktree-operation-store'
 
-type RemoteActionErrors = Record<string, SourceControlActionError | null>
-
-const WORKTREE_ID = 'worktree-1'
+let setupCount = 0
 const PUSH_LEASE = {
   expectedHead: 'a'.repeat(40),
   pushTarget: { remoteName: 'fork', branchName: 'topic' }
@@ -28,15 +27,17 @@ function actionError(overrides: Partial<SourceControlActionError> = {}): SourceC
 function setup({
   amended,
   pushResult,
-  storedErrors = {},
+  storedError = null,
   pushLease = PUSH_LEASE
 }: {
   amended: boolean
   pushResult: RunRemoteActionResult
-  storedErrors?: RemoteActionErrors
+  storedError?: SourceControlActionError | null
   pushLease?: typeof PUSH_LEASE | null
 }) {
-  let remoteActionErrors = storedErrors
+  setupCount += 1
+  const operationStore = getWorktreeOperationStore(`worktree-${setupCount}`, null, undefined)
+  operationStore.setState({ remoteActionError: storedError })
   const handleCommit = vi.fn<AmendAndForcePushDependencies['handleCommit']>(
     async (_message, options) => {
       if (amended) {
@@ -48,19 +49,14 @@ function setup({
   const runRemoteAction = vi.fn<AmendAndForcePushDependencies['runRemoteAction']>(
     async () => pushResult
   )
-  const setRemoteActionErrors: AmendAndForcePushDependencies['setRemoteActionErrors'] = (
-    update
-  ) => {
-    remoteActionErrors = typeof update === 'function' ? update(remoteActionErrors) : update
+  const run = (): Promise<void> =>
+    runAmendAndForcePushFlow({ handleCommit, runRemoteAction, operationStore })
+  return {
+    handleCommit,
+    runRemoteAction,
+    run,
+    readError: () => operationStore.getState().remoteActionError
   }
-  const run = (activeWorktreeId: string | null = WORKTREE_ID): Promise<void> =>
-    runAmendAndForcePushFlow({
-      activeWorktreeId,
-      handleCommit,
-      runRemoteAction,
-      setRemoteActionErrors
-    })
-  return { handleCommit, runRemoteAction, run, readErrors: () => remoteActionErrors }
 }
 
 describe('runAmendAndForcePushFlow', () => {
@@ -96,10 +92,10 @@ describe('runAmendAndForcePushFlow', () => {
     const flow = setup({
       amended: true,
       pushResult: { status: 'failed', error: failedError },
-      storedErrors: { [WORKTREE_ID]: failedError }
+      storedError: failedError
     })
     await flow.run()
-    expect(flow.readErrors()[WORKTREE_ID]).toEqual({
+    expect(flow.readError()).toEqual({
       ...failedError,
       message:
         'Commit amended locally. Remote rejected the push. Use Force Push from the menu to retry.'
@@ -117,13 +113,13 @@ describe('runAmendAndForcePushFlow', () => {
       const flow = setup({
         amended: true,
         pushResult: { status: 'failed', error: failedError },
-        storedErrors: { [WORKTREE_ID]: failedError }
+        storedError: failedError
       })
       await flow.run()
       expect(flow.runRemoteAction).toHaveBeenCalledWith('force_push', {
         amendPushLease: PUSH_LEASE
       })
-      expect(flow.readErrors()[WORKTREE_ID]).toEqual({
+      expect(flow.readError()).toEqual({
         ...failedError,
         message:
           'Retry Force Push. Original error: Rejected <remote> & {{reason}}. Local amend completed.'
@@ -136,26 +132,13 @@ describe('runAmendAndForcePushFlow', () => {
 
   it('leaves a newer stored error untouched', async () => {
     const newerError = actionError({ sequence: 5, message: 'Newer failure.' })
-    const storedErrors = { [WORKTREE_ID]: newerError }
     const flow = setup({
       amended: true,
       pushResult: { status: 'failed', error: actionError({ sequence: 4 }) },
-      storedErrors
+      storedError: newerError
     })
     await flow.run()
-    expect(flow.readErrors()).toBe(storedErrors)
-  })
-
-  it('does not rewrite errors without an active worktree', async () => {
-    const failedError = actionError()
-    const storedErrors = { [WORKTREE_ID]: failedError }
-    const flow = setup({
-      amended: true,
-      pushResult: { status: 'failed', error: failedError },
-      storedErrors
-    })
-    await flow.run(null)
-    expect(flow.readErrors()).toBe(storedErrors)
+    expect(flow.readError()).toBe(newerError)
   })
 
   it.each<RunRemoteActionResult>([
@@ -163,9 +146,9 @@ describe('runAmendAndForcePushFlow', () => {
     { status: 'skipped' },
     { status: 'superseded' }
   ])('leaves errors untouched when the force push ends as $status', async (pushResult) => {
-    const storedErrors = { [WORKTREE_ID]: actionError() }
-    const flow = setup({ amended: true, pushResult, storedErrors })
+    const storedError = actionError()
+    const flow = setup({ amended: true, pushResult, storedError })
     await flow.run()
-    expect(flow.readErrors()).toBe(storedErrors)
+    expect(flow.readError()).toBe(storedError)
   })
 })

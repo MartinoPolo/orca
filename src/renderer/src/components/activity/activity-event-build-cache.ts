@@ -8,7 +8,6 @@ import type { Repo } from '../../../../shared/repository/repo-types'
 import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { Worktree } from '../../../../shared/worktree/types'
-import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type {
   ActivityEvent,
   ActivityLiveAgentSnapshot,
@@ -42,7 +41,6 @@ type PaneActivityCacheEntry = {
   repo: Repo | null
   tab: TerminalTab
   projectedTab: Tab | undefined
-  capturedExecutionHostId: ExecutionHostId | undefined
   events: ActivityEvent[]
   live: ActivityLiveAgentSnapshot | null
   rowEntry: AgentStatusEntry
@@ -99,7 +97,6 @@ export type PaneBuildRequest = {
   repo: Repo | null
   tab: TerminalTab
   projectedTab?: Tab
-  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   agentAlive: boolean
   acknowledgedAt: number
@@ -124,8 +121,7 @@ export function resolvePaneBuild(
     cached.worktree === request.worktree &&
     cached.repo === request.repo &&
     cached.tab === request.tab &&
-    cached.projectedTab === request.projectedTab &&
-    cached.capturedExecutionHostId === request.capturedExecutionHostId
+    cached.projectedTab === request.projectedTab
   const rowEntry = inputsUnchanged
     ? cached.rowEntry
     : entryWithRuntimeOrchestration(
@@ -153,7 +149,6 @@ export function resolvePaneBuild(
     repo: request.repo,
     tab: request.tab,
     projectedTab: request.projectedTab,
-    capturedExecutionHostId: request.capturedExecutionHostId,
     agentType: request.agentType,
     agentAlive: request.agentAlive,
     acknowledgedAt: request.acknowledgedAt,
@@ -172,7 +167,6 @@ export function resolvePaneBuild(
           entry: rowEntry,
           tab: request.tab,
           projectedTab: request.projectedTab,
-          capturedExecutionHostId: request.capturedExecutionHostId,
           agentType: request.agentType,
           migrationUnsupportedPtyId: request.migrationUnsupportedPtyId
         }
@@ -186,7 +180,6 @@ export function resolvePaneBuild(
     repo: request.repo,
     tab: request.tab,
     projectedTab: request.projectedTab,
-    capturedExecutionHostId: request.capturedExecutionHostId,
     events,
     live,
     rowEntry

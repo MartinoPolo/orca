@@ -33,9 +33,9 @@ describe('launchAgentInNewTab with a named launch profile', () => {
   it('queues the profile command and account root as a terminal, never a chat', async () => {
     useProfileStoreSlices()
     store.settings = { ...store.settings, experimentalNativeChat: true }
-    const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+    const { launchAgentInNewTabWithOutcome } = await import('./launch-agent-in-new-tab')
 
-    const result = launchAgentInNewTab({
+    const result = launchAgentInNewTabWithOutcome({
       requestId: 'profile-local',
       agent: 'claude',
       worktreeId: 'wt-1',
@@ -44,6 +44,7 @@ describe('launchAgentInNewTab with a named launch profile', () => {
     })
 
     expect(result).not.toBeNull()
+    expect(result).not.toHaveProperty('refused')
     const [startup] = queuedStartups()
     expect(startup?.command).toContain('ccw')
     expect(startup?.env).toMatchObject({
@@ -54,9 +55,9 @@ describe('launchAgentInNewTab with a named launch profile', () => {
 
   it('runs the profile under its root inside the SSH host home', async () => {
     useSshWorkspace('/home/agent')
-    const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+    const { launchAgentInNewTabWithOutcome } = await import('./launch-agent-in-new-tab')
 
-    const result = launchAgentInNewTab({
+    const result = launchAgentInNewTabWithOutcome({
       requestId: 'profile-ssh',
       agent: 'claude',
       worktreeId: 'wt-1',
@@ -64,6 +65,7 @@ describe('launchAgentInNewTab with a named launch profile', () => {
     })
 
     expect(result).not.toBeNull()
+    expect(result).not.toHaveProperty('refused')
     expect(queuedStartups()[0]?.env).toMatchObject({
       CLAUDE_CONFIG_DIR: '/home/agent/.claude-work'
     })
@@ -74,10 +76,9 @@ describe('launchAgentInNewTab with a named launch profile', () => {
     { label: 'an unknown SSH home', home: undefined, remote: '~/.claude-work' }
   ])('refuses $label on SSH without creating a tab', async ({ home, remote }) => {
     useSshWorkspace(home)
-    const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+    const { launchAgentInNewTabWithOutcome } = await import('./launch-agent-in-new-tab')
 
-    expect(
-      launchAgentInNewTab({
+    const result = launchAgentInNewTabWithOutcome({
         requestId: 'profile-refused',
         agent: 'claude',
         worktreeId: 'wt-1',
@@ -86,7 +87,7 @@ describe('launchAgentInNewTab with a named launch profile', () => {
           ...(remote ? {} : { remoteAgentDirectory: undefined })
         }
       })
-    ).toBeNull()
+    expect(result === null || "refused" in result).toBe(true)
     expect(mockCreateTab).not.toHaveBeenCalled()
   })
 })

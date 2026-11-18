@@ -8,7 +8,6 @@ import type { Repo } from '../../../../shared/repository/repo-types'
 import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { Worktree } from '../../../../shared/worktree/types'
-import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { ActivityPortalReadinessStatus } from './activity-portal-readiness-oscillation'
 import type {
   SessionAttentionMetadata,
@@ -33,7 +32,6 @@ export type ActivityEvent = {
   entry: AgentStatusEntry
   tab: TerminalTab
   projectedTab?: Tab
-  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   agentAlive: boolean
   migrationUnsupportedPtyId?: string
@@ -48,7 +46,6 @@ export type ActivityLiveAgentSnapshot = {
   entry: AgentStatusEntry
   tab: TerminalTab
   projectedTab?: Tab
-  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   migrationUnsupportedPtyId?: string
 }
@@ -61,7 +58,6 @@ export type AgentPaneThread = {
   repo: Repo | null
   tab: TerminalTab
   projectedTab?: Tab
-  capturedExecutionHostId?: ExecutionHostId
   agentType: AgentType
   currentAgentState: ActivityLiveAgentState | null
   currentAgentEntry: AgentStatusEntry | null

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTestStore } from '@/store/slices/store-test-helpers'
+import { createTestStore } from '@/store/testing/app-store-test-fixture'
 import { graphState } from './graph-state'
 
 const dispatchNotification = vi.hoisted(() => vi.fn())
-vi.mock('@/components/terminal-pane/use-notification-dispatch', () => ({
+vi.mock('@/components/terminal-pane/notifications/use-notification-dispatch', () => ({
   dispatchTerminalNotification: dispatchNotification
 }))
 

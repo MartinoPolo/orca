@@ -3,7 +3,7 @@ import { useAppStore } from '@/store'
 import { useStructuredChatTabNames } from '@/runtime/native-chat/naming/structured-chat-name-observation'
 import { buildActivityEvents } from './activity-event-builder'
 import { createActivityEventBuildCache } from '@/components/activity/activity-event-build-cache'
-import { freshActivityLiveAgentState, isRunningActivityState } from './activity-event-state'
+import { freshActivityLiveAgentState } from './activity-event-state'
 import {
   useAgentPaneThreadsDefaultHostId,
   useAllAgentPaneThreadStoreData,

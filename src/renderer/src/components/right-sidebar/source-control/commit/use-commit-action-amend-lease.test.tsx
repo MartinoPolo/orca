@@ -2,6 +2,7 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useSourceControlCommitAction } from './use-commit-action'
+import { getWorktreeOperationStore } from '../panel/worktree-operation-store'
 
 const calls = vi.hoisted(() => ({ amend: vi.fn(), commit: vi.fn() }))
 vi.mock('@/runtime/source-control/git/runtime-git-amend-client', () => ({ amendRuntimeGitCommit: calls.amend }))
@@ -32,17 +33,15 @@ function setup() {
       activeWorktree: null,
       activeWorktreeId: 'worktree',
       beginGitBranchCompareRequest: vi.fn(),
-      commitInFlightRef: { current: {} },
       commitMessage: '',
       compareBaseRef: null,
+      operationStore: getWorktreeOperationStore('worktree', null, undefined),
       refreshActiveGitStatusAfterMutation: vi.fn(async () => {}),
       refreshBranchCompareRef: { current: async () => {} },
       refreshGitHistoryRef: { current: async () => {} },
-      setCommitErrorForWorktree: vi.fn(),
-      setCommitInFlightByWorktree: vi.fn(),
       stagedCount: 1,
       unresolvedConflictCount: 0,
-      updateCommitDrafts: vi.fn(),
+      updateCommitDraft: vi.fn(),
       worktreePath: '/repo'
     })
   ).result.current

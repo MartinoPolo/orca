@@ -1,5 +1,5 @@
 import type { AppState } from '@/store/types'
-import { getConnectionIdFromState } from '@/lib/workspace/ownership/connection-context'
+import { getConnectionIdFromState } from '@/lib/workspace/ownership/connection-owner-resolution'
 import { getLocalProjectExecutionRuntimeContext } from '@/runtime/hosts/preflight/local-preflight-context'
 import { getRendererAppPlatform } from '@/app-shell/platform/renderer-app-platform'
 import {

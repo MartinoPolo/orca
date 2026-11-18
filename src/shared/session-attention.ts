@@ -1,4 +1,4 @@
-import type { AgentProviderSessionMetadata } from './agent-session-resume'
+import type { AgentProviderSessionMetadata } from './agent-session/lifecycle/agent-session-resume'
 
 export const SESSION_PRIORITIES = [1, 2, 3, 4, 5] as const
 export type SessionPriority = (typeof SESSION_PRIORITIES)[number]

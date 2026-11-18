@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', async () =>
-  (await import('./createMainWindow-test-harness')).electronModuleMock()
+  (await import('./testing/create-main-window-test-harness')).electronModuleMock()
 )
-vi.mock('./macos-tahoe-release', async () =>
-  (await import('./createMainWindow-test-harness')).macosTahoeReleaseMock()
+vi.mock('./desktop-integration/macos-tahoe-release', async () =>
+  (await import('./testing/create-main-window-test-harness')).macosTahoeReleaseMock()
 )
-vi.mock('../app-icon', async () => (await import('./createMainWindow-test-harness')).appIconMock())
-vi.mock('../browser/browser-manager', async () =>
-  (await import('./createMainWindow-test-harness')).browserManagerMock()
+vi.mock('./desktop-integration/app-icon', async () => (await import('./testing/create-main-window-test-harness')).appIconMock())
+vi.mock('../browser/guest-lifecycle/manager/browser-manager', async () =>
+  (await import('./testing/create-main-window-test-harness')).browserManagerMock()
 )
 
 import { createMainWindow, loadMainWindow } from './createMainWindow'
-import { resetExpectedTeardownStateForTest } from '../crash-reporting/expected-teardown-state'
-import { browserWindowMock, resetMainWindowMocks } from './createMainWindow-test-harness'
+import { resetExpectedTeardownStateForTest } from '../crash-reporting/process-exits/expected-teardown-state'
+import { browserWindowMock, resetMainWindowMocks } from './testing/create-main-window-test-harness'
 
 describe('createMainWindow native title', () => {
   beforeEach(() => {

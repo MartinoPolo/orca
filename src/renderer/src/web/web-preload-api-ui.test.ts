@@ -3,7 +3,6 @@ import type { FeatureInteractionState } from '../../../shared/feature-education/
 import type { RuntimeRpcResponse } from '../../../shared/remote-runtime/rpc/runtime-rpc-envelope'
 
 import {
-  installApi,
   installBrowserGlobals,
   writeStoredRuntimeEnvironment
 } from './web-preload-api-test-harness'

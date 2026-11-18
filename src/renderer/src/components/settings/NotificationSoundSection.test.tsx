@@ -42,8 +42,8 @@ vi.mock('../ui/slider', () => ({
   )
 }))
 
-import { NotificationSoundSection } from './NotificationSoundSection'
-import { NotificationsPane } from './NotificationsPane'
+import { NotificationSoundSection } from './notifications/NotificationSoundSection'
+import { NotificationsPane } from './notifications/NotificationsPane'
 
 afterEach(() => {
   cleanup()

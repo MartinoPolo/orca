@@ -77,7 +77,7 @@ describe('Windows desktop workspace port scanning', () => {
 
     const scan = await scanWorkspacePorts(windowsWorkspaces, {
       lookup: () => undefined,
-      reconcileScan: vi.fn()
+      reconcileWorkspaces: vi.fn()
     })
 
     expect(runPortScanCommandMock).toHaveBeenCalledOnce()

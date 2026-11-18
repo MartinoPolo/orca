@@ -61,7 +61,6 @@ function ActivityCards({ compactMode = false }: { compactMode?: boolean }) {
           onSelect={() => {}}
           onJump={() => {}}
           onMarkRead={() => {}}
-          onMarkUnread={() => {}}
           onClear={() => {}}
         />
       ))}

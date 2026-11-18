@@ -3,7 +3,7 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { Terminal as BrowserTerminal } from '@xterm/xterm'
 import { describe, expect, it } from 'vitest'
-import { serializeWithAbsoluteCursor } from './terminal-serialize-absolute-cursor'
+import { serializeWithAbsoluteCursor } from './terminal/replay/terminal-serialize-absolute-cursor'
 
 type RealTerminal = HeadlessTerminal | BrowserTerminal
 

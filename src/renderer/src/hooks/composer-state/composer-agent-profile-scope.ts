@@ -2,7 +2,7 @@ import type { AgentProfileHostScope } from '../../../../shared/agent-launch-prof
 import type { AppState } from '@/store/types'
 import { getFolderWorkspaceAgentLaunchFact } from '@/components/sidebar/workspace-creation/folder/folder-workspace-agent-startup'
 import { resolveComposerProfileHostScope } from '@/lib/composer-agent-profile-target'
-import { getNewWorkspaceProjectGroupHostId } from '@/lib/workspace/creation/new-workspace-project-options'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import type { ComposerModel } from './composer-model'
 
 export type ComposerProfileScopeState = Pick<
@@ -33,7 +33,7 @@ export function resolveComposerAgentProfileHostScope(
     const group = state.selectedProjectGroup
     return group
       ? resolveComposerProfileHostScope({
-          executionHostId: getNewWorkspaceProjectGroupHostId(group),
+          executionHostId: getRepoExecutionHostId(group),
           connectionId: group.connectionId,
           runtimeEnvironmentId: state.folderTargetRuntimeEnvironmentId,
           launchHost: getFolderWorkspaceAgentLaunchFact(store, group),

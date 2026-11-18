@@ -3,7 +3,6 @@ import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id
 import type { Tab } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
-import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { Repo } from '../../../../shared/repository/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { ActivityLiveAgentSnapshot, ActivityEvent } from './activity-thread-types'
@@ -20,8 +19,7 @@ export function appendUnsupportedEvents(context: {
   resolveOwner: (
     context: { worktreeId: string; tab: TerminalTab },
     entry: AgentStatusEntry,
-    terminalPtyId?: string | null,
-    capturedExecutionHostId?: ExecutionHostId
+    terminalPtyId?: string | null
   ) => { worktree: Worktree; repo: Repo | null; knownWorktree: boolean }
   pushPaneEvents: (paneEvents: ActivityEvent[], rowEntry: AgentStatusEntry) => void
 }): void {
@@ -47,7 +45,7 @@ export function appendUnsupportedEvents(context: {
     if (!entry || !tabEntry) {
       continue
     }
-    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId, undefined)
+    const owner = resolveOwner(tabEntry, entry, unsupported.ptyId)
     const {
       events: paneEvents,
       live,

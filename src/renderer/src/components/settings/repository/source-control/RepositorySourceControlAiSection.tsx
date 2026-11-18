@@ -41,7 +41,9 @@ export function RepositorySourceControlAiSection({
         state.settings && {
           sourceControlAi: state.settings.sourceControlAi,
           commitMessageAi: state.settings.commitMessageAi,
-          defaultTuiAgent: state.settings.defaultTuiAgent
+          defaultTuiAgent: state.settings.defaultTuiAgent,
+          claudeLaunchProfiles: state.settings.claudeLaunchProfiles,
+          piLaunchProfiles: state.settings.piLaunchProfiles
         }
     )
   )

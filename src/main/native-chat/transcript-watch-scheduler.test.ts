@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createTranscriptWatchScheduler,
   type TranscriptWatchScheduler
-} from './transcript-watch-scheduler'
+} from './transcript-watching/transcript-watch-scheduler'
 
 let scheduler: TranscriptWatchScheduler | undefined
 

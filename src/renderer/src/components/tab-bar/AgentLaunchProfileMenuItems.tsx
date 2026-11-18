@@ -1,11 +1,15 @@
 import React from 'react'
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { AgentIcon } from '@/lib/agent-catalog/agent-catalog'
+import { AgentIcon } from '@/components/agent/icons/AgentIcon'
 import { useAgentLaunchProfilesForWorktree } from '@/hooks/useAgentLaunchProfilesForWorktree'
-import type { NewTabAgentMenuRow } from '@/lib/agent-session/launch/routing/new-tab-agent-menu-rows'
+import type { NewTabAgentMenuRow } from '../../../../shared/agent-launch/picker/agent-launch-picker-rows'
 import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'
 import { PROFILE_AGENTS } from '../../../../shared/agent-launch-profile-agents'
-import type { AgentPickerDraft, AgentPickerEntry } from '../../../../shared/agent-launch/picker/agent-launch-picker'
+import type {
+  AgentPickerDraft,
+  AgentPickerEntry,
+  AgentPickerSurface
+} from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import { rowTitle } from './tab-agent-row-presentation'
 
 /** One terminal launch per named account profile that this workspace's host can run. */
@@ -20,8 +24,9 @@ export function AgentLaunchProfileMenuItems({
     row: NewTabAgentMenuRow,
     draft: AgentPickerDraft | undefined,
     pickerEntry: AgentPickerEntry | undefined,
+    surface: AgentPickerSurface | undefined,
     agentLaunchProfile: AgentLaunchProfile
-  ) => void
+  ) => unknown
 }): React.JSX.Element | null {
   const profilesByAgent = useAgentLaunchProfilesForWorktree(worktreeId)
   const options = PROFILE_AGENTS.flatMap((agent) =>
@@ -40,7 +45,7 @@ export function AgentLaunchProfileMenuItems({
             key={`${agent}-profile:${profile.id}`}
             variant="launch"
             disabled={disabled}
-            onSelect={() => runLaunch(row, undefined, undefined, profile)}
+            onSelect={() => runLaunch(row, undefined, undefined, undefined, profile)}
             title={rowTitle(row, profile.name)}
           >
             <AgentIcon agent={agent} size={14} />

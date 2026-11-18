@@ -8,7 +8,8 @@ import { buildSessionAttentionIdentity } from '../../../shared/session-attention
 import type { PersistedUIState } from '../../../shared/persisted-ui-state-types'
 import type { Tab } from '../../../shared/tab-types'
 import type { AppState } from '../store/types'
-import { createTestStore, makeTab } from '../store/slices/store-test-helpers'
+import { createTestStore } from '../store/testing/app-store-test-fixture'
+import { makeTab } from '../store/terminals/testing/terminal-tab.test-fixture'
 import { usePersistedUIWriter } from './use-persisted-ui-writer'
 
 const storeRef = vi.hoisted(() => {

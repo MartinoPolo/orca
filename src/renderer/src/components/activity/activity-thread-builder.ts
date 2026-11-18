@@ -57,7 +57,6 @@ function reuseThreadIfEqual(
     previous.repo === next.repo &&
     previous.tab === next.tab &&
     previous.projectedTab === next.projectedTab &&
-    previous.capturedExecutionHostId === next.capturedExecutionHostId &&
     previous.agentType === next.agentType &&
     previous.currentAgentState === next.currentAgentState &&
     previous.currentAgentEntry === next.currentAgentEntry &&
@@ -104,7 +103,6 @@ export function buildAgentPaneThreads(
         repo: event.repo,
         tab: event.tab,
         projectedTab: event.projectedTab,
-        capturedExecutionHostId: event.capturedExecutionHostId,
         agentType: event.agentType,
         currentAgentState: null,
         currentAgentEntry: null,
@@ -135,7 +133,6 @@ export function buildAgentPaneThreads(
       existing.agentType = event.agentType
       existing.tab = event.tab
       existing.projectedTab = event.projectedTab
-      existing.capturedExecutionHostId = event.capturedExecutionHostId
       existing.responsePreview = statusPreviewForEntry(
         event.entry,
         event.state,
@@ -154,7 +151,6 @@ export function buildAgentPaneThreads(
         repo: liveAgent.repo,
         tab: liveAgent.tab,
         projectedTab: liveAgent.projectedTab,
-        capturedExecutionHostId: liveAgent.capturedExecutionHostId,
         agentType: liveAgent.agentType,
         currentAgentState: liveAgent.state,
         currentAgentEntry: liveAgent.entry,
@@ -179,7 +175,6 @@ export function buildAgentPaneThreads(
     existing.repo = liveAgent.repo
     existing.tab = liveAgent.tab
     existing.projectedTab = liveAgent.projectedTab
-    existing.capturedExecutionHostId = liveAgent.capturedExecutionHostId
     existing.agentType = liveAgent.agentType
     existing.currentAgentState = liveAgent.state
     existing.currentAgentEntry = liveAgent.entry
@@ -202,7 +197,6 @@ export function buildAgentPaneThreads(
             entry,
             terminalTab: thread.tab,
             projectedTab: thread.projectedTab,
-            capturedExecutionHostId: thread.capturedExecutionHostId,
             resolveFallbackExecutionHostId: () =>
               resolveSessionAttentionWorkspaceFallback({
                 worktree: thread.worktree,

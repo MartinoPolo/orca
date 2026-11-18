@@ -286,6 +286,7 @@ export function AgentLinkedWorkItemPromptTemplateInput({
   template: string | undefined
   onSave: (value: string) => void | Promise<void>
 }): React.JSX.Element {
+  const t = useTranslate()
   const draftSeed = template ?? ''
   const [draft, setDraft] = useState(draftSeed)
   const suppressNextBlurCommit = useRef(false)
@@ -298,7 +299,7 @@ export function AgentLinkedWorkItemPromptTemplateInput({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">
-        {translate(
+        {t(
           'auto.components.settings.AgentsPane.linkedWorkItemPromptTemplate',
           'Linked work-item prompt template'
         )}
@@ -321,7 +322,7 @@ export function AgentLinkedWorkItemPromptTemplateInput({
               event.currentTarget.blur()
             }
           }}
-          aria-label={translate(
+          aria-label={t(
             'auto.components.settings.AgentsPane.linkedWorkItemPromptTemplate',
             'Linked work-item prompt template'
           )}
@@ -341,12 +342,12 @@ export function AgentLinkedWorkItemPromptTemplateInput({
             }}
             className="h-7 shrink-0 text-xs text-muted-foreground hover:text-foreground"
           >
-            {translate('auto.components.settings.AgentsPane.5200dac9da', 'Reset')}
+            {t('auto.components.settings.AgentsPane.5200dac9da', 'Reset')}
           </Button>
         )}
       </div>
       <p className="text-[11px] text-muted-foreground">
-        {translate(
+        {t(
           'auto.components.settings.AgentsPane.linkedWorkItemPromptTemplateDescription',
           'Use {{artifact_url}} for the linked URL. A template without it is used literally. Leave blank to restore the default linked work-item draft.',
           { artifact_url: ARTIFACT_URL_TEMPLATE_TOKEN }

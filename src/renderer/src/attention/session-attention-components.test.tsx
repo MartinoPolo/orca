@@ -9,7 +9,7 @@ import {
 } from './session-attention-components'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { makeWorktree } from '@/components/activity/ActivityPrototypePage-test-fixtures'
-import WorktreeContextMenu from '@/components/sidebar/WorktreeContextMenu'
+import WorktreeContextMenu from '@/components/sidebar/workspace-actions/context-menu/WorktreeContextMenu'
 
 function renderMenu(onMarkUnread = vi.fn(), onPriorityChange = vi.fn()) {
   const triggerRef = createRef<HTMLButtonElement>()

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   AGENT_TASK_COMPLETE_NOTIFICATION_GRACE_MS,
   AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS
-} from '../agent-task-complete-policy'
-import { installAgentTaskCompleteNotify } from './agent-task-complete-notify'
+} from '../notifications/agent-task-complete-policy'
+import { installAgentTaskCompleteNotify } from './notifications/agent-task-complete-notify'
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
 
 const mocks = vi.hoisted(() => ({
@@ -21,11 +21,10 @@ vi.mock('@/store', () => ({
     subscribe: () => vi.fn()
   }
 }))
-vi.mock('@/lib/agent-status', () => ({
+vi.mock('@/store/slices/agent-status/agent-status', () => ({
   detectAgentStatusFromTitle: vi.fn(),
   isClaudeAgent: vi.fn()
 }))
-vi.mock('./agent-idle-working-handlers', () => ({ installAgentIdleWorkingHandlers: vi.fn() }))
 
 function nullTimer(): ReturnType<typeof setTimeout> | null {
   return null

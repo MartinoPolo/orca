@@ -1,5 +1,5 @@
-import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/runtime-terminal-stream'
-import type { AgentStatusEntry, AgentType } from '../../../shared/agent-status-types'
+import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/hosted-terminals/identity/remote-runtime-pty-owner'
+import type { AgentStatusEntry, AgentType } from '../../../shared/agent-status/contracts/agent-status-types'
 import {
   LOCAL_EXECUTION_HOST_ID,
   getWorktreeExecutionHostId,
@@ -11,11 +11,11 @@ import {
   buildSessionAttentionIdentity,
   type SessionAttentionMetadata
 } from '../../../shared/session-attention'
-import { parseAppSshPtyId } from '../../../shared/ssh-pty-id'
-import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
+import { parseAppSshPtyId } from '../../../shared/remote-runtime/ssh/ssh-pty-id'
+import { structuredAgentSessionTabId } from '../../../shared/agent-session/view/structured-agent-session-projection'
 import type { Tab } from '../../../shared/tab-types'
-import type { TerminalTab } from '../../../shared/terminal-tab-types'
-import type { Repo } from '../../../shared/repo-types'
+import type { TerminalTab } from '../../../shared/workspace-layout/terminal-tab-types'
+import type { Repo } from '../../../shared/repository/repo-types'
 import type { Worktree } from '../../../shared/worktree/types'
 
 export type ResolvedSessionAttentionIdentity = {
@@ -52,14 +52,10 @@ function resolveExecutionHostId(args: {
   projectedTab?: Tab
   terminalTab: Pick<TerminalTab, 'ptyId'>
   entry: Pick<AgentStatusEntry, 'connectionId' | 'terminalHandle'>
-  capturedExecutionHostId?: ExecutionHostId
   resolveFallbackExecutionHostId?: () => ExecutionHostId
 }): ExecutionHostId {
   if (args.projectedTab?.executionHostId) {
     return args.projectedTab.executionHostId
-  }
-  if (args.capturedExecutionHostId) {
-    return args.capturedExecutionHostId
   }
   const runtimeEnvironmentId =
     getRemoteRuntimePtyEnvironmentId(args.terminalTab.ptyId ?? '') ??
@@ -105,7 +101,6 @@ export function resolveSessionAttentionIdentity(args: {
   entry: Pick<AgentStatusEntry, 'connectionId' | 'providerSession' | 'terminalHandle'>
   terminalTab: Pick<TerminalTab, 'id' | 'ptyId'>
   projectedTab?: Tab
-  capturedExecutionHostId?: ExecutionHostId
   resolveFallbackExecutionHostId?: () => ExecutionHostId
 }): ResolvedSessionAttentionIdentity | null {
   const structuredSessionId = resolveStructuredSessionId(args.projectedTab, args.terminalTab.id)

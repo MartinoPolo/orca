@@ -90,7 +90,10 @@ export function resolveAgentStartupPlanInputs(args: {
     // The resume snapshot records both, so cold restore reopens the profile's account.
     cmdOverrides,
     agentArgs: options.agentArgs ?? null,
-    agentEnv: launchProfile ? { ...agentEnv, ...buildAgentLaunchProfileEnv(agent, launchProfile) } : agentEnv,
+    agentEnv:
+      launchProfile && isProfileAgent(agent)
+        ? { ...agentEnv, ...buildAgentLaunchProfileEnv(agent, launchProfile) }
+        : agentEnv,
     platform,
     shell,
     isRemote,

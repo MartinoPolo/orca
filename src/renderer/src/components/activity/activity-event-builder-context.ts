@@ -130,15 +130,11 @@ export function resolveActivityExecutionHostId(
   context: ActivityTabContext,
   entry: AgentStatusEntry,
   terminalPtyId: string | null | undefined,
-  capturedExecutionHostId: ExecutionHostId | undefined,
   tabHostIndex: ActivityTabHostIndex
 ): ExecutionHostId | undefined {
   const tabHostId = tabHostIndex.get(context.worktreeId)?.get(context.tab.id)
   if (tabHostId) {
     return tabHostId
-  }
-  if (capturedExecutionHostId) {
-    return capturedExecutionHostId
   }
   // Resolve runtime PTY ownership before null connectionId can be mistaken for local.
   const runtimeEnvironmentId = getRemoteRuntimePtyEnvironmentId(terminalPtyId ?? '')
@@ -157,7 +153,6 @@ export function resolveActivityEventOwner(
   context: ActivityTabContext,
   entry: AgentStatusEntry,
   terminalPtyId: string | null | undefined,
-  capturedExecutionHostId: ExecutionHostId | undefined,
   tabHostIndex: ActivityTabHostIndex,
   ownerCache: Map<string, ActivityEventOwner>,
   t?: Translate
@@ -166,7 +161,6 @@ export function resolveActivityEventOwner(
     context,
     entry,
     terminalPtyId,
-    capturedExecutionHostId,
     tabHostIndex
   )
   // Memoize per build by workspace/host; misses otherwise rescan detected worktrees for each pane.

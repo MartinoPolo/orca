@@ -96,7 +96,6 @@ export function buildActivityEvents(
       context,
       entry,
       context.tab.ptyId,
-      undefined,
       tabHostIndex,
       ownerCache,
       t
@@ -143,16 +142,8 @@ export function buildActivityEvents(
     seenCacheKeys,
     liveAgentByPaneKey,
     tabContext,
-    resolveOwner: (context, entry, terminalPtyId, capturedExecutionHostId) =>
-      resolveActivityEventOwner(
-        args,
-        context,
-        entry,
-        terminalPtyId,
-        capturedExecutionHostId,
-        tabHostIndex,
-        ownerCache
-      ),
+    resolveOwner: (context, entry, terminalPtyId) =>
+      resolveActivityEventOwner(args, context, entry, terminalPtyId, tabHostIndex, ownerCache),
     pushPaneEvents
   })
 

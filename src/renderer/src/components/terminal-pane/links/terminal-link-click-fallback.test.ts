@@ -203,7 +203,7 @@ describe('createFilePathLinkProvider range bounds', () => {
       worktreeId: 'wt-1',
       worktreePath: '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5',
       runtimeEnvironmentId: null,
-      openWithSystemDefault: true
+      shiftKey: true
     })
     await flushAsyncWork()
 

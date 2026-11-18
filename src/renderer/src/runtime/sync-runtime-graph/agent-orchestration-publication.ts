@@ -30,7 +30,7 @@ export async function publishAgentOrchestration(
     }
     // The notification module reads the store; loading it during terminal-slice construction cycles.
     const { dispatchTerminalNotification } =
-      await import('@/components/terminal-pane/use-notification-dispatch')
+      await import('@/components/terminal-pane/notifications/dispatch-terminal-notification')
     dispatchTerminalNotification(entry.worktreeId, {
       source: 'agent-task-complete',
       desktopOnly: true,

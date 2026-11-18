@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/context-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import {
   SESSION_PRIORITIES,
   SESSION_SAVED_COLORS,

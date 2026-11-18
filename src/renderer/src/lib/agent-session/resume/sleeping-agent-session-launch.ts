@@ -66,6 +66,7 @@ export function launchSleepingAgentSession(
     worktreeId: record.worktreeId,
     transcriptPath: record.providerSession.transcriptPath,
     capturedLaunchConfig: record.launchConfig,
+    providerSession: record.providerSession,
     originConnectionId: record.connectionId
   })
   if (!accountResolution.ok) {

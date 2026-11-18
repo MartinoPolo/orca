@@ -2,19 +2,20 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildSessionAttentionIdentity } from '../../../shared/session-attention'
-import type { AgentStatusEntry } from '../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
 import type { Tab } from '../../../shared/tab-types'
-import type { TerminalTab } from '../../../shared/terminal-tab-types'
-import { makePaneKey } from '../../../shared/stable-pane-id'
+import type { TerminalTab } from '../../../shared/workspace-layout/terminal-tab-types'
+import { makePaneKey } from '../../../shared/workspace-layout/stable-pane-id'
 import { useAppStore } from '@/store'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
-import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/useDashboardData'
-import { CompactAgentRow } from '@/components/sidebar/worktree-card-compact-agent-row'
+import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/rows/dashboard-agent-row'
+import { CompactAgentRow } from '@/components/sidebar/workspace-card/activity/worktree-card-compact-agent-row'
 import { buildActivityEvents } from '@/components/activity/activity-event-builder'
 import { buildAgentPaneThreads } from '@/components/activity/activity-thread-builder'
 import { ActivityThreadRow } from '@/components/activity/activity-thread-row'
 import { makeRepo, makeWorktree } from '@/components/activity/ActivityPrototypePage-test-fixtures'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/accepted-agent-statuses'
 
 const WORKSPACE_ID = 'wt-1'
 const TERMINAL_TAB_ID = 'terminal-tab-1'
@@ -130,8 +131,7 @@ describe('session attention cross-surface identity', () => {
     const repo = makeRepo()
     const worktree = makeWorktree()
     const activity = buildActivityEvents({
-      agentStatusByPaneKey: { [PANE_KEY]: entry },
-      retainedAgentsByPaneKey: {},
+      agentStatusByPaneKey: acceptedAgentStatuses([[PANE_KEY, entry]]),
       tabsByWorktree: { [WORKSPACE_ID]: [terminalTab] },
       unifiedTabsByWorktree: { [WORKSPACE_ID]: [projectedTab] },
       worktreeMap: new Map([[WORKSPACE_ID, worktree]]),
@@ -197,8 +197,7 @@ describe('session attention cross-surface identity', () => {
     }
     const worktree = { ...makeWorktree(), hostId: 'ssh:workspace-host' as const }
     const activity = buildActivityEvents({
-      agentStatusByPaneKey: { [PANE_KEY]: entry },
-      retainedAgentsByPaneKey: {},
+      agentStatusByPaneKey: acceptedAgentStatuses([[PANE_KEY, entry]]),
       tabsByWorktree: { [WORKSPACE_ID]: [terminalTab] },
       worktreeMap: new Map([[WORKSPACE_ID, worktree]]),
       repoMap: new Map([[repo.id, repo]]),

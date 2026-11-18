@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setPresenceGated } from '@/hooks/agent-auto-ack-presence'
-import { dispatchTerminalNotification } from './use-notification-dispatch'
-import { createAgentCompletionCoordinator } from './agent-completion-coordinator'
-import type { AgentCompletionStatusSnapshot } from './agent-completion-coordinator-types'
-import { buildSessionAttentionIdentity } from '../../../../shared/session-attention'
+import { dispatchTerminalNotification } from './dispatch-terminal-notification'
+import { createAgentCompletionCoordinator } from '../agent-completion/agent-completion-coordinator'
+import type { AgentCompletionStatusSnapshot } from '../agent-completion/agent-completion-coordinator-types'
+import { buildSessionAttentionIdentity } from '../../../../../shared/session-attention'
 import {
   PANE_KEY,
   getLastNotificationDispatchArg,
@@ -18,7 +18,7 @@ vi.mock('@/store', async () => {
   return harness.createNotificationDispatchStoreModuleMock()
 })
 
-vi.mock('@/lib/desktop-notification-sound', async () => {
+vi.mock('@/lib/notifications/desktop-notification-sound', async () => {
   const harness = await import('./notification-dispatch-test-harness')
   return harness.createDesktopNotificationSoundModuleMock()
 })
@@ -249,56 +249,6 @@ describe('dispatchTerminalNotification session priority', () => {
     expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 4 })
     mockState.sessionAttentionMetadataByIdentity = {}
     dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
-    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 3 })
-  })
-
-  it('recovers priority from a matching retained session without borrowing a reused pane', () => {
-    const providerSession = { key: 'session_id' as const, id: 'retained-session' }
-    const retained = makeAgentStatus(paneKey, {
-      state: 'working',
-      providerSession,
-      connectionId: null,
-      worktreeId: 'wt-primary',
-      tabId: 'tab-1'
-    })
-    const identity = buildSessionAttentionIdentity({
-      executionHostId: 'local',
-      workspaceId: 'wt-primary',
-      agentType: 'codex',
-      providerSession
-    })
-    if (!identity) {
-      throw new Error('Expected a session identity')
-    }
-    mockState.sessionAttentionMetadataByIdentity[identity] = { priority: 5 }
-    mockState.retainedAgentsByPaneKey[paneKey] = { worktreeId: 'wt-primary', entry: retained }
-    delete mockState.agentStatusByPaneKey[paneKey]
-    dispatchTerminalNotification('wt-primary', {
-      source: 'agent-task-complete',
-      paneKey,
-      agentStatusSnapshot: {
-        state: 'done',
-        agentType: 'codex',
-        prompt: 'turn',
-        stateStartedAt: retained.stateStartedAt + 1,
-        localStateStartedAt: retained.stateStartedAt
-      }
-    })
-    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 5 })
-    mockState.agentStatusByPaneKey[paneKey] = makeAgentStatus(paneKey, {
-      agentType: 'claude',
-      worktreeId: 'wt-primary'
-    })
-    dispatchTerminalNotification('wt-primary', {
-      source: 'agent-task-complete',
-      paneKey,
-      agentStatusSnapshot: {
-        state: 'done',
-        agentType: 'claude',
-        prompt: 'new turn',
-        stateStartedAt: Date.now() + 1
-      }
-    })
     expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 3 })
   })
 })

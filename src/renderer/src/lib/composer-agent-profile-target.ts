@@ -12,7 +12,7 @@ import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/exec
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { SshConnectionState } from '../../../shared/remote-runtime/ssh/ssh-types'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
-import type { ExecutionHostPlatformFact } from '@/runtime/hosts/platform/execution-host-facts'
+import type { ExecutionHostPlatformFact } from '@/runtime/hosts/platform/execution-host-platform-fact'
 import { getLocalHomeDirectory } from '@/lib/agent-profile-launch-target'
 import { CLIENT_PLATFORM } from '@/lib/workspace/creation/new-workspace'
 import { translate } from '@/i18n/i18n'

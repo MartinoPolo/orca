@@ -95,6 +95,7 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
       },
       transcriptPath: providerSession.transcriptPath,
       capturedLaunchConfig,
+      providerSession,
       originConnectionId: entry ? entry.connectionId : sleepingRecord?.connectionId
     })
     if (!accountResolution.ok) {

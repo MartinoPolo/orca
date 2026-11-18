@@ -5,7 +5,7 @@ import {
   resolveSessionAttentionWorkspaceFallback
 } from '@/attention/session-attention-identity'
 import type { AppState } from '../../types'
-import type { AgentStatusEntry } from '../../../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../../../shared/agent-status/contracts/agent-status-types'
 import {
   getRepoExecutionHostId,
   getSettingsFocusedExecutionHostId
@@ -14,7 +14,7 @@ import type {
   SessionAttentionEpisodeKind,
   SessionAttentionMetadata
 } from '../../../../../shared/session-attention'
-import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-types'
+import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-contract'
 import { getTabIdFromPaneKey } from './agent-status-pane-key-tab-binding'
 
 function attentionEpisodeKind(
@@ -27,17 +27,13 @@ function attentionEpisodeKind(
   return entry.state === 'done' && acknowledgedAt < entry.stateStartedAt ? 'unread-outcome' : null
 }
 
-function terminalIdentityInput(state: AppState, entry: AgentStatusEntry) {
+function terminalTabForEntry(state: AppState, entry: AgentStatusEntry) {
   const workspaceId = entry.worktreeId
   const tabId = entry.tabId ?? getTabIdFromPaneKey(entry.paneKey) ?? ''
   const liveTab = workspaceId
     ? state.tabsByWorktree[workspaceId]?.find((candidate) => candidate.id === tabId)
     : undefined
-  const retained = state.retainedAgentsByPaneKey[entry.paneKey]
-  return {
-    terminalTab: liveTab ?? retained?.tab ?? { id: tabId, ptyId: null },
-    capturedExecutionHostId: retained?.executionHostId
-  }
+  return liveTab ?? { id: tabId, ptyId: null }
 }
 
 function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
@@ -56,14 +52,12 @@ function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
   ) {
     return null
   }
-  const { terminalTab, capturedExecutionHostId } = terminalIdentityInput(state, entry)
   return resolveSessionAttentionIdentity({
     workspaceId,
     agentType: entry.agentType ?? 'unknown',
     entry,
-    terminalTab,
+    terminalTab: terminalTabForEntry(state, entry),
     projectedTab,
-    capturedExecutionHostId,
     resolveFallbackExecutionHostId: () => {
       const worktree = state.getKnownWorktreeById(workspaceId)
       const repo = worktree
@@ -193,7 +187,7 @@ export function updateSessionAttentionForReadState(
   let next = state.sessionAttentionMetadataByIdentity
   for (const paneKey of paneKeys) {
     const entry =
-      state.agentStatusByPaneKey?.[paneKey] ?? state.retainedAgentsByPaneKey?.[paneKey]?.entry
+      state.agentStatusByPaneKey.get(paneKey)
     if (!entry || entry.state === 'waiting' || entry.state === 'blocked') {
       continue
     }

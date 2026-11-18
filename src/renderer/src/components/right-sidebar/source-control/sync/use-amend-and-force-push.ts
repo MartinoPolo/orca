@@ -5,20 +5,13 @@ import {
 } from './amend-and-force-push-flow'
 
 export function useSourceControlAmendAndForcePush({
-  activeWorktreeId,
   handleCommit,
   runRemoteAction,
-  setRemoteActionErrors
+  operationStore
 }: AmendAndForcePushDependencies) {
   const runAmendAndForcePush = useCallback(
-    (): Promise<void> =>
-      runAmendAndForcePushFlow({
-        activeWorktreeId,
-        handleCommit,
-        runRemoteAction,
-        setRemoteActionErrors
-      }),
-    [activeWorktreeId, handleCommit, runRemoteAction, setRemoteActionErrors]
+    (): Promise<void> => runAmendAndForcePushFlow({ handleCommit, runRemoteAction, operationStore }),
+    [handleCommit, runRemoteAction, operationStore]
   )
 
   return { runAmendAndForcePush }

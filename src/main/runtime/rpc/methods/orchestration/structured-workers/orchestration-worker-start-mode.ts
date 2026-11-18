@@ -14,7 +14,7 @@ import type { AgentLaunchModeReceipt } from '../../../../../../shared/agent-laun
 import type { TuiAgent } from '../../../../../../shared/agent-launch/catalog/tui-agent'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 
-type WorkerStartModeReceipt = AgentLaunchModeReceipt
+export type WorkerStartModeReceipt = AgentLaunchModeReceipt
 
 /** Keep orchestration's exact worker/reused-terminal wording; receipts are read beside dispatch records. */
 export const WORKER_START_VOCABULARY: AgentLaunchModeVocabulary = {

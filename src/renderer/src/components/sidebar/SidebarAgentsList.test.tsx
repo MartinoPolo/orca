@@ -147,7 +147,7 @@ it('preserves historical search, live badges and migration blocks in badge-only 
   const badgeTarget = document.createElement('span')
   document.body.append(badgeTarget)
   const props = {
-    readFilter: 'unread' as const,
+    readFilter: 'attention' as const,
     setReadFilter: vi.fn(),
     groupBy: 'status' as const,
     setGroupBy: vi.fn(),

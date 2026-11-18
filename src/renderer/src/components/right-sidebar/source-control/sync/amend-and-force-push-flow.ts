@@ -5,10 +5,9 @@ import type { SourceControlWorktreeOperationState } from '../panel/use-worktree-
 import type { SourceControlRemoteActionRunner } from './use-remote-action-runner'
 
 export type AmendAndForcePushDependencies = {
-  activeWorktreeId: string | null
   handleCommit: SourceControlCommitAction['handleCommit']
   runRemoteAction: SourceControlRemoteActionRunner['runRemoteAction']
-  setRemoteActionErrors: SourceControlWorktreeOperationState['setRemoteActionErrors']
+  operationStore: SourceControlWorktreeOperationState['operationStore']
 }
 
 /**
@@ -16,10 +15,9 @@ export type AmendAndForcePushDependencies = {
  * published, so the branch never stays diverged with Sync as the suggested next step.
  */
 export async function runAmendAndForcePushFlow({
-  activeWorktreeId,
   handleCommit,
   runRemoteAction,
-  setRemoteActionErrors
+  operationStore
 }: AmendAndForcePushDependencies): Promise<void> {
   let pushLease: GitPushLease | undefined
   const amended = await handleCommit(undefined, {
@@ -33,26 +31,23 @@ export async function runAmendAndForcePushFlow({
     return
   }
   const result = await runRemoteAction('force_push', { amendPushLease: pushLease ?? null })
-  if (result.status !== 'failed' || !activeWorktreeId) {
+  if (result.status !== 'failed') {
     return
   }
   const failedError = result.error
+  const currentError = operationStore.getState().remoteActionError
+  if (!currentError || currentError.sequence !== failedError.sequence) {
+    return
+  }
   // Why: the amend already rewrote local history, so the push error alone would hide that the retry is a plain Force Push.
-  setRemoteActionErrors((previousErrors) => {
-    const currentError = previousErrors[activeWorktreeId]
-    if (!currentError || currentError.sequence !== failedError.sequence) {
-      return previousErrors
-    }
-    return {
-      ...previousErrors,
-      [activeWorktreeId]: {
-        ...currentError,
-        message: translate(
-          'auto.components.right.sidebar.source.control.sync.amend.and.force.push.flow.pushFailed',
-          'Commit amended locally. {{error}} Use Force Push from the menu to retry.',
-          { error: failedError.message }
-        )
-      }
+  operationStore.setState({
+    remoteActionError: {
+      ...currentError,
+      message: translate(
+        'auto.components.right.sidebar.source.control.sync.amend.and.force.push.flow.pushFailed',
+        'Commit amended locally. {{error}} Use Force Push from the menu to retry.',
+        { error: failedError.message }
+      )
     }
   })
 }

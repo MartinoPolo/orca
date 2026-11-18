@@ -50,7 +50,10 @@ describe('composer agent profile host scope', () => {
         ...localTarget,
         launchHost: { kind: 'known', platform: foreignPlatform, hostKind: 'local' }
       },
-      { ...localTarget, launchHost: { kind: 'withheld', reason: 'pending' } },
+      {
+        ...localTarget,
+        launchHost: { kind: 'withheld', reason: 'pending', recovery: 'connectSsh' }
+      },
       { ...localTarget, executionHostId: null },
       { ...localTarget, runtimeEnvironmentId: 'paired' },
       { ...localTarget, ephemeralVmRecipeId: 'vm' }

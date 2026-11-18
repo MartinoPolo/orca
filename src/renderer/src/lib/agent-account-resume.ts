@@ -1,5 +1,8 @@
 import { translate } from '@/i18n/i18n'
-import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session/lifecycle/agent-session-resume'
+import type {
+  AgentProviderSessionMetadata,
+  SleepingAgentLaunchConfig
+} from '../../../shared/agent-session/lifecycle/agent-session-resume'
 import {
   findAgentLaunchProfilesForTranscript,
   normalizeAgentAccountPath,
@@ -20,7 +23,7 @@ import {
   CLAUDE_LAUNCH_PROFILE_ENV,
   getDefaultClaudeConfigDirectory
 } from '../../../shared/claude-launch-profiles'
-import { resolveResumeLaunchRecipe } from '../../../shared/agent-launch/choices/tui-agent-launch-defaults'
+import { resolveResumeLaunchRecipe } from '../../../shared/agent-launch/choices/resume-launch-recipe'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import {
   resolveAgentProfileHostScope,
@@ -44,6 +47,7 @@ export function resolveAgentAccountResumeLaunchConfig(args: {
   hostOptions?: Parameters<typeof resolveAgentProfileHostScope>[2]
   transcriptPath: string | undefined
   capturedLaunchConfig: SleepingAgentLaunchConfig | undefined
+  providerSession?: AgentProviderSessionMetadata | null
   originConnectionId: string | null | undefined
 }): AgentAccountResumeResolution {
   const { state, agent, capturedLaunchConfig } = args
@@ -94,7 +98,11 @@ export function resolveAgentAccountResumeLaunchConfig(args: {
   if (scope.kind === 'remote' && !hasRemoteProfiles) {
     return keepCaptured
   }
-  const fallbackLaunchConfig = resolveResumeLaunchRecipe(capturedLaunchConfig)
+  const fallbackLaunchConfig = resolveResumeLaunchRecipe(
+    capturedLaunchConfig,
+    agent,
+    args.providerSession
+  )
   // A session id names a transcript only on the host that captured it.
   const allowProfileSelection = args.originConnectionId === profileOriginConnectionId
 
