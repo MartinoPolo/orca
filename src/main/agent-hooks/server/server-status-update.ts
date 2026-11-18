@@ -24,6 +24,7 @@ import {
   withHeldChildWaitMainAgent
 } from './server-claude-status-rules'
 import { isForeignTurnHook } from './server-foreign-turn-hook'
+import { recordAgentHookSessionSwitch } from './agent-hook-session-switch-breadcrumb'
 import { resolveCancelVerdictLatch } from '../../../shared/agent-hook-listener/state/agent-hook-cancel-verdict-latch'
 
 import { claimsPaneAfterExit } from './agent-exit-evidence'
@@ -120,6 +121,7 @@ export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusR
       this.commitStatusRowMutation(rowBefore, previous)
       return previous
     }
+    recordAgentHookSessionSwitch(previous, terminalOwnedPayload)
     const connectionClearWatermark = terminalOwnedPayload.connectionId
       ? this.connectionTimestampWatermarkById.get(terminalOwnedPayload.connectionId)
       : undefined

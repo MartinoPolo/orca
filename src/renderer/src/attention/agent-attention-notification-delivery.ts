@@ -1,6 +1,7 @@
 /** Share delivery, categorized sound and blocked-permission fallback across surfaces; callers own message content. Main applies banner preferences after mobile fanout, so callers cannot promise a banner. */
 import { playDesktopNotificationSound } from '@/lib/notifications/desktop-notification-sound'
 import { showBlockedNotificationFallbackToast } from '@/lib/notifications/blocked-notification-fallback'
+import { recordRendererCrashBreadcrumb } from '@/diagnostics/crash-reporting/crash-breadcrumb-recorder'
 import type {
   NotificationDispatchRequest,
   NotificationDispatchResult,
@@ -72,4 +73,14 @@ export function deliverAgentAttentionNotification(
       console.warn('Failed to dispatch notification:', err)
     })
   playAgentAttentionSound(request, settings)
+  // Pairs with agent_finish_dropped so every alert the user heard can be traced to its pane and turn.
+  recordRendererCrashBreadcrumb('agent_attention_delivered', {
+    source: request.source,
+    ...(request.soundCategory ? { soundCategory: request.soundCategory } : {}),
+    ...(request.paneKey ? { paneKey: request.paneKey } : {}),
+    ...(request.agentType ? { agentType: request.agentType } : {}),
+    ...(request.agentState ? { agentState: request.agentState } : {}),
+    ...(request.agentTurnOutcome ? { agentTurnOutcome: request.agentTurnOutcome } : {}),
+    ...(request.surface ? { surface: request.surface } : {})
+  })
 }
