@@ -67,8 +67,6 @@ describe('Store', () => {
     rmSync(testState.dir, { recursive: true, force: true })
   })
 
-  })
-
   it('normalizes linked work-item prompt templates on load and update', async () => {
     writeDataFile({
       settings: {
@@ -98,6 +96,8 @@ describe('Store', () => {
     expect(reloadedStore.getSettings().agentLinkedWorkItemPromptTemplates).toEqual({
       claude: 'Review {{artifact_url}}'
     })
+  })
+
   it('invalidates local worktree scans when the global Windows runtime changes', async () => {
     writeDataFile({ repos: [makeRepo()] })
     const store = await createStore()

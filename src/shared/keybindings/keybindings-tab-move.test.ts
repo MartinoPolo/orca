@@ -12,7 +12,7 @@ describe('directional tab move keybindings', () => {
       expect(isKeybindingActionId(actionId)).toBe(true)
       expect(getKeybindingDefinition(actionId)).toMatchObject({
         id: actionId,
-        title: `Move active tab ${direction}`,
+        title: `Move active tab to pane ${direction}`,
         group: 'Tab Navigation',
         scope: 'tabs',
         allowInTerminal: true

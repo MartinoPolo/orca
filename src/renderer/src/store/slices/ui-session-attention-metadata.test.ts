@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { acceptedAgentStatuses } from './agent-status/accepted-agent-statuses'
 import { createUIStore, makePersistedUI } from './ui/ui-slice-test-harness'
 
 afterEach(() => {
@@ -8,6 +9,8 @@ afterEach(() => {
 describe('createUISlice session attention metadata actions', () => {
   it('keeps saved markers independent from priority and acknowledgement turns', () => {
     const store = createUIStore()
+    // Why: acknowledgeAgents reads agent statuses owned by the agent-status slice.
+    store.setState({ agentStatusByPaneKey: acceptedAgentStatuses() })
     vi.spyOn(Date, 'now').mockReturnValue(123)
 
     store.getState().setSessionSavedMarker('stable-session', 'teal')

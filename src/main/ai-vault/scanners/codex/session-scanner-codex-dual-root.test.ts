@@ -372,7 +372,13 @@ it('falls back to a readable canonical copy with its own resume ownership, then 
     codexHome: fixture.managedHome,
     title: 'readablealiasneedle'
   })
-  expect(first.sessions[0].resumeCommand).toContain(`CODEX_HOME='${fixture.managedHome}'`)
+  expect(first.sessions[0].resumeCommand).toBe(
+    expectedPosixCodexResumeCommand(
+      '/repo/app',
+      fixture.managedHome,
+      '019f0000-1111-7222-8333-444444444444'
+    )
+  )
   reads.failed = ''
   const recovered = await scanAiVaultSessions(fixture.options)
   expect(recovered.sessions).toHaveLength(1)

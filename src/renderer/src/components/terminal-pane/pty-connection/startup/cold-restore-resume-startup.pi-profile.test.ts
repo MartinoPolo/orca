@@ -83,7 +83,7 @@ describe('cold restore Pi profile provenance', () => {
         terminalWindowsShell: 'git-bash',
         piLaunchProfiles: []
       },
-      agentStatusByPaneKey: {},
+      agentStatusByPaneKey: new Map(),
       getAgentLaunchConfigForStatusEntry: () => undefined,
       repos: [{ id: 'repo-1', connectionId: null }],
       worktreesByRepo: { 'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: 'C:/repo' }] },

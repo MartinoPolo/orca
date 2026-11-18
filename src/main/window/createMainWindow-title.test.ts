@@ -6,7 +6,9 @@ vi.mock('electron', async () =>
 vi.mock('./desktop-integration/macos-tahoe-release', async () =>
   (await import('./testing/create-main-window-test-harness')).macosTahoeReleaseMock()
 )
-vi.mock('./desktop-integration/app-icon', async () => (await import('./testing/create-main-window-test-harness')).appIconMock())
+vi.mock('./desktop-integration/app-icon', async () =>
+  (await import('./testing/create-main-window-test-harness')).appIconMock()
+)
 vi.mock('../browser/guest-lifecycle/manager/browser-manager', async () =>
   (await import('./testing/create-main-window-test-harness')).browserManagerMock()
 )
@@ -33,10 +35,15 @@ describe('createMainWindow native title', () => {
       setWindowOpenHandler: vi.fn(),
       send: vi.fn(),
       isDestroyed: vi.fn(() => false),
-      setWebRTCIPHandlingPolicy: vi.fn()
+      setWebRTCIPHandlingPolicy: vi.fn(),
+      setMaxListeners: vi.fn(),
+      removeAllListeners: vi.fn(),
+      removeListener: vi.fn(),
+      once: vi.fn()
     }
     const instance = {
       webContents,
+      setMaxListeners: vi.fn(),
       on: vi.fn((event: string, handler: (...args: any[]) => void) => {
         const handlers = windowHandlers.get(event) ?? []
         handlers.push(handler)

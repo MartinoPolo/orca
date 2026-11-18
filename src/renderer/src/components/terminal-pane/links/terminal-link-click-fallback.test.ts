@@ -217,6 +217,8 @@ describe('createFilePathLinkProvider range bounds', () => {
 
   it('opens the same boundary path from direct clicks on both physical halves', async () => {
     setPlatform('Macintosh')
+    // Why: the fork opens images with the OS app by default; this case checks editor routing.
+    storeState.settings = { ...storeState.settings, fileLinkSystemAppKinds: [] }
     const firstPath = 'validation-screenshots/01-before-white-terminal-scrollbar-gutter.png'
     const middleStart = 'validation-screenshots/02-after-'
     const middleEnd = 'transparent-terminal-scrollbar-gutter.png'

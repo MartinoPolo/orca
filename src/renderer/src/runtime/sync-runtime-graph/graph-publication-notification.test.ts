@@ -3,7 +3,7 @@ import { createTestStore } from '@/store/testing/app-store-test-fixture'
 import { graphState } from './graph-state'
 
 const dispatchNotification = vi.hoisted(() => vi.fn())
-vi.mock('@/components/terminal-pane/notifications/use-notification-dispatch', () => ({
+vi.mock('@/components/terminal-pane/notifications/dispatch-terminal-notification', () => ({
   dispatchTerminalNotification: dispatchNotification
 }))
 

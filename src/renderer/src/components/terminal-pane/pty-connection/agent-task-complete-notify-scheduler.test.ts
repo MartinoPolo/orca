@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock('@/store', () => ({
   useAppStore: {
-    getState: () => ({ agentStatusByPaneKey: { 'tab:leaf': mocks.status } }),
+    getState: () => ({ agentStatusByPaneKey: new Map([['tab:leaf', mocks.status]]) }),
     subscribe: () => vi.fn()
   }
 }))
