@@ -1,5 +1,8 @@
 import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/hosted-terminals/identity/remote-runtime-pty-owner'
-import type { AgentStatusEntry, AgentType } from '../../../shared/agent-status/contracts/agent-status-types'
+import type {
+  AgentStatusEntry,
+  AgentType
+} from '../../../shared/agent-status/contracts/agent-status-types'
 import {
   LOCAL_EXECUTION_HOST_ID,
   getWorktreeExecutionHostId,

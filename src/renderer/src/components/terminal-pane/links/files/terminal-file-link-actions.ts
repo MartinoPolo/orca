@@ -190,7 +190,10 @@ export function buildFileLinkActions(
   const secondaryActions = [openInGroupRow, revealRow].filter((row) => row !== null)
   const openInOrcaRow = {
     label: worktreeRoot
-      ? t('auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace', 'Switch workspace')
+      ? t(
+          'auto.components.terminal.pane.TerminalLinkActionPopover.switchWorkspace',
+          'Switch workspace'
+        )
       : looksLikeFolder
         ? t('auto.components.terminal.pane.TerminalLinkActionPopover.openFolder', 'Open folder')
         : t('auto.components.terminal.pane.TerminalLinkActionPopover.openFile', 'Open file'),

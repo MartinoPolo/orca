@@ -35,12 +35,10 @@ vi.mock('./releases/updater-release-readiness', async (importOriginal) => ({
 vi.mock('../local-builds/local-build-switch', () => moduleFactories.localBuildSwitch())
 vi.mock('../local-builds/local-build-feed-server', () => moduleFactories.localBuildFeedServer())
 
-
 warmUpdaterModule()
 
 const MANUAL_UPDATE_MESSAGE =
   'Automatic updates are disabled in this custom build. Install updates manually.'
-
 
 describe('manual-update build updater boundary', () => {
   beforeEach(() => {

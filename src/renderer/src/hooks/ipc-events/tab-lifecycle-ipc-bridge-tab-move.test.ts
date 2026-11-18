@@ -7,7 +7,9 @@ const { moveBrowserTabInDirection } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/components/tab-bar/tab-move-to-pane-column', () => ({ moveBrowserTabInDirection }))
-vi.mock('@/lib/workspace/tabs/workspace-tab-commands', () => ({ dispatchWorkspaceTabCommand: vi.fn() }))
+vi.mock('@/lib/workspace/tabs/workspace-tab-commands', () => ({
+  dispatchWorkspaceTabCommand: vi.fn()
+}))
 vi.mock('@/lib/keyboard/app-keyboard-router', () => ({ replayAppKeyDown: vi.fn() }))
 vi.mock('@/components/floating-terminal/workspace/floating-workspace-terminal-actions', () => ({
   resolveFloatingWorkspaceBrowserWorkspaceId: vi.fn()

@@ -2,12 +2,7 @@ import { ipcMain } from 'electron'
 import type { GitPushLease } from '../../../../shared/git/commands/git-commit-command'
 import { requireGitPushLease } from '../../../../shared/git/remotes/git-push-lease'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
-import {
-  gitFastForward,
-  gitPull,
-  gitPush,
-  gitPushWithLease
-} from '../../../git/remotes/remote'
+import { gitFastForward, gitPull, gitPush, gitPushWithLease } from '../../../git/remotes/remote'
 import { gitPullRebaseFromBase } from '../../../git/remotes/remote-rebase'
 import { validateGitPushTarget } from '../../../git/remotes/push-target-validation'
 import { resolveRegisteredWorktreePath } from '../../worktrees/removal/registered-worktree-roots-cache'

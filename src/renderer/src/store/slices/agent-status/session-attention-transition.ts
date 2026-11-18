@@ -186,8 +186,7 @@ export function updateSessionAttentionForReadState(
 ): Record<string, SessionAttentionMetadata> {
   let next = state.sessionAttentionMetadataByIdentity
   for (const paneKey of paneKeys) {
-    const entry =
-      state.agentStatusByPaneKey.get(paneKey)
+    const entry = state.agentStatusByPaneKey.get(paneKey)
     if (!entry || entry.state === 'waiting' || entry.state === 'blocked') {
       continue
     }

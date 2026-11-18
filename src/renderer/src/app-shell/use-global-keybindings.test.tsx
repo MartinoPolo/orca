@@ -30,11 +30,15 @@ vi.mock('../store', () => ({
   )
 }))
 
-vi.mock('@/store/plugins/catalog/plugin-contribution-catalog', () => ({ usePluginCommands: () => [] }))
+vi.mock('@/store/plugins/catalog/plugin-contribution-catalog', () => ({
+  usePluginCommands: () => []
+}))
 vi.mock('@/lib/app-commands/app-command-dispatch', () => ({
   registerAppCommandDispatcher: () => () => {}
 }))
-vi.mock('@/lib/plugins/commands/plugin-command-execution', () => ({ executePluginCommand: vi.fn() }))
+vi.mock('@/lib/plugins/commands/plugin-command-execution', () => ({
+  executePluginCommand: vi.fn()
+}))
 vi.mock(import('@/lib/plugins/commands/plugin-command-keybindings'), async (importOriginal) => ({
   ...(await importOriginal()),
   findPluginCommandForKeybinding: () => null

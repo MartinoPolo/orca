@@ -1,6 +1,9 @@
 import { app } from 'electron'
 import type { GlobalSettings } from '../../shared/global-settings-types'
-import { AGENT_HOOK_TARGETS, type AgentHookTarget } from '../../shared/agent-hook-listener/configuration/agent-hook-types'
+import {
+  AGENT_HOOK_TARGETS,
+  type AgentHookTarget
+} from '../../shared/agent-hook-listener/configuration/agent-hook-types'
 import { normalizeAgentLaunchProfiles } from '../../shared/agent-launch-profiles'
 import { haveSameDisabledTuiAgents } from '../../shared/agent-launch/catalog/tui-agent-selection'
 import { isAgentStatusHooksEnabledForAgent } from '../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'

@@ -6,7 +6,10 @@ import type {
 import type { GitUpstreamStatus } from '../../../../shared/git/status/git-status-types'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import { materializeWorktreePushTargetRemote } from '../../../ipc/worktree-remote'
-import type { GitCommitResult, GitPushLease } from '../../../../shared/git/commands/git-commit-command'
+import type {
+  GitCommitResult,
+  GitPushLease
+} from '../../../../shared/git/commands/git-commit-command'
 import { assertRuntimeReadWslDistroRunning } from './runtime-wsl-background-read-gate'
 import type { LocalGitProvider } from '../../../providers/git/local-provider'
 import {

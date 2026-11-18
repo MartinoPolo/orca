@@ -79,15 +79,15 @@ describe('launchAgentInNewTab with a named launch profile', () => {
     const { launchAgentInNewTabWithOutcome } = await import('./launch-agent-in-new-tab')
 
     const result = launchAgentInNewTabWithOutcome({
-        requestId: 'profile-refused',
-        agent: 'claude',
-        worktreeId: 'wt-1',
-        agentLaunchProfile: {
-          ...claudeWorkProfile,
-          ...(remote ? {} : { remoteAgentDirectory: undefined })
-        }
-      })
-    expect(result === null || "refused" in result).toBe(true)
+      requestId: 'profile-refused',
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      agentLaunchProfile: {
+        ...claudeWorkProfile,
+        ...(remote ? {} : { remoteAgentDirectory: undefined })
+      }
+    })
+    expect(result === null || 'refused' in result).toBe(true)
     expect(mockCreateTab).not.toHaveBeenCalled()
   })
 })

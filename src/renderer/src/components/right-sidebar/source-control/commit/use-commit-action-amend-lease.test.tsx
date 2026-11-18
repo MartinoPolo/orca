@@ -5,12 +5,16 @@ import { useSourceControlCommitAction } from './use-commit-action'
 import { getWorktreeOperationStore } from '../panel/worktree-operation-store'
 
 const calls = vi.hoisted(() => ({ amend: vi.fn(), commit: vi.fn() }))
-vi.mock('@/runtime/source-control/git/runtime-git-amend-client', () => ({ amendRuntimeGitCommit: calls.amend }))
+vi.mock('@/runtime/source-control/git/runtime-git-amend-client', () => ({
+  amendRuntimeGitCommit: calls.amend
+}))
 vi.mock('@/runtime/source-control/git/runtime-git-sync-client', () => ({
   commitRuntimeGit: calls.commit,
   completeRuntimeGitMerge: vi.fn()
 }))
-vi.mock('@/lib/workspace/ownership/connection-context', () => ({ getConnectionId: () => undefined }))
+vi.mock('@/lib/workspace/ownership/connection-context', () => ({
+  getConnectionId: () => undefined
+}))
 
 const runtimeTarget = { kind: 'local' as const }
 const target = {

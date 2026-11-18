@@ -5,7 +5,9 @@ import { useSourceControlRemoteActionRunner } from './use-remote-action-runner'
 import { runAmendAndForcePushFlow } from './amend-and-force-push-flow'
 import { getWorktreeOperationStore } from '../panel/worktree-operation-store'
 
-vi.mock('@/lib/workspace/ownership/connection-context', () => ({ getConnectionId: () => undefined }))
+vi.mock('@/lib/workspace/ownership/connection-context', () => ({
+  getConnectionId: () => undefined
+}))
 const OWNER_TARGET = { kind: 'local' as const }
 let setupCount = 0
 

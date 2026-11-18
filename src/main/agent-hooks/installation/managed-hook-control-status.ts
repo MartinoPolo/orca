@@ -1,4 +1,7 @@
-import type { AgentHookInstallStatus, AgentHookTarget } from '../../../shared/agent-hook-listener/configuration/agent-hook-types'
+import type {
+  AgentHookInstallStatus,
+  AgentHookTarget
+} from '../../../shared/agent-hook-listener/configuration/agent-hook-types'
 
 export function errorStatus(agent: AgentHookTarget, error: unknown): AgentHookInstallStatus {
   return {

@@ -16,7 +16,9 @@ vi.mock('../agent-hooks/installation/managed-agent-hook-controls', () => ({
   applyAgentStatusHooksEnabled: mocks.apply,
   reconcileClaudeLaunchProfileHooks: mocks.reconcileProfiles
 }))
-vi.mock('../agent-hooks/installation/install-telemetry', () => ({ recordManagedHookInstallFailure: vi.fn() }))
+vi.mock('../agent-hooks/installation/install-telemetry', () => ({
+  recordManagedHookInstallFailure: vi.fn()
+}))
 
 import { reconcileSettingsManagedHooks } from './settings-managed-hook-reconciliation'
 

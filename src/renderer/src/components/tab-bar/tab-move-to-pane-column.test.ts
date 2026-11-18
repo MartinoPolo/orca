@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '../../store/index'
 import type { Tab } from '../../../../shared/tab-types'
 import { makeRuntimeOwnedWorktree } from '../../store/slices/worktrees/worktree-owner.test-fixture'
-import type { BrowserPage, BrowserWorkspace } from '../../../../shared/browser/workspaces/browser-workspace-types'
+import type {
+  BrowserPage,
+  BrowserWorkspace
+} from '../../../../shared/browser/workspaces/browser-workspace-types'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import {
   canMoveTabToNewPaneColumn,

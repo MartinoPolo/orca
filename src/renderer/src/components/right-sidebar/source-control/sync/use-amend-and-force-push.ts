@@ -10,7 +10,8 @@ export function useSourceControlAmendAndForcePush({
   operationStore
 }: AmendAndForcePushDependencies) {
   const runAmendAndForcePush = useCallback(
-    (): Promise<void> => runAmendAndForcePushFlow({ handleCommit, runRemoteAction, operationStore }),
+    (): Promise<void> =>
+      runAmendAndForcePushFlow({ handleCommit, runRemoteAction, operationStore }),
     [handleCommit, runRemoteAction, operationStore]
   )
 
