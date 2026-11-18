@@ -11,10 +11,10 @@ import type { FeatureInteractionId } from '../../feature-education/interactions/
 import {
   ACTIVITY_GROUP_BY_VALUES,
   THREAD_READ_FILTER_WIRE_VALUES
-} from '../../agents-view-thread-filters'
+} from '../../agent-status/presentation/agents-view-thread-filters'
 import { isReleaseChannel } from '../../updater/release-channel'
 import type { ReleaseChannel } from '../../updater/release-channel'
-import { SESSION_ATTENTION_EPISODE_KINDS } from '../../session-attention'
+import { SessionAttentionMetadataByIdentity } from './session-attention-metadata-params'
 import { ClientUiWorkspaceFilterFields } from './client-ui-workspace-filter-fields-params'
 import { TaskResumeState } from './task-resume-state-params'
 import { WorkspaceCleanup } from '../workspace-cleanup/workspace-cleanup-ui-params'
@@ -78,7 +78,8 @@ export const StatusBarItem = z.enum([
   'muse',
   'ssh',
   'resource-usage',
-  'ports'
+  'ports',
+  'git-blame'
 ])
 
 export const WorkspaceStatusDefinition = z.object({
@@ -180,6 +181,7 @@ export const UiUpdateFields = z
       )
       .optional(),
     showDotfilesByWorktree: z.record(z.string(), z.boolean()).optional(),
+    notificationsMutedByWorktree: z.record(z.string(), z.boolean()).optional(),
     collapsedGroups: StringArray.optional(),
     uiZoomLevel: z.number().finite().optional(),
     editorFontZoomLevel: z.number().finite().optional(),
@@ -204,6 +206,7 @@ export const UiUpdateFields = z
     _cursorStatusBarDefaultAdded: z.boolean().optional(),
     _zcodeStatusBarDefaultAdded: z.boolean().optional(),
     _museStatusBarDefaultAdded: z.boolean().optional(),
+    _gitBlameStatusBarDefaultAdded: z.boolean().optional(),
     statusBarVisible: z.boolean().optional(),
     usagePercentageDisplay: z.enum(['used', 'remaining']).optional(),
     statusBarUsageMode: z.enum(['verbose', 'compact']).optional(),
@@ -241,26 +244,7 @@ export const UiUpdateFields = z
     acknowledgedAgentsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     activityClearedAtByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     manuallyUnreadTurnsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
-    sessionAttentionMetadataByIdentity: z
-      .record(
-        z.string(),
-        z
-          .object({
-            priority: z.union([
-              z.literal(1),
-              z.literal(2),
-              z.literal(3),
-              z.literal(4),
-              z.literal(5)
-            ]),
-            savedColor: z.enum(['blue', 'violet', 'teal', 'rose']).optional(),
-            savedAt: z.number().finite().optional(),
-            attentionEpisodeStartedAt: z.number().finite().optional(),
-            attentionEpisodeKind: z.enum(SESSION_ATTENTION_EPISODE_KINDS).optional()
-          })
-          .strict()
-      )
-      .optional(),
+    sessionAttentionMetadataByIdentity: SessionAttentionMetadataByIdentity.optional(),
     browserDefaultUrl: NullableString.optional(),
     browserDefaultSearchEngine: z
       .enum(['google', 'duckduckgo', 'bing', 'kagi'])
@@ -275,6 +259,7 @@ export const UiUpdateFields = z
         rightFraction: z.number().finite()
       })
       .optional(),
+    browserExtensionSidePanelWidth: z.number().finite().optional(),
     windowBounds: z
       .object({
         x: z.number().finite(),
@@ -305,6 +290,7 @@ export const UiUpdateFields = z
     codexTerminalServerIsolationNoticeSeen: z.boolean().optional(),
     codexSharedSettingsNoticeSeen: z.boolean().optional(),
     worktreeCardsUpdateNoticeSeen: z.boolean().optional(),
+    worktreeCardsIntroNoticeSeen: z.boolean().optional(),
     speechModelUpdateNoticeSeen: z.boolean().optional(),
     claudeDiffPanelNoticeSeen: z.boolean().optional(),
     claudeAccountSignInNoticeSeen: z.boolean().optional(),

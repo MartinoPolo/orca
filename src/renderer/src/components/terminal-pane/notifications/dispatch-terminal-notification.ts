@@ -6,8 +6,9 @@ import {
   notificationExecutionHostForOwner,
   notificationWorkspaceExecutionHostForOwner,
   notificationSourceForOwner
-} from '../../../../../shared/notification-source'
+} from '../../../../../shared/notifications/notification-source'
 import { useAppStore } from '../../../store/index'
+import { isWorktreeNotificationDeliveryMuted } from '@/attention/worktree-notification-mute'
 import { resolveExplicitTerminalTitleAgentType as resolveCommittedTitleAgentType } from '../../../../../shared/agent-status/title/terminal-title-agent-type'
 import { buildAgentNotificationId } from '../../../../../shared/agent-status/presentation/agent-notification-id'
 import { agentMainAgentVerdict } from '../../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
@@ -31,7 +32,7 @@ import type {
 import type {
   NotificationDispatchResult,
   NotificationSoundCategory
-} from '../../../../../shared/notification-settings-types'
+} from '../../../../../shared/notifications/notification-settings-types'
 import { getNotificationWorkspaceLabels } from '../../../attention/notification-workspace-labels'
 import { createTerminalAttentionSurface } from './terminal-attention-surface'
 import { createStructuredAttentionSurface } from '../../native-chat/session/attention/structured-attention-surface'
@@ -247,14 +248,19 @@ export function dispatchTerminalNotification(
     )
   }
 
+  // Why: per-worktree mute stops at the interruptions (OS banner, sound, mobile
+  // push, tray dot); the unread writes above the delivery still run.
+  const deliveryMuted = isWorktreeNotificationDeliveryMuted(state, worktreeId)
   if (event.desktopOnly) {
-    requestDelivery(attentionDecision.delivery)
+    if (!deliveryMuted) {
+      requestDelivery(attentionDecision.delivery)
+    }
     return requested
   }
 
   applyAgentAttention(attentionDecision, {
     unread: state.markAgentAttentionUnread,
-    requestDelivery
+    requestDelivery: deliveryMuted ? () => {} : requestDelivery
   })
   return requested
 }

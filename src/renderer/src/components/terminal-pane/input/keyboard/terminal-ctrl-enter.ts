@@ -3,14 +3,17 @@ import {
   TUI_AGENT_CONFIG
 } from '../../../../../../shared/agent-launch/catalog/tui-agent-config'
 import { resolveExplicitTerminalTitleAgentType } from '../../../../../../shared/agent-status/title/terminal-title-agent-type'
-import type { PaneForegroundAgentEntry } from '@/store/slices/agent-status/pane-foreground-agent'
+import type { PaneForegroundAgentEntry } from '@/store/slices/agent-status/pane-authority/pane-foreground-agent'
 
 type CtrlEnterPaneState = {
   paneForegroundAgentByPaneKey: Record<string, PaneForegroundAgentEntry | undefined>
 }
 
 function agentAcceptsCtrlEnterCsiU(agent: PaneForegroundAgentEntry['agent']): boolean {
-  return isTuiAgent(agent) && TUI_AGENT_CONFIG[agent].ctrlEnterEncoding === 'csi-u'
+  // Fork: Pi decodes CSI-u Ctrl+Enter; kept outside the upstream agent catalog.
+  return (
+    isTuiAgent(agent) && (agent === 'pi' || TUI_AGENT_CONFIG[agent].ctrlEnterEncoding === 'csi-u')
+  )
 }
 
 /** Resolves pane-scoped authority for query-only CSI-u consumers such as Droid and Grok. */

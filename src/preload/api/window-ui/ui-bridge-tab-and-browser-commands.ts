@@ -1,7 +1,8 @@
 import { ipcRenderer } from 'electron'
 import { admitCloseActiveTabPayload } from '../../renderer/window-commands/close-active-tab-payload-admission'
 import { admitTabMovePayload } from '../../renderer/window-commands/tab-move-payload-admission'
-import type { CloseActiveTabPayload, TabMovePayload } from './ui-command-event-api'
+import type { CloseActiveTabPayload } from './ui-command-event-api'
+import type { TabMovePayload } from './tab-move-event-api'
 import type {
   BrowserHistoryNavigateCommand,
   BrowserPageCommandTarget,

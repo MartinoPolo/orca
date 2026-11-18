@@ -8,8 +8,11 @@ import {
   PROFILE_AGENTS,
   type AgentProfileSelection
 } from '../../../shared/agent-launch-profile-agents'
-import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
-import type { GlobalSettings } from '../../../shared/global-settings-types'
+import {
+  parseExecutionHostId,
+  type ExecutionHostId
+} from '../../../shared/execution-host/execution-host'
+import type { GlobalSettings } from '../../../shared/settings/global-settings-types'
 import type { SshConnectionState } from '../../../shared/remote-runtime/ssh/ssh-types'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import type { ExecutionHostPlatformFact } from '@/runtime/hosts/platform/execution-host-platform-fact'

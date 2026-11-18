@@ -3,7 +3,7 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildSessionAttentionIdentity } from '../../../shared/session-attention'
 import type { AgentStatusEntry } from '../../../shared/agent-status/contracts/agent-status-types'
-import type { Tab } from '../../../shared/tab-types'
+import type { Tab } from '../../../shared/workspace-layout/tab-groups/tab-types'
 import type { TerminalTab } from '../../../shared/workspace-layout/terminal-tab-types'
 import { makePaneKey } from '../../../shared/workspace-layout/stable-pane-id'
 import { useAppStore } from '@/store'
@@ -11,13 +11,22 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
 import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/dashboard/rows/dashboard-agent-row'
 import { CompactAgentRow } from '@/components/sidebar/workspace-card/activity/worktree-card-compact-agent-row'
-import { buildActivityEvents } from '@/components/activity/activity-event-builder'
-import { buildAgentPaneThreads } from '@/components/activity/activity-thread-builder'
-import { ActivityThreadRow } from '@/components/activity/activity-thread-row'
-import { makeRepo, makeWorktree } from '@/components/activity/ActivityPrototypePage-test-fixtures'
-import { acceptedAgentStatuses } from '@/store/slices/agent-status/accepted-agent-statuses'
+import { buildActivityEvents } from '@/components/activity/events/activity-event-builder'
+import { buildAgentPaneThreads } from '@/components/activity/threads/activity-thread-builder'
+import { ActivityThreadRow } from '@/components/activity/thread-list/activity-thread-row'
+import { makeWorktree as makeWorktreeWithIds } from '@/store/slices/worktrees/worktree.test-fixture'
+import type { Repo } from '../../../shared/repository/repo-types'
+import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 
 const WORKSPACE_ID = 'wt-1'
+const makeWorktree = () => makeWorktreeWithIds({ id: WORKSPACE_ID, repoId: 'repo-1' })
+const makeRepo = (): Repo => ({
+  id: 'repo-1',
+  path: '/repo',
+  displayName: 'Repo',
+  badgeColor: '#000',
+  addedAt: 1
+})
 const TERMINAL_TAB_ID = 'terminal-tab-1'
 const PANE_KEY = makePaneKey(TERMINAL_TAB_ID, '11111111-1111-4111-8111-111111111111')
 const PROVIDER_SESSION = { key: 'session_id' as const, id: 'provider-session-1' }

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   GlobalKeybindingsFloatingWorkspace,
   GlobalKeybindingsLayout
-} from './use-global-keybindings'
+} from '../hooks/app-commands/global-keybindings-chrome-state'
 
 const mocks = vi.hoisted(() => {
   const moveRight = vi.fn(() => true)
@@ -55,8 +55,8 @@ vi.mock('@/components/floating-terminal/workspace/floating-workspace-terminal-ac
   matchFloatingWorkspacePanelChord: () => null,
   shouldMinimizeFloatingWorkspacePanelOnCloseShortcut: () => false
 }))
-vi.mock('./app-window-chrome', () => ({ shortcutPlatform: 'win32' }))
-vi.mock('./app-command-handlers', () => ({
+vi.mock('./chrome/app-window-chrome', () => ({ shortcutPlatform: 'win32' }))
+vi.mock('../lib/app-commands/app-command-handlers', () => ({
   createAppCommandHandlers: (_state: unknown, input: { preventDefault: () => void }) =>
     new Map([
       [
@@ -89,7 +89,7 @@ vi.mock('./app-command-handlers', () => ({
 }))
 
 import { installAppKeyboardRouter } from '@/lib/keyboard/app-keyboard-router'
-import { useGlobalKeybindings } from './use-global-keybindings'
+import { useGlobalKeybindings } from '../hooks/app-commands/use-global-keybindings'
 
 installAppKeyboardRouter(window)
 

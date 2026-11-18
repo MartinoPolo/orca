@@ -2,7 +2,7 @@ import type { AppState } from '@/store/types'
 import { resolveEntrySessionPriority } from '@/store/slices/agent-status/session-attention-transition'
 import { agentMainAgentVerdict } from '../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
-import type { NotificationSoundCategory } from '../../../../shared/notification-settings-types'
+import type { NotificationSoundCategory } from '../../../../shared/notifications/notification-settings-types'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { AgentCompletionStatusSnapshot } from './agent-completion/agent-completion-coordinator-types'
 

@@ -2,7 +2,7 @@ import type { TuiAgent } from './tui-agent'
 import {
   getOrcaCliCommandNameForPlatform,
   skipsLinuxOrcaCliRename
-} from '../../orca-cli-command-name'
+} from '../../cli/orca-cli-command-name'
 import type { TuiAgentConfig, TuiAgentConfigSource } from './tui-agent-config-types'
 
 function resolveTuiAgentConfig(source: TuiAgentConfigSource): TuiAgentConfig {
@@ -127,8 +127,7 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     // Pi has no prefill flag; the managed extension seeds env to avoid its long startup paste race.
     draftPromptEnvVar: 'ORCA_PI_PREFILL',
     // Why: Pi decodes CSI-u; Esc+CR submits after tool subprocesses reset live KKP state (#9703).
-    windowsShiftEnterEncoding: 'csi-u',
-    ctrlEnterEncoding: 'csi-u'
+    windowsShiftEnterEncoding: 'csi-u'
   },
   omp: {
     detectCmd: 'omp',
@@ -300,7 +299,9 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     detectCmd: 'muse',
     launchCmd: 'muse --trust-workspace',
     // Muse 1.3 treats subcommand-shaped prompts as commands even after `--`.
-    promptInjectionMode: 'stdin-after-start'
+    promptInjectionMode: 'stdin-after-start',
+    // Why: Windows Muse reads console input records (crossterm), so an Enter landing mid-paste stays in its draft (#43126).
+    windowsInputRecordPasteNewline: 'alt-enter'
   },
   dsh: {
     detectCmd: 'dsh-tui',

@@ -9,14 +9,14 @@ import {
   toRuntimeExecutionHostId,
   toSshExecutionHostId,
   type ExecutionHostId
-} from '../../../shared/execution-host'
+} from '../../../shared/execution-host/execution-host'
 import {
   buildSessionAttentionIdentity,
   type SessionAttentionMetadata
 } from '../../../shared/session-attention'
 import { parseAppSshPtyId } from '../../../shared/remote-runtime/ssh/ssh-pty-id'
 import { structuredAgentSessionTabId } from '../../../shared/agent-session/view/structured-agent-session-projection'
-import type { Tab } from '../../../shared/tab-types'
+import type { Tab } from '../../../shared/workspace-layout/tab-groups/tab-types'
 import type { TerminalTab } from '../../../shared/workspace-layout/terminal-tab-types'
 import type { Repo } from '../../../shared/repository/repo-types'
 import type { Worktree } from '../../../shared/worktree/types'

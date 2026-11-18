@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../../../../shared/settings/global-settings-types'
 import {
   normalizeAgentLaunchProfile,
   normalizeAgentProfileName,

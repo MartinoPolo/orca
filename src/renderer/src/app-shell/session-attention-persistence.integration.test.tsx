@@ -3,14 +3,14 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { StoreApi } from 'zustand/vanilla'
-import { getDefaultUIState } from '../../../shared/constants'
+import { getDefaultUIState } from '../../../shared/orca-profiles/constants'
 import { buildSessionAttentionIdentity } from '../../../shared/session-attention'
-import type { PersistedUIState } from '../../../shared/persisted-ui-state-types'
-import type { Tab } from '../../../shared/tab-types'
+import type { PersistedUIState } from '../../../shared/orca-profiles/persisted-ui-state-types'
+import type { Tab } from '../../../shared/workspace-layout/tab-groups/tab-types'
 import type { AppState } from '../store/types'
 import { createTestStore } from '../store/testing/app-store-test-fixture'
 import { makeTab } from '../store/terminals/testing/terminal-tab.test-fixture'
-import { usePersistedUIWriter } from './use-persisted-ui-writer'
+import { usePersistedUIWriter } from './storage/use-persisted-ui-writer'
 
 const storeRef = vi.hoisted(() => {
   let current: StoreApi<AppState> | null = null

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createTestStore, seedStore } from '../../testing/app-store-test-fixture'
 import { makeTab } from '../../terminals/testing/terminal-tab.test-fixture'
-import { getDefaultUIState } from '../../../../../shared/constants'
+import { getDefaultUIState } from '../../../../../shared/orca-profiles/constants'
 import { buildSessionAttentionIdentity } from '../../../../../shared/session-attention'
 import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
-import type { Tab } from '../../../../../shared/tab-types'
+import type { Tab } from '../../../../../shared/workspace-layout/tab-groups/tab-types'
 
 const ATTENTION_WORKSPACE_ID = 'attention-workspace'
 const ATTENTION_TAB_ID = 'attention-tab'

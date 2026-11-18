@@ -1,4 +1,4 @@
-import type { GlobalSettings } from '../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../shared/settings/global-settings-types'
 import type { RepoSourceControlAiOverrides } from '../../../shared/source-control/ai/settings/source-control-ai-settings-types'
 import type { ResolvedSourceControlAiGenerationParams } from '../../../shared/source-control/ai/source-control-ai-operation-resolution'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'

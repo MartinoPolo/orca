@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AutomationCreateInput } from '../../../shared/automations/automation-definition'
-import { getDefaultPersistedState } from '../../../shared/constants'
+import { getDefaultPersistedState } from '../../../shared/orca-profiles/constants'
 import {
   createAutomation,
   type AutomationDefinitionOperations

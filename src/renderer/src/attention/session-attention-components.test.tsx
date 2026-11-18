@@ -8,7 +8,7 @@ import {
   SessionUnreadDot
 } from './session-attention-components'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { makeWorktree } from '@/components/activity/ActivityPrototypePage-test-fixtures'
+import { makeWorktree } from '@/store/slices/worktrees/worktree.test-fixture'
 import WorktreeContextMenu from '@/components/sidebar/workspace-actions/context-menu/WorktreeContextMenu'
 
 function renderMenu(onMarkUnread = vi.fn(), onPriorityChange = vi.fn()) {
@@ -71,11 +71,13 @@ describe('SessionAttentionContextMenu', () => {
 
   it('owns right-clicks when nested inside a workspace context menu', async () => {
     const triggerRef = createRef<HTMLButtonElement>()
-    const onWorkspaceContextMenuSelect = vi.fn(() => [makeWorktree()])
+    const onWorkspaceContextMenuSelect = vi.fn(() => [
+      makeWorktree({ id: 'wt-1', repoId: 'repo-1' })
+    ])
     const onWorkspaceMenuOpenChange = vi.fn()
     render(
       <WorktreeContextMenu
-        worktree={makeWorktree()}
+        worktree={makeWorktree({ id: 'wt-1', repoId: 'repo-1' })}
         onContextMenuSelect={onWorkspaceContextMenuSelect}
         onOpenChange={onWorkspaceMenuOpenChange}
       >

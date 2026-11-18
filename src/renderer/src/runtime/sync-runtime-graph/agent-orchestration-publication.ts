@@ -2,16 +2,15 @@ import type { AppState } from '@/store/types'
 
 type AgentOrchestrationByPaneKey = AppState['runtimeAgentOrchestrationByPaneKey']
 
-/** Store the published orchestration and notify once per observed dispatch failure on a finished agent. */
-export async function publishAgentOrchestration(
-  state: AppState | undefined,
-  nextOrchestration: AgentOrchestrationByPaneKey
+/** Notify once per observed dispatch failure on a finished agent; `state` is the snapshot read before the reply was applied. */
+export async function notifyAgentDispatchFailures(
+  state: AppState | null | undefined,
+  nextOrchestration: AgentOrchestrationByPaneKey | undefined
 ): Promise<void> {
-  const previousOrchestration = state?.runtimeAgentOrchestrationByPaneKey
-  state?.setRuntimeAgentOrchestrationByPaneKey?.(nextOrchestration)
-  if (!state) {
+  if (!state || !nextOrchestration) {
     return
   }
+  const previousOrchestration = state.runtimeAgentOrchestrationByPaneKey
   for (const [paneKey, current] of Object.entries(nextOrchestration)) {
     const previous = previousOrchestration?.[paneKey]
     const entry = state.agentStatusByPaneKey.get(paneKey)

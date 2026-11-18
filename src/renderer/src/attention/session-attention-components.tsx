@@ -22,7 +22,7 @@ import {
   type SessionPriority,
   type SessionSavedColor
 } from '../../../shared/session-attention'
-import type { SessionAttentionTone } from '@/components/activity/session-attention-presentation'
+import type { SessionAttentionTone } from '@/components/activity/threads/session-attention-presentation'
 
 const PRIORITY_MENU_ORDER = SESSION_PRIORITIES.toReversed()
 

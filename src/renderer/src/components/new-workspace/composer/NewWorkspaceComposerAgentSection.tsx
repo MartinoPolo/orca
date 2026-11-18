@@ -15,9 +15,6 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   | 'agentSurfaceRows'
   | 'agentPickerDraft'
   | 'agentSetupDisabled'
-  | 'selectedRepoIsGit'
-  | 'selectedProjectId'
-  | 'projectOptions'
   | 'agentProfiles'
   | 'onQuickAgentChange'
   | 'agentRows'
@@ -40,9 +37,6 @@ export function NewWorkspaceComposerAgentSection({
   agentSurfaceRows,
   agentPickerDraft,
   agentSetupDisabled,
-  selectedRepoIsGit,
-  selectedProjectId,
-  projectOptions,
   agentProfiles,
   onQuickAgentChange,
   onOpenAgentSettings,
@@ -90,12 +84,6 @@ export function NewWorkspaceComposerAgentSection({
           value={agentPickerDraft}
           cli={agentSurfaceRows?.selection.cli === true}
           setupDisabled={agentSetupDisabled}
-          matchTriggerWidth={
-            selectedRepoIsGit &&
-            projectOptions?.find((option) => option.id === selectedProjectId)?.kind !==
-              'project-group'
-          }
-          onOpenAgentSettings={onOpenAgentSettings}
           onTriggerEnter={createDisabled ? undefined : onCreate}
           emptyLabel={t('auto.components.agent.AgentCombobox.986f946354', 'Blank Terminal')}
           defaultAgent={defaultTuiAgent}

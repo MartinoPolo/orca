@@ -1,6 +1,6 @@
 import type { Automation } from '../../../shared/automations/automation-definition'
 import type { AutomationRun } from '../../../shared/automations/history/automation-run'
-import type { GlobalSettings } from '../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../shared/settings/global-settings-types'
 import {
   normalizeAgentAccountPath,
   type AgentLaunchProfile

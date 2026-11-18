@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getDefaultPersistedState } from '../../../shared/constants'
+import { getDefaultPersistedState } from '../../../shared/orca-profiles/constants'
 import { updateSettings, type SettingsMutationOperations } from './settings-update'
 
 function makeOperations(): SettingsMutationOperations {

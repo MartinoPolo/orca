@@ -1,6 +1,6 @@
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 import { CLAUDE_LAUNCH_PROFILE_ENV } from '../../../shared/claude-launch-profiles'
-import { parseExecutionHostId } from '../../../shared/execution-host'
+import { parseExecutionHostId } from '../../../shared/execution-host/execution-host'
 import { parseWslUncPath } from '../../../shared/file-access/wsl-paths'
 import type { AiVaultResumeCommandSession } from '../../../shared/ai-vault/resume/ai-vault-resume-startup'
 import { getRawAgentLaunchProfiles } from '../../../shared/agent-launch-profile-agents'

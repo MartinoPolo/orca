@@ -1,6 +1,6 @@
 import type { TuiAgent } from '../../../../../../shared/agent-launch/catalog/tui-agent'
 import { withAgentLinkedWorkItemPromptTemplate } from '../../../../../../shared/agent-linked-work-item-prompt-templates'
-import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../../../../shared/settings/global-settings-types'
 
 type LocalAgentSettings = {
   settings: GlobalSettings

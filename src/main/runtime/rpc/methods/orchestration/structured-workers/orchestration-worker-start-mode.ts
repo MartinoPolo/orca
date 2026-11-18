@@ -3,7 +3,7 @@
 import {
   decideAgentLaunchMode,
   downgradeAgentLaunchModeForHost,
-  downgradeAgentLaunchModeForLaunchProfile,
+  downgraded,
   readAgentLaunchModeSettings,
   resolveAgentLaunchModeOnHost,
   type AgentLaunchModeSettings,
@@ -66,7 +66,9 @@ export function downgradeWorkerStartModeForHost(
 export function downgradeWorkerStartModeForLaunchProfile(
   receipt: WorkerStartModeReceipt
 ): WorkerStartModeReceipt {
-  return downgradeAgentLaunchModeForLaunchProfile(receipt, WORKER_START_VOCABULARY)
+  return receipt.mode === 'structured'
+    ? downgraded('launch_profile', WORKER_START_VOCABULARY, receipt.reason === 'requested')
+    : receipt
 }
 
 export function readWorkerStartModeSettings(

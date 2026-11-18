@@ -1,5 +1,5 @@
 import { TAB_MOVE_ACTIONS, type TabMoveDirection } from '../../../shared/keybindings/types'
-import type { TabMovePayload } from '../../api/window-ui/ui-command-event-api'
+import type { TabMovePayload } from '../../api/window-ui/tab-move-event-api'
 
 function isTabMoveDirection(value: unknown): value is TabMoveDirection {
   return TAB_MOVE_ACTIONS.some(({ direction }) => direction === value)

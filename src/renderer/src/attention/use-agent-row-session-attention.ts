@@ -1,13 +1,13 @@
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
 import type { DashboardAgentRow } from '@/components/dashboard/rows/dashboard-agent-row'
-import type { AgentDotState } from '@/components/AgentStateDot'
+import type { AgentDotState } from '@/components/agent/status/AgentStateDot'
 import {
   getRepoExecutionHostId,
   getSettingsFocusedExecutionHostId
-} from '../../../shared/execution-host'
-import { sessionAttentionTone } from '@/components/activity/session-attention-presentation'
-import { isMigrationUnsupportedAgentEntry } from '../../../shared/migration-unsupported-agent-entry'
+} from '../../../shared/execution-host/execution-host'
+import { sessionAttentionTone } from '@/components/activity/threads/session-attention-presentation'
+import { isMigrationUnsupportedAgentEntry } from '../../../shared/agent-status/presentation/migration-unsupported-agent-entry'
 import {
   findProjectedSessionTab,
   resolveSessionAttentionIdentity,

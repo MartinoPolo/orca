@@ -21,7 +21,7 @@ import {
   LOCAL_EXECUTION_HOST_ID,
   toSshExecutionHostId,
   type ExecutionHostId
-} from '../../../../shared/execution-host'
+} from '../../../../shared/execution-host/execution-host'
 import { resolveWorktreeLaunchHost } from '../../workspaces/catalog/worktree-launch-host-repo'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { AgentLaunchProfile } from '../../../../shared/agent-launch-profiles'

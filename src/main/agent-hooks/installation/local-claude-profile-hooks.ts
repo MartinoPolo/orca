@@ -4,7 +4,7 @@ import {
   normalizeAgentAccountPath,
   normalizeAgentLaunchProfiles
 } from '../../../shared/agent-launch-profiles'
-import type { GlobalSettings } from '../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../shared/settings/global-settings-types'
 import type { AgentHookInstallStatus } from '../../../shared/agent-hook-listener/configuration/agent-hook-types'
 import { MANAGED_AGENT_HOOK_REMOVERS } from './managed-agent-hook-registry'
 import { errorStatus } from './managed-hook-control-status'

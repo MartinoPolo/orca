@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
+import { createGlobalSettingsFixture } from '../../../../shared/settings/global-settings-test-fixture'
 import { RuntimeClientSettingsController } from './runtime-client-settings'
 
-vi.mock('../claude/agent-view-service', () => ({
+vi.mock('../../../claude/agent-view/agent-view-service', () => ({
   getClaudeAgentViewService: () => ({ reconcile: async () => {} })
 }))
 

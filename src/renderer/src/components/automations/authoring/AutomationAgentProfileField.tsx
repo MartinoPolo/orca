@@ -10,7 +10,7 @@ import {
   getAgentLaunchProfiles,
   isProfileAgent
 } from '../../../../../shared/agent-launch-profile-agents'
-import type { GlobalSettings } from '../../../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../../../shared/settings/global-settings-types'
 import { AUTOMATION_EDITOR_SECTION_LABEL_CLASS, Field } from '../automation-page-parts'
 import type { AutomationDraft } from './AutomationEditorDialog'
 

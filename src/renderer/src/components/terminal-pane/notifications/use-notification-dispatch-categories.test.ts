@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setPresenceGated } from '@/hooks/agent-auto-ack-presence'
+import { setPresenceGated } from '@/attention/agent-auto-ack-presence'
 import { dispatchTerminalNotification } from './dispatch-terminal-notification'
 import { createAgentCompletionCoordinator } from '../agent-completion/agent-completion-coordinator'
 import type { AgentCompletionStatusSnapshot } from '../agent-completion/agent-completion-coordinator-types'

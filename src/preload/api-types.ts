@@ -22,6 +22,7 @@ import type { AppApi, E2EApi, PlatformApi } from './api/app-api'
 import type { AutomationsApi } from './api/automations/automation-api'
 import type { BrowserApi } from './api/browser/browser-api'
 import type { CliApi } from './api/cli-install/cli-install-api'
+import type { OrcaUninstallApi } from './api/orca-uninstall/orca-uninstall-api'
 import type { CrashReportsApi, FeedbackApi } from './api/diagnostics/crash-report-api'
 import type { DashboardApi, TerminalPreviewApi } from './api/window-ui/dashboard-api'
 import type { DocPreviewApi } from './api/document-preview/doc-preview-api'
@@ -71,6 +72,7 @@ import type {
   TelemetryApi
 } from './api/diagnostics/telemetry-api'
 import type { UiCommandEventApi } from './api/window-ui/ui-command-event-api'
+import type { TabMoveEventApi } from './api/window-ui/tab-move-event-api'
 import type { UiWindowApi } from './api/window-ui/ui-window-api'
 import type { UpdaterApi } from './api/updater/updater-api'
 import type { WorkspaceCleanupApi, WorkspaceSpaceApi } from './api/workspaces/workspace-cleanup-api'
@@ -128,6 +130,7 @@ export type PreloadApi = {
   codexAccounts: CodexAccountsApi
   claudeAccounts: ClaudeAccountsApi
   cli: CliApi
+  orcaUninstall: OrcaUninstallApi
   codexConfigSync: CodexConfigSyncApi
   preflight: PreflightApi
   notifications: NotificationsApi
@@ -161,7 +164,7 @@ export type PreloadApi = {
   nativeChat: NativeChatApi
   fs: FilesystemApi['fs']
   git: Merged<GitInspectionApi & GitOperationApi>
-  ui: Merged<UiCommandEventApi & UiWindowApi>
+  ui: Merged<UiCommandEventApi & TabMoveEventApi & UiWindowApi>
   runtime: RuntimeApi['runtime']
   runtimeEnvironments: RuntimeApi['runtimeEnvironments']
   rateLimits: RateLimitsApi

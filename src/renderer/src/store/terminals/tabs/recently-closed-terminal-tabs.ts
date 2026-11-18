@@ -5,7 +5,7 @@ import type { TerminalTab } from '../../../../../shared/workspace-layout/termina
 import {
   isWindowsAbsolutePathLike,
   relativePathInsideRoot
-} from '../../../../../shared/cross-platform-path'
+} from '../../../../../shared/file-access/cross-platform-path'
 import {
   restoreRecentlyClosedTabPosition,
   type RecentlyClosedTabPosition

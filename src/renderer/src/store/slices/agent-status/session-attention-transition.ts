@@ -9,13 +9,13 @@ import type { AgentStatusEntry } from '../../../../../shared/agent-status/contra
 import {
   getRepoExecutionHostId,
   getSettingsFocusedExecutionHostId
-} from '../../../../../shared/execution-host'
+} from '../../../../../shared/execution-host/execution-host'
 import type {
   SessionAttentionEpisodeKind,
   SessionAttentionMetadata
 } from '../../../../../shared/session-attention'
-import type { AgentStatusLiveEntryBuild } from './agent-status-live-entry-contract'
-import { getTabIdFromPaneKey } from './agent-status-pane-key-tab-binding'
+import type { AgentStatusLiveEntryBuild } from './live-status/agent-status-live-entry-contract'
+import { getTabIdFromPaneKey } from './pane-authority/agent-status-pane-key-tab-binding'
 
 function attentionEpisodeKind(
   entry: AgentStatusEntry,

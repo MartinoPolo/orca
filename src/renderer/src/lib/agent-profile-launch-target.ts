@@ -8,7 +8,10 @@ import {
 } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import type { WorktreeRuntimeOwnerState } from '@/lib/workspace/ownership/worktree-runtime-owner-state'
 import type { AgentProfileHostScope } from '../../../shared/agent-launch-profiles'
-import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
+import {
+  parseExecutionHostId,
+  type ExecutionHostId
+} from '../../../shared/execution-host/execution-host'
 import type { ProjectExecutionRuntimeResolution } from '../../../shared/execution-host/project-execution-runtime'
 import { parseWorkspaceKey } from '../../../shared/workspace/identity/workspace-scope'
 import { isWslUncPath } from '../../../shared/file-access/wsl-paths'

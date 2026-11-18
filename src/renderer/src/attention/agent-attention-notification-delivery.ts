@@ -7,7 +7,7 @@ import type {
   NotificationDispatchResult,
   NotificationSettings,
   NotificationSoundCategory
-} from '../../../shared/notification-settings-types'
+} from '../../../shared/notifications/notification-settings-types'
 
 export function selectAgentAttentionSound(
   settings: NotificationSettings | undefined,

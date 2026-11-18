@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { acceptedAgentStatuses } from './agent-status/accepted-agent-statuses'
+import { acceptedAgentStatuses } from './agent-status/status-ownership/accepted-agent-statuses'
 import { createUIStore, makePersistedUI } from './ui/ui-slice-test-harness'
 
 afterEach(() => {

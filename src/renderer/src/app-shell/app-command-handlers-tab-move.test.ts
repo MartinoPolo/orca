@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/workspace/identity/floating-workspace-id'
 import { TAB_MOVE_ACTIONS } from '../../../shared/keybindings/types'
-import type { AppShortcutState, ShortcutDispatchInput } from './app-command-handlers'
+import type {
+  AppShortcutState,
+  ShortcutDispatchInput
+} from '../lib/app-commands/app-command-handlers'
 
 const mocks = vi.hoisted(() => ({
   floatingWorkspaceFocused: false,
   moveActiveTabInDirection: vi.fn()
 }))
 
-vi.mock('../components/tab-bar/tab-move-to-pane-column', () => ({
+vi.mock('../components/tab-bar/pane-actions/tab-move-to-pane-column', () => ({
   moveActiveTabInDirection: mocks.moveActiveTabInDirection
 }))
 
@@ -20,7 +23,7 @@ vi.mock('@/lib/notifications/terminal-shortcut-capture-notification', () => ({
   showTerminalShortcutCaptureNotification: vi.fn()
 }))
 
-import { createAppCommandHandlers } from './app-command-handlers'
+import { createAppCommandHandlers } from '../lib/app-commands/app-command-handlers'
 
 function shortcutState(overrides: Partial<AppShortcutState> = {}): AppShortcutState {
   return {

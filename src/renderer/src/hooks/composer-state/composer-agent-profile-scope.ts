@@ -1,8 +1,9 @@
+import { useMemo } from 'react'
 import type { AgentProfileHostScope } from '../../../../shared/agent-launch-profiles'
 import type { AppState } from '@/store/types'
 import { getFolderWorkspaceAgentLaunchFact } from '@/components/sidebar/workspace-creation/folder/folder-workspace-agent-startup'
 import { resolveComposerProfileHostScope } from '@/lib/composer-agent-profile-target'
-import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host/execution-host'
 import type { ComposerModel } from './composer-model'
 
 export type ComposerProfileScopeState = Pick<
@@ -56,4 +57,48 @@ export function resolveComposerAgentProfileHostScope(
     ephemeralVmRecipeId: state.ephemeralVmsEnabled ? state.selectedEphemeralVmRecipeId : null,
     sshConnectionStates: store.sshConnectionStates
   })
+}
+
+/** Keeps submit callbacks stable while carrying every input the profile host scope reads. */
+export function useComposerProfileScopeState(
+  state: ComposerProfileScopeState
+): ComposerProfileScopeState {
+  const {
+    ephemeralVmsEnabled,
+    folderTargetRuntimeEnvironmentId,
+    isProjectGroupTarget,
+    selectedEphemeralVmRecipeId,
+    selectedProjectGroup,
+    selectedRepo,
+    selectedRepoAgentLaunchFact,
+    selectedRepoExecutionHostId,
+    selectedRepoRuntimeEnvironmentId,
+    selectedWorkspaceTarget
+  } = state
+  return useMemo(
+    () => ({
+      ephemeralVmsEnabled,
+      folderTargetRuntimeEnvironmentId,
+      isProjectGroupTarget,
+      selectedEphemeralVmRecipeId,
+      selectedProjectGroup,
+      selectedRepo,
+      selectedRepoAgentLaunchFact,
+      selectedRepoExecutionHostId,
+      selectedRepoRuntimeEnvironmentId,
+      selectedWorkspaceTarget
+    }),
+    [
+      ephemeralVmsEnabled,
+      folderTargetRuntimeEnvironmentId,
+      isProjectGroupTarget,
+      selectedEphemeralVmRecipeId,
+      selectedProjectGroup,
+      selectedRepo,
+      selectedRepoAgentLaunchFact,
+      selectedRepoExecutionHostId,
+      selectedRepoRuntimeEnvironmentId,
+      selectedWorkspaceTarget
+    ]
+  )
 }

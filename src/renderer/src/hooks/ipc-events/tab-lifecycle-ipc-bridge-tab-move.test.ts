@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TabMoveDirection } from '../../../../shared/keybindings/types'
-import { registerTabLifecycleIpcBridge } from './tab-lifecycle-ipc-bridge'
+import { registerTabLifecycleIpcBridge } from './session-tabs/tab-lifecycle-ipc-bridge'
 
 const { moveBrowserTabInDirection } = vi.hoisted(() => ({
   moveBrowserTabInDirection: vi.fn()
 }))
 
-vi.mock('@/components/tab-bar/tab-move-to-pane-column', () => ({ moveBrowserTabInDirection }))
+vi.mock('@/components/tab-bar/pane-actions/tab-move-to-pane-column', () => ({
+  moveBrowserTabInDirection
+}))
 vi.mock('@/lib/workspace/tabs/workspace-tab-commands', () => ({
   dispatchWorkspaceTabCommand: vi.fn()
 }))

@@ -1,4 +1,4 @@
-import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
+import type { GlobalSettings } from '../../../../../../shared/settings/global-settings-types'
 import {
   FILE_LINK_SYSTEM_APP_KINDS,
   type FileLinkSystemAppKind
