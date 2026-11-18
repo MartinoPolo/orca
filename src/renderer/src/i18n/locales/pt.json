@@ -5596,7 +5596,6 @@
             "77c02fa3c3": "windows",
             "d2952dfd74": "local",
             "96ba2373b6": "agente",
-            "01926b9d8c": "Configure agentes de código de IA, o agente padrão e substituições de comando.",
             "bb9ad95777": "Agentes",
             "d8f3a8b8a0": "padrão",
             "167daeb5e9": "comando",
@@ -6777,7 +6776,6 @@
           "badd7ed4cf": "Suprimir Enquanto em Foco",
           "9c41a0d367": "Ativar Notificações",
           "f5b0498e1f": "Enviar Notificação de Teste",
-          "b3c7207c8f": "Som de Notificação",
           "38e3bbeb25": "Escolher Arquivo Personalizado"
         },
         "PluginConsentDialog": {
@@ -18444,7 +18442,6 @@
           "023ff75afe": "Marcar tudo como lido",
           "f70e4bec47": "Modo compacto",
           "db8a1878b5": "Opções da lista de threads",
-          "d1a88df9a8": "Mostrar apenas threads não lidas",
           "f6396e1f85": "Agente",
           "b29191b3e0": "Worktree",
           "8c3b621ddf": "Projeto",
@@ -18453,8 +18450,6 @@
           "groupAgentActivityBy": "Agrupar atividade dos agentes por",
           "795cbf26e2": "Filtrar...",
           "4616ea39fd": "Ir para o espaço de trabalho",
-          "markThreadRead": "Marcar thread como lida",
-          "59b131fbd9": "Marcar thread como não lida",
           "5651b216c6": "Projeto desconhecido",
           "22b22034bc": "Terminal autônomo indisponível em Atividade.",
           "afdc2139a8": "Terminal do agente fechado. Abra um novo terminal neste espaço de trabalho para continuar.",

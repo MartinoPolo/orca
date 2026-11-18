@@ -8032,7 +8032,6 @@
           "badd7ed4cf": "Silenciar mientras está en foco",
           "9c41a0d367": "Habilitar notificaciones",
           "f5b0498e1f": "Enviar notificación de prueba",
-          "b3c7207c8f": "Sonido de notificación",
           "38e3bbeb25": "Elegir archivo personalizado"
         },
         "OpenAiTranscriptionKeyDialog": {
@@ -9229,7 +9228,6 @@
             "77c02fa3c3": "Windows",
             "d2952dfd74": "ubicación",
             "96ba2373b6": "agente",
-            "01926b9d8c": "Configura agentes de codificación de IA, el agente predeterminado y anulaciones de comandos.",
             "bb9ad95777": "Agentes",
             "d8f3a8b8a0": "predeterminado",
             "167daeb5e9": "comando",
@@ -17821,7 +17819,6 @@
           "023ff75afe": "Marcar todo como leído",
           "f70e4bec47": "Modo compacto",
           "db8a1878b5": "Opciones de lista de hilos",
-          "d1a88df9a8": "Mostrar solo hilos no leídos",
           "f6396e1f85": "Agente",
           "b29191b3e0": "worktree",
           "8c3b621ddf": "Proyecto",
@@ -17831,8 +17828,6 @@
           "795cbf26e2": "Filtrar...",
           "4616ea39fd": "Ir al workspace",
           "showSearch": "Mostrar búsqueda",
-          "markThreadRead": "Marcar hilo como leído",
-          "59b131fbd9": "Marcar hilo como no leído",
           "5651b216c6": "Proyecto desconocido",
           "22b22034bc": "Terminal independiente no disponible en Actividad.",
           "afdc2139a8": "Terminal de Agent cerrada. Abre una nueva terminal en este workspace para continuar.",

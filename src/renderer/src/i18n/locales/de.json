@@ -8455,7 +8455,6 @@
           "badd7ed4cf": "Bei Fokus unterdrücken",
           "9c41a0d367": "Benachrichtigungen aktivieren",
           "f5b0498e1f": "Testbenachrichtigung senden",
-          "b3c7207c8f": "Benachrichtigungston",
           "38e3bbeb25": "Benutzerdefinierte Datei auswählen"
         },
         "OpenAiTranscriptionKeyDialog": {
@@ -9661,7 +9660,6 @@
             "77c02fa3c3": "windows",
             "d2952dfd74": "Speicherort",
             "96ba2373b6": "Agent",
-            "01926b9d8c": "KI-Programmieragenten, Standardagenten und Befehlsüberschreibungen konfigurieren.",
             "bb9ad95777": "Agenten",
             "d8f3a8b8a0": "Standard",
             "167daeb5e9": "Befehl",
@@ -18105,7 +18103,6 @@
           "023ff75afe": "Alle als gelesen markieren",
           "f70e4bec47": "Kompaktmodus",
           "db8a1878b5": "Optionen für die Thread-Liste",
-          "d1a88df9a8": "Nur ungelesene Threads anzeigen",
           "f6396e1f85": "Agent",
           "b29191b3e0": "Worktree",
           "8c3b621ddf": "Projekt",
@@ -18114,8 +18111,6 @@
           "groupAgentActivityBy": "Agentenaktivität gruppieren nach",
           "795cbf26e2": "Filtern…",
           "4616ea39fd": "Zum Arbeitsbereich wechseln",
-          "markThreadRead": "Thread als gelesen markieren",
-          "59b131fbd9": "Thread als ungelesen markieren",
           "5651b216c6": "Unbekanntes Projekt",
           "22b22034bc": "Ein eigenständiges Terminal ist in der Aktivitätsansicht nicht verfügbar.",
           "afdc2139a8": "Das Agententerminal wurde geschlossen. Zum Fortfahren ein neues Terminal in diesem Arbeitsbereich öffnen.",

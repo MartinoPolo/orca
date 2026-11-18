@@ -4946,9 +4946,6 @@
   "auto.components.settings.agents.search.96ba2373b6": {
     "ko": "에이전트"
   },
-  "auto.components.settings.agents.search.01926b9d8c": {
-    "ko": "AI 코딩 에이전트, 기본 에이전트 및 명령 재정의를 구성합니다."
-  },
   "auto.components.settings.agents.search.agentRuntime": {
     "ko": "에이전트 런타임"
   },

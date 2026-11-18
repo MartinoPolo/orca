@@ -9239,7 +9239,6 @@
           "badd7ed4cf": "Suppress while focused",
           "9c41a0d367": "Enable notifications",
           "f5b0498e1f": "Send test notification",
-          "b3c7207c8f": "Notification sound",
           "38e3bbeb25": "Choose custom file",
           "05f5c5ab50": "Agent needs input"
         },
@@ -10467,7 +10466,6 @@
             "77c02fa3c3": "windows",
             "d2952dfd74": "location",
             "96ba2373b6": "agent",
-            "01926b9d8c": "Configure AI coding agents, default agent, and command overrides.",
             "bb9ad95777": "Agents",
             "d8f3a8b8a0": "default",
             "167daeb5e9": "command",
@@ -10526,7 +10524,8 @@
             "skip": "skip",
             "checks": "checks",
             "1523c4190f": "Agent runtime",
-            "788559d398": "Agent permissions"
+            "788559d398": "Agent permissions",
+            "agentsWithLinkedPromptTemplates": "Configure AI coding agents, launch defaults, and linked work-item prompt templates."
           }
         },
         "appearance": {
@@ -19276,7 +19275,6 @@
           "023ff75afe": "Mark all read",
           "f70e4bec47": "Compact mode",
           "db8a1878b5": "Thread list options",
-          "d1a88df9a8": "Show unread threads only",
           "f6396e1f85": "Agent",
           "b29191b3e0": "Worktree",
           "8c3b621ddf": "Project",
@@ -19285,8 +19283,6 @@
           "groupAgentActivityBy": "Group agent activity by",
           "795cbf26e2": "Filter...",
           "4616ea39fd": "Jump to workspace",
-          "markThreadRead": "Mark thread as read",
-          "59b131fbd9": "Mark thread unread",
           "5651b216c6": "Unknown project",
           "22b22034bc": "Standalone terminal unavailable in Activity.",
           "afdc2139a8": "Agent terminal closed. Open a new terminal in this workspace to continue.",
