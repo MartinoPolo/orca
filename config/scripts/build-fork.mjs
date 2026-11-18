@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import { resolvePnpmCliInvocation } from './pnpm-cli-invocation.mjs'
+import { resolvePnpmCliInvocation } from './tool-invocation/pnpm-cli-invocation.mjs'
 
 const require = createRequire(import.meta.url)
 const { assertForkReleaseSource } = require('./fork-release-policy.cjs')
