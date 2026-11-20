@@ -6,7 +6,6 @@ vi.mock('./port-scan-command-client', async () => {
   const { runProcess } = await import('@orca/process-host')
   return {
     runPortScanCommand: async (command: string, args: string[]) => {
-      const startedAt = Date.now()
       const result = await runProcess({
         program: join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', `${command}.exe`),
         args,
@@ -15,7 +14,7 @@ vi.mock('./port-scan-command-client', async () => {
       if (result.code !== 0) {
         throw new Error(`${command} failed with code ${result.code}: ${result.stderr}`)
       }
-      return { stdout: result.stdout, spawnMs: Date.now() - startedAt }
+      return { stdout: result.stdout, spawnMs: 0 }
     }
   }
 })
