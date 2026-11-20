@@ -1,5 +1,9 @@
 // Set tray attention before gates and fan out to phones before desktop early returns.
 import type { BrowserWindow } from 'electron'
+import {
+  DEFAULT_SESSION_PRIORITY,
+  HIGH_SESSION_PRIORITY
+} from '../../shared/session-effective-priority'
 import type {
   NotificationDispatchRequest,
   NotificationDispatchResult,
@@ -163,8 +167,11 @@ export function createNotificationDeliveryService(
         }
       }
 
-      // Keep mobile fan-out above this desktop-only priority gate.
-      if (request.source === 'agent-task-complete' && (request.priority ?? 3) < 4) {
+      // Keep mobile fan-out above this desktop-only gate; renderers send effective (Work-shifted) priority.
+      if (
+        request.source === 'agent-task-complete' &&
+        (request.priority ?? DEFAULT_SESSION_PRIORITY) < HIGH_SESSION_PRIORITY
+      ) {
         return { delivered: false, reason: 'priority' }
       }
 

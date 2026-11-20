@@ -27,6 +27,8 @@ import { canonicalOrchestrationForRow } from '@/runtime/agent-orchestration/visi
 import { isCoordinatorOnlyChatNews } from '../../../../../../shared/orchestration/workers/dispatched-worker-attention'
 import { getNotificationWorkspaceLabels } from '../../../../attention/notification-workspace-labels'
 import { resolveEntrySessionPriority } from '@/store/slices/agent-status/session-attention-transition'
+import { resolveNotificationEffectivePriority } from '@/attention/notification-session-priority'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../../shared/session-effective-priority'
 import { createStructuredAttentionSurface } from './structured-attention-surface'
 import type { StructuredTab } from '../status/structured-agent-session-tabs'
 
@@ -93,7 +95,11 @@ function dispatchStructuredAttention(
     return
   }
   const row = state.agentStatusByPaneKey.get(paneKey)
-  const priority = row ? resolveEntrySessionPriority(state, row) : 3
+  const priority = resolveNotificationEffectivePriority(
+    state,
+    tab.worktreeId,
+    row ? resolveEntrySessionPriority(state, row) : DEFAULT_SESSION_PRIORITY
+  )
   const soundCategory =
     news.agentState === 'blocked' ? 'needs-input' : news.outcome === 'failure' ? 'failed' : 'done'
   applyAgentAttention(decision, {

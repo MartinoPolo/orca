@@ -4,7 +4,7 @@ import type { ActivityThreadGroup, AgentPaneThread } from '../threads/activity-t
 /** One row of the virtualized Activity list: a group header or a thread. */
 export type ActivityVirtualItemDescriptor =
   | { type: 'header'; group: ActivityThreadGroup }
-  | { type: 'thread'; thread: AgentPaneThread; groupKey: string }
+  | { type: 'thread'; thread: AgentPaneThread; groupKey: string; workPriorityShift: number }
 
 export const ACTIVITY_HEADER_ROW_ESTIMATE = 32
 export const ACTIVITY_THREAD_ROW_COMPACT_ESTIMATE = 96
@@ -28,7 +28,12 @@ export function buildActivityVirtualItems(args: {
       }
     }
     for (const thread of group.threads) {
-      items.push({ type: 'thread', thread, groupKey: group.key })
+      items.push({
+        type: 'thread',
+        thread,
+        groupKey: group.key,
+        workPriorityShift: group.workPriorityShiftByPaneKey.get(thread.paneKey) ?? 0
+      })
     }
   }
   return items

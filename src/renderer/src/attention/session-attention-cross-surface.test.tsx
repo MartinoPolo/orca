@@ -165,6 +165,7 @@ describe('session attention cross-surface identity', () => {
       <TooltipProvider>
         <ActivityThreadRow
           thread={activityThread}
+          workPriorityShift={0}
           selected={false}
           onSelect={vi.fn()}
           onJump={vi.fn()}

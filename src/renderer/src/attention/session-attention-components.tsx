@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/context-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
+import { useTranslate } from '@/i18n/use-translate'
 import { cn } from '@/lib/class-names'
 import {
   SESSION_PRIORITIES,
@@ -22,6 +23,7 @@ import {
   type SessionPriority,
   type SessionSavedColor
 } from '../../../shared/session-attention'
+import { DEFAULT_SESSION_PRIORITY } from '../../../shared/session-effective-priority'
 import type { SessionAttentionTone } from '@/components/activity/threads/session-attention-presentation'
 
 const PRIORITY_MENU_ORDER = SESSION_PRIORITIES.toReversed()
@@ -75,7 +77,7 @@ export function SessionPriorityBadge({
   priority: SessionPriority
   showDefault?: boolean
 }): React.JSX.Element | null {
-  if (priority === 3 && !showDefault) {
+  if (priority === DEFAULT_SESSION_PRIORITY && !showDefault) {
     return null
   }
   return (
@@ -87,6 +89,41 @@ export function SessionPriorityBadge({
     >
       P{priority}
     </Badge>
+  )
+}
+
+/** Explains why a work-project row sits above or below its stored priority. */
+export function SessionWorkPriorityShiftChip({
+  shift
+}: {
+  shift: number
+}): React.JSX.Element | null {
+  const t = useTranslate()
+  if (shift === 0) {
+    return null
+  }
+  const label = shift > 0 ? `+${shift}` : `−${Math.abs(shift)}`
+  const explanation =
+    shift > 0
+      ? t(
+          'sessionAttention.workShift.raised',
+          'Work project: the Work switch is on, so this session ranks {{shift}} higher.',
+          { shift: Math.abs(shift) }
+        )
+      : t(
+          'sessionAttention.workShift.lowered',
+          'Work project: the Work switch is off, so this session ranks {{shift}} lower.',
+          { shift: Math.abs(shift) }
+        )
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="referenceLabel" tabIndex={0} aria-label={explanation}>
+          {label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top">{explanation}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -197,7 +234,9 @@ export function SessionAttentionMenuItems({
             {PRIORITY_MENU_ORDER.map((value) => (
               <ContextMenuRadioItem key={value} value={String(value)}>
                 <SessionPriorityBadge priority={value} showDefault />
-                {value === 3 ? translate('sessionAttention.priority.default', 'Default') : null}
+                {value === DEFAULT_SESSION_PRIORITY
+                  ? translate('sessionAttention.priority.default', 'Default')
+                  : null}
               </ContextMenuRadioItem>
             ))}
           </ContextMenuRadioGroup>

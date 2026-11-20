@@ -64,6 +64,7 @@ export type RepoUpdate = Partial<
     | 'customWorktreeVisibilitySources'
     | 'worktreeVisibilitySourcePreferences'
     | 'projectGroupId'
+    | 'workProject'
   >
 > & {
   projectGroupOrder?: number | null

@@ -43,9 +43,15 @@ export type NotificationDispatchMockState = {
       workspaceStatus?: string
     }[]
   >
-  repos: { id: string; displayName?: string; connectionId?: string | null }[]
+  repos: {
+    id: string
+    displayName?: string
+    connectionId?: string | null
+    workProject?: boolean
+  }[]
   settings: {
     experimentalTerminalAttention?: boolean
+    prioritizeWorkProjects?: boolean
     notifications?: {
       enabled?: boolean
       agentTaskComplete?: boolean

@@ -302,6 +302,10 @@ export type GlobalSettings = GlobalSettingsBase & {
   /** Bot-marked comment-author logins (stored lowercased); escape hatch for review bots on regular accounts that defeat provider metadata/heuristics. */
   prBotAuthorOverrides: string[]
   notifications: NotificationSettings
+  /** Activity Work switch: work-project sessions rank `WORK_PROJECT_PRIORITY_SHIFT` above their stored priority when on and below it when off; absent means on. */
+  prioritizeWorkProjects?: boolean
+  /** Local folder whose newly added repositories start as work projects; empty or absent marks none. */
+  workProjectsFolder?: string
   /** Countdown after a Claude agent goes idle showing time left before the prompt cache expires. */
   promptCacheTimerEnabled: boolean
   /** Prompt-cache TTL (ms); only 300000 (5 min standard) or 3600000 (1 hr, extended-TTL plans). */

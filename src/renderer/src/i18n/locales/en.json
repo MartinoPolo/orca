@@ -1431,7 +1431,13 @@
       "inlineBlameKeywordBlame": "blame",
       "inlineBlameKeywordGit": "git",
       "inlineBlameKeywordAuthor": "author",
-      "inlineBlameKeywordAnnotation": "annotation"
+      "inlineBlameKeywordAnnotation": "annotation",
+      "workProjectsFolder": {
+        "title": "Work folder",
+        "description": "Local projects added from inside this folder start as work projects. Leave empty to mark none.",
+        "keywordWork": "work project",
+        "keywordPriority": "priority"
+      }
     },
     "openInApp": {
       "preset": {
@@ -19450,7 +19456,8 @@
           "jumpToWorkspace": "Jump to workspace"
         },
         "ActivityThreadRow": {
-          "clearNotification": "Clear notification"
+          "clearNotification": "Clear notification",
+          "noProject": "No project"
         },
         "ActivityThreadContextMenu": {
           "copyTitle": "Copy Title",
@@ -23223,6 +23230,12 @@
         "filesStayLine": "Its files stay on {{host}}.",
         "removing": "Removing…"
       }
+    },
+    "RepositoryWorkProjectSection": {
+      "title": "Work project",
+      "description": "The Activity Work switch ranks this project's agent sessions {{shift}} above their priority when on and {{shift}} below when off, including desktop banners.",
+      "keywordWork": "work",
+      "keywordPriority": "priority"
     }
   },
   "dashboardPopout": {
@@ -26425,6 +26438,20 @@
       "attention": "Attention",
       "all": "All"
     },
-    "migrationNoticeDetail": "Restart this terminal so Orca can attach a stable pane identity."
+    "migrationNoticeDetail": "Restart this terminal so Orca can attach a stable pane identity.",
+    "tier": {
+      "high": "High priority",
+      "other": "Other"
+    },
+    "workShift": {
+      "raised": "Work project: the Work switch is on, so this session ranks {{shift}} higher.",
+      "lowered": "Work project: the Work switch is off, so this session ranks {{shift}} lower."
+    },
+    "workSwitch": {
+      "raised": "Work projects rank {{shift}} above their priority. Click to rank them {{shift}} below.",
+      "lowered": "Work projects rank {{shift}} below their priority. Click to rank them {{shift}} above.",
+      "aria": "Prioritize work projects",
+      "label": "Work"
+    }
   }
 }

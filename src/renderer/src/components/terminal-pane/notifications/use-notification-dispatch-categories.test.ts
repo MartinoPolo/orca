@@ -251,4 +251,13 @@ describe('dispatchTerminalNotification session priority', () => {
     dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
     expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 3 })
   })
+
+  it('shifts work-project sessions by the Work switch so the desktop gate sees effective priority', () => {
+    mockState.repos = [{ id: 'repo1', displayName: 'orca', connectionId: null, workProject: true }]
+    dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
+    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 4.5 })
+    mockState.settings.prioritizeWorkProjects = false
+    dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
+    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 1.5 })
+  })
 })

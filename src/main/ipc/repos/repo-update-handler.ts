@@ -62,6 +62,7 @@ export function registerRepoUpdateHandler(mainWindow: BrowserWindow, store: Stor
             | 'customWorktreeVisibilitySources'
             | 'worktreeVisibilitySourcePreferences'
             | 'projectGroupId'
+            | 'workProject'
           >
         > & {
           projectGroupOrder?: number | null
@@ -120,6 +121,9 @@ export function registerRepoUpdateHandler(mainWindow: BrowserWindow, store: Stor
         if (!Array.isArray(v) || !v.every((e) => typeof e === 'string')) {
           delete updates.symlinkPaths
         }
+      }
+      if ('workProject' in updates && typeof updates.workProject !== 'boolean') {
+        delete updates.workProject
       }
       if ('dictationTerms' in updates) {
         const terms = normalizeDictationTerms(updates.dictationTerms)

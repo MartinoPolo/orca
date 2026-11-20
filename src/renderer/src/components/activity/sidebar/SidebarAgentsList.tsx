@@ -9,7 +9,10 @@ import { useTranslate } from '@/i18n/use-translate'
 import { hasActivityThreadWorkspace } from '@/components/activity/thread-list/activity-thread-actions'
 import { useActivityThreadActionBindings } from '@/components/activity/thread-list/use-activity-thread-action-bindings'
 import { ActivityThreadListPane } from '@/components/activity/thread-list/activity-thread-list-pane'
-import { ActivityAttentionScopeControl } from '@/components/activity/thread-list/activity-thread-list-toolbar'
+import {
+  ActivityAttentionScopeControl,
+  ActivityWorkPriorityToggle
+} from '@/components/activity/thread-list/activity-thread-list-toolbar'
 import { useAgentPaneThreads } from '@/components/activity/threads/use-agent-pane-threads'
 import '@/components/activity/thread-list/activity-thread-controls'
 import { ActivityThreadOptionsMenu } from '@/components/activity/thread-list/activity-thread-options-menu'
@@ -203,7 +206,8 @@ function SidebarAgentsListBody({
           />
         </div>
       ) : null}
-      <div className="flex shrink-0 justify-end border-b border-border px-2 py-1">
+      <div className="flex shrink-0 justify-end gap-1 border-b border-border px-2 py-1">
+        <ActivityWorkPriorityToggle />
         <ActivityAttentionScopeControl value={readFilter} onChange={setReadFilter} />
       </div>
       <ActivityThreadListPane

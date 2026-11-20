@@ -77,6 +77,7 @@ export type RepositoryApi = {
         | 'projectGroupId'
         | 'forkSyncMode'
         | 'agentWorkspaceTrust'
+        | 'workProject'
       >
     > & {
       projectGroupOrder?: number | null
