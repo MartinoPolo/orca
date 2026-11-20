@@ -40,7 +40,7 @@ export function createFixturePageRunner(baseUrl, browserPromise) {
     worker.pageErrors = []
     if (worker.revision !== sourceRevision) {
       const revision = sourceRevision
-      await worker.page.goto(`${baseUrl}/fixtures.html?worker=1`)
+      await worker.page.goto(`${baseUrl}/fixtures.html?worker=1`, { timeout: FIXTURE_TIMEOUT_MS })
       await worker.page.waitForFunction(
         () => Boolean(window.__orcaComponentFixtureHost),
         undefined,
