@@ -1,5 +1,5 @@
 import React from 'react'
-import { CheckCheck, Search, Trash2, X } from 'lucide-react'
+import { BriefcaseBusiness, CheckCheck, Search, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -11,6 +11,13 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/class-names'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Toggle } from '@/components/ui/toggle'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useAppStore } from '@/store'
+import {
+  isWorkProjectPriorityRaised,
+  WORK_PROJECT_PRIORITY_SHIFT
+} from '../../../../../shared/session-effective-priority'
 import { translate } from '@/i18n/i18n'
 import { useTranslate } from '@/i18n/use-translate'
 import './activity-thread-controls'
@@ -47,6 +54,43 @@ export function ActivityAttentionScopeControl({
         {translate('sessionAttention.scope.all', 'All')}
       </ToggleGroupItem>
     </ToggleGroup>
+  )
+}
+
+/** Persisted Work switch: raises work-project sessions when on and lowers them when off. */
+export function ActivityWorkPriorityToggle(): React.JSX.Element {
+  const t = useTranslate()
+  const workProjectPriorityRaised = useAppStore((state) =>
+    isWorkProjectPriorityRaised(state.settings)
+  )
+  const updateSettings = useAppStore((state) => state.updateSettings)
+  const explanation = workProjectPriorityRaised
+    ? t(
+        'sessionAttention.workSwitch.raised',
+        'Work projects rank {{shift}} above their priority. Click to rank them {{shift}} below.',
+        { shift: WORK_PROJECT_PRIORITY_SHIFT }
+      )
+    : t(
+        'sessionAttention.workSwitch.lowered',
+        'Work projects rank {{shift}} below their priority. Click to rank them {{shift}} above.',
+        { shift: WORK_PROJECT_PRIORITY_SHIFT }
+      )
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Toggle
+          variant="outline"
+          size="sm"
+          pressed={workProjectPriorityRaised}
+          onPressedChange={(pressed) => updateSettings({ prioritizeWorkProjects: pressed })}
+          aria-label={t('sessionAttention.workSwitch.aria', 'Prioritize work projects')}
+        >
+          <BriefcaseBusiness className="size-3.5" />
+          {t('sessionAttention.workSwitch.label', 'Work')}
+        </Toggle>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{explanation}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -172,7 +216,10 @@ export function ActivityThreadListToolbar({
             </Select>
           ) : null}
           {showFilterControls ? (
-            <ActivityAttentionScopeControl value={readFilter} onChange={onReadFilterChange} />
+            <>
+              <ActivityWorkPriorityToggle />
+              <ActivityAttentionScopeControl value={readFilter} onChange={onReadFilterChange} />
+            </>
           ) : null}
           {showOptionsMenu ? (
             <ActivityThreadOptionsMenu

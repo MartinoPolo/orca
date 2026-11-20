@@ -1,4 +1,3 @@
-import type { AgentListStatus as AgentDotState } from '../../../../../shared/agent-status/presentation/agent-list-status'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import { formatAgentTypeLabel } from '../../../../../shared/agent-status/presentation/agent-type-label'
@@ -6,42 +5,24 @@ import { getAgentRowPrimaryText } from '../../../../../shared/agent-status/prese
 import { getActivityThreadWorkspaceTitle } from '@/lib/workspace/activity/activity-thread-display'
 import { isClipboardTextByteLengthOverLimit } from '../../../../../shared/clipboard/clipboard-text'
 import {
-  activityThreadStatusId,
   agentMeta,
   agentSummary,
   agentTitle,
   threadAgentStateLabel
 } from '../threads/activity-thread-presentation'
-import { AGENT_LIST_STATUS_RANK } from '../../../../../shared/agent-status/presentation/agent-list-status'
+import {
+  HIGH_SESSION_PRIORITY,
+  workProjectPriorityShift
+} from '../../../../../shared/session-effective-priority'
 import type { ActivityGroupBy } from '../../../../../shared/agent-status/presentation/agents-view-thread-filters'
 import type { ActivityThreadGroup, AgentPaneThread } from '../threads/activity-thread-types'
-import { compareAttentionThreads } from '../threads/session-attention-presentation'
+import { sortActivityThreads } from '../threads/session-attention-presentation'
 
-function activityStatusRank(thread: AgentPaneThread): number {
-  return thread.migrationUnsupportedPtyId !== undefined
-    ? AGENT_LIST_STATUS_RANK.idle
-    : AGENT_LIST_STATUS_RANK[activityThreadStatusId(thread)]
-}
-
-export function getActivityThreadGroup(
+function getActivityThreadGroup(
   thread: AgentPaneThread,
-  groupBy: ActivityGroupBy,
-  t: Translate = translate
-): { key: string; label: string; state?: AgentDotState } {
-  if (groupBy === 'none') {
-    return { key: 'all', label: '' }
-  }
-  if (groupBy === 'status') {
-    if (thread.migrationUnsupportedPtyId !== undefined) {
-      return {
-        key: 'migration-notice',
-        label: translate('sessionAttention.migrationNotice', 'Migration notice')
-      }
-    }
-    // The key is the glyph every row in the group draws, so it heads the group too.
-    const status = activityThreadStatusId(thread)
-    return { key: status, label: threadAgentStateLabel(thread, t), state: status }
-  }
+  groupBy: Exclude<ActivityGroupBy, 'none' | 'status'>,
+  t: Translate
+): { key: string; label: string } {
   if (groupBy === 'project') {
     return thread.repo
       ? { key: `project:${thread.repo.id}`, label: thread.repo.displayName }
@@ -56,13 +37,87 @@ export function getActivityThreadGroup(
   return { key: `agent:${thread.agentType}`, label: formatAgentTypeLabel(thread.agentType) }
 }
 
+function collectWorkPriorityShifts(
+  threads: readonly AgentPaneThread[],
+  workProjectPriorityRaised: boolean
+): Map<string, number> {
+  const shifts = new Map<string, number>()
+  for (const thread of threads) {
+    const shift = workProjectPriorityShift({
+      workProject: thread.repo?.workProject,
+      workProjectPriorityRaised
+    })
+    if (shift !== 0) {
+      shifts.set(thread.paneKey, shift)
+    }
+  }
+  return shifts
+}
+
+/** Status grouping splits by effective priority tier; each row's own state glyph shows its status. */
+function buildActivityPriorityTierGroups(
+  threads: AgentPaneThread[],
+  workProjectPriorityRaised: boolean,
+  workPriorityShiftByPaneKey: ReadonlyMap<string, number>,
+  t: Translate
+): ActivityThreadGroup[] {
+  const highPriorityGroup: ActivityThreadGroup = {
+    key: 'priority:high',
+    label: t('sessionAttention.tier.high', 'High priority'),
+    threads: [],
+    workPriorityShiftByPaneKey
+  }
+  const otherGroup: ActivityThreadGroup = {
+    key: 'priority:other',
+    label: t('sessionAttention.tier.other', 'Other'),
+    threads: [],
+    workPriorityShiftByPaneKey
+  }
+  const migrationNoticeGroup: ActivityThreadGroup = {
+    key: 'migration-notice',
+    label: t('sessionAttention.migrationNotice', 'Migration notice'),
+    threads: [],
+    workPriorityShiftByPaneKey
+  }
+  for (const { thread, effectivePriority } of sortActivityThreads(
+    threads,
+    workProjectPriorityRaised
+  )) {
+    const group =
+      thread.migrationUnsupportedPtyId !== undefined
+        ? migrationNoticeGroup
+        : effectivePriority >= HIGH_SESSION_PRIORITY
+          ? highPriorityGroup
+          : otherGroup
+    group.threads.push(thread)
+  }
+  return [highPriorityGroup, otherGroup, migrationNoticeGroup].filter(
+    (group) => group.threads.length > 0
+  )
+}
+
 export function buildActivityThreadGroups(
   threads: AgentPaneThread[],
   groupBy: ActivityGroupBy,
-  t?: Translate
+  {
+    workProjectPriorityRaised,
+    t = translate
+  }: { workProjectPriorityRaised: boolean; t?: Translate }
 ): ActivityThreadGroup[] {
+  if (threads.length === 0) {
+    return []
+  }
+  const workPriorityShiftByPaneKey = collectWorkPriorityShifts(threads, workProjectPriorityRaised)
   if (groupBy === 'none') {
-    return threads.length > 0 ? [{ key: 'all', label: '', threads }] : []
+    return [{ key: 'all', label: '', threads, workPriorityShiftByPaneKey }]
+  }
+  if (groupBy === 'status') {
+    return buildActivityPriorityTierGroups(
+      threads,
+      workProjectPriorityRaised,
+      workPriorityShiftByPaneKey,
+      t
+    )
   }
   const groups: ActivityThreadGroup[] = []
   const groupIndexByKey = new Map<string, number>()
@@ -70,19 +125,13 @@ export function buildActivityThreadGroups(
     const group = getActivityThreadGroup(thread, groupBy, t)
     const existingIndex = groupIndexByKey.get(group.key)
     if (existingIndex === undefined) {
-      groups.push({ ...group, threads: [thread] })
+      groups.push({ ...group, threads: [thread], workPriorityShiftByPaneKey })
       groupIndexByKey.set(group.key, groups.length - 1)
       continue
     }
     groups[existingIndex].threads.push(thread)
   }
-  if (groupBy !== 'status') {
-    return groups
-  }
-  for (const group of groups) {
-    group.threads.sort(compareAttentionThreads)
-  }
-  return groups.sort((a, b) => activityStatusRank(a.threads[0]) - activityStatusRank(b.threads[0]))
+  return groups
 }
 
 function buildThreadSearchText(thread: AgentPaneThread): string {

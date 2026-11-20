@@ -1,8 +1,10 @@
 import type { AppState } from '@/store/types'
 import { resolveEntrySessionPriority } from '@/store/slices/agent-status/session-attention-transition'
+import { resolveNotificationEffectivePriority } from '@/attention/notification-session-priority'
 import { agentMainAgentVerdict } from '../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
 import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import type { NotificationSoundCategory } from '../../../../shared/notifications/notification-settings-types'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../shared/session-effective-priority'
 import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { AgentCompletionStatusSnapshot } from './agent-completion/agent-completion-coordinator-types'
 
@@ -44,7 +46,7 @@ export function resolveAgentSoundCategory(
   return 'done'
 }
 
-/** Priority of the session this event reports; a reused pane key must not lend another turn's priority. */
+/** Effective priority of the session this event reports; a reused pane key must not lend another turn's priority. */
 export function resolveNotificationSessionPriority(
   state: AppState,
   args: {
@@ -76,5 +78,9 @@ export function resolveNotificationSessionPriority(
   } else if (storedAgentStatus?.worktreeId === worktreeId) {
     identityEntry = storedAgentStatus
   }
-  return identityEntry ? resolveEntrySessionPriority(state, identityEntry) : 3
+  return resolveNotificationEffectivePriority(
+    state,
+    worktreeId,
+    identityEntry ? resolveEntrySessionPriority(state, identityEntry) : DEFAULT_SESSION_PRIORITY
+  )
 }

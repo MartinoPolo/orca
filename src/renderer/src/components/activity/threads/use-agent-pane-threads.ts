@@ -30,6 +30,7 @@ import type {
   ThreadReadFilter
 } from '../../../../../shared/agent-status/presentation/agents-view-thread-filters'
 import type { ActivityThreadGroup, AgentPaneThread } from './activity-thread-types'
+import { isWorkProjectPriorityRaised } from '../../../../../shared/session-effective-priority'
 
 const EMPTY_PANE_KEYS: ReadonlySet<string> = new Set()
 const EMPTY_THREADS: AgentPaneThread[] = []
@@ -277,9 +278,13 @@ export function useAgentPaneThreads(args: {
     [allThreads, showChildAgents, hiddenChildAgentPaneKeys, effectiveSelectedPaneKey, badgeOnly]
   )
 
+  const workProjectPriorityRaised = useAppStore((s) => isWorkProjectPriorityRaised(s.settings))
   const visibleThreadGroups = useMemo(
-    () => (badgeOnly ? EMPTY_GROUPS : buildActivityThreadGroups(visibleThreads, groupBy)),
-    [visibleThreads, groupBy, badgeOnly]
+    () =>
+      badgeOnly
+        ? EMPTY_GROUPS
+        : buildActivityThreadGroups(visibleThreads, groupBy, { workProjectPriorityRaised }),
+    [visibleThreads, groupBy, badgeOnly, workProjectPriorityRaised]
   )
 
   return {

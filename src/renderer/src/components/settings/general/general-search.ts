@@ -1,4 +1,5 @@
 import { getGeneralConfirmationSearchEntries } from './general-confirmations-search'
+import { getWorkProjectsFolderSearchEntry } from './WorkProjectsFolderSetting'
 import { getGeneralSubPageTitle } from './general-sub-pages'
 import { GENERAL_SETTING_ANCHORS, generalSetting } from './general-setting-anchors'
 import type { SettingsSearchEntry } from '../search/settings-search'
@@ -219,6 +220,7 @@ export function getGeneralPaneSearchEntries(
 ): SettingsSearchEntry[] {
   return [
     ...getGeneralWorkspaceSearchEntries(),
+    getWorkProjectsFolderSearchEntry(),
     ...getGeneralNavigationSearchEntries(),
     ...Object.values(getGeneralConfirmationSearchEntries()),
     ...getGeneralDestinationSearchEntries(),

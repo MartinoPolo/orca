@@ -86,6 +86,7 @@ export function ActivityThreadVirtualRow({
         <div className="pb-0.5">
           <ActivityThreadRow
             thread={item.thread}
+            workPriorityShift={item.workPriorityShift}
             selected={isOpen}
             multiSelected={!isOpen && multiSelectedKeys.has(item.thread.paneKey)}
             onSelect={onSelectThread}

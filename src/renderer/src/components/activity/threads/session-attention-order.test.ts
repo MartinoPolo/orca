@@ -1,78 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentPaneThread } from './activity-thread-types'
-import { makeWorktree } from '@/store/slices/worktrees/worktree.test-fixture'
-import { makeTab } from '@/store/terminals/testing/terminal-tab.test-fixture'
 import {
-  compareAttentionThreads,
   isAttentionQueueEligible,
   resolveAttentionStartedAt
 } from './session-attention-presentation'
-
-const worktree = makeWorktree({ id: 'wt-1', repoId: 'repo-1' })
-
-function thread(
-  paneKey: string,
-  overrides: Partial<AgentPaneThread> & {
-    priority?: AgentPaneThread['priority']
-    attentionStartedAt?: number | null
-  } = {}
-): AgentPaneThread {
-  return {
-    paneKey,
-    paneTitle: paneKey,
-    worktree,
-    repo: null,
-    tab: makeTab({ id: paneKey.split(':')[0], worktreeId: worktree.id }),
-    agentType: 'claude',
-    currentAgentState: null,
-    currentAgentEntry: null,
-    responsePreview: '',
-    latestTimestamp: 1,
-    latestEvent: null,
-    events: [],
-    unread: false,
-    priority: 3,
-    savedMarker: null,
-    attentionStartedAt: null,
-    attentionEligible: false,
-    sessionIdentity: null,
-    ...overrides
-  }
-}
-
-describe('attention queue ordering', () => {
-  it('sorts priority P5 through P1 before unread, age, then identity', () => {
-    const rows = [
-      thread('z', { priority: 1, unread: true, attentionStartedAt: 1 }),
-      thread('a', { priority: 5, unread: false, attentionStartedAt: 5 }),
-      thread('c', { priority: 4, unread: false, attentionStartedAt: 1 }),
-      thread('b', { priority: 4, unread: true, attentionStartedAt: 10 }),
-      thread('e', { priority: 4, unread: true, attentionStartedAt: 3 }),
-      thread('d', { priority: 4, unread: true, attentionStartedAt: 3 })
-    ]
-
-    expect(rows.sort(compareAttentionThreads).map((row) => row.paneKey)).toEqual([
-      'a',
-      'd',
-      'e',
-      'b',
-      'c',
-      'z'
-    ])
-  })
-
-  it('keeps unread ahead of an older read row at equal priority', () => {
-    const olderRead = thread('read', { priority: 3, unread: false, attentionStartedAt: 1 })
-    const youngerUnread = thread('unread', { priority: 3, unread: true, attentionStartedAt: 10 })
-    expect([olderRead, youngerUnread].sort(compareAttentionThreads)[0]).toBe(youngerUnread)
-  })
-
-  it('keeps a read higher-priority row ahead of an unread lower-priority row', () => {
-    const higherRead = thread('high', { priority: 5, unread: false, attentionStartedAt: 10 })
-    const lowerUnread = thread('low', { priority: 4, unread: true, attentionStartedAt: 1 })
-    expect([lowerUnread, higherRead].sort(compareAttentionThreads)[0]).toBe(higherRead)
-  })
-})
 
 describe('attention episode age', () => {
   it('uses the earliest saved marker or status chronology', () => {

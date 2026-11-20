@@ -68,6 +68,20 @@ function findNotificationRepo(
   return findIndexedRepoOwnerForHost(state.repos, repoId, owningHost) ?? undefined
 }
 
+/** The repo owning a worktree workspace on its own host; folder workspaces have none. */
+export function findNotificationWorkspaceRepo(
+  state: StoreSnapshot,
+  workspaceId: string
+): Repo | undefined {
+  const scope = parseWorkspaceKey(workspaceId)
+  if (scope?.type === 'folder') {
+    return undefined
+  }
+  const worktreeId = scope?.type === 'worktree' ? scope.worktreeId : workspaceId
+  const { worktree, hostId } = findWorktreeRowOnItsOwnHost(state, worktreeId)
+  return worktree ? findNotificationRepo(state, worktreeId, worktree.repoId, hostId) : undefined
+}
+
 export function getNotificationWorkspaceLabels(
   state: StoreSnapshot,
   workspaceId: string,
@@ -91,10 +105,8 @@ export function getNotificationWorkspaceLabels(
     return { repoLabel: group?.name, worktreeLabel: folder?.name || fallback }
   }
   const worktreeId = scope?.type === 'worktree' ? scope.worktreeId : workspaceId
-  const { worktree, hostId } = findWorktreeRowOnItsOwnHost(state, worktreeId)
-  const repo = worktree
-    ? findNotificationRepo(state, worktreeId, worktree.repoId, hostId)
-    : undefined
+  const { worktree } = findWorktreeRowOnItsOwnHost(state, worktreeId)
+  const repo = findNotificationWorkspaceRepo(state, workspaceId)
   return {
     repoLabel: repo?.displayName,
     worktreeLabel: worktree?.displayName || worktree?.branch || fallback

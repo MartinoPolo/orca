@@ -1,4 +1,3 @@
-import type { AgentListStatus as AgentDotState } from '../../../../../shared/agent-status/presentation/agent-list-status'
 import type {
   AgentStatusEntry,
   AgentStatusState,
@@ -80,8 +79,9 @@ export type AgentPaneThread = {
 export type ActivityThreadGroup = {
   key: string
   label: string
-  state?: AgentDotState
   threads: AgentPaneThread[]
+  /** Work switch offset per row; panes outside work projects are absent. */
+  workPriorityShiftByPaneKey: ReadonlyMap<string, number>
 }
 
 export type ActivityTerminalPortalReadiness = {

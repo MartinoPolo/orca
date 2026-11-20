@@ -34,8 +34,7 @@ import { getRepositoryPaneSearchMetadata } from './repository-search'
 import { RepositoryHostSetupsSection } from './hosts/RepositoryHostSetupsSection'
 import { RepoSettingsDraftInput } from './RepositorySettingsDraftInput'
 import { RepositoryForkSyncSection } from './source-control/RepositoryForkSyncSection'
-import { RepositoryAgentTrustSection } from './RepositoryAgentTrustSection'
-import { RepositoryBrowserProfileSection } from './RepositoryBrowserProfileSection'
+import { RepositoryProjectPreferenceSections } from './RepositoryProjectPreferenceSections'
 import type { RepositoryPaneRepoUpdate } from './repository-pane-repo-update'
 import { RepositoryGitHubAccountSection } from './source-control/RepositoryGitHubAccountSection'
 import { useTranslate } from '@/i18n/use-translate'
@@ -293,13 +292,7 @@ export function RepositoryPane({
           forceVisible={forceFullPaneForRepoMatch}
         />
 
-        <RepositoryAgentTrustSection
-          repo={repo}
-          updateRepo={updateSelectedRepo}
-          forceVisible={forceFullPaneForRepoMatch}
-        />
-
-        <RepositoryBrowserProfileSection
+        <RepositoryProjectPreferenceSections
           repo={repo}
           updateRepo={updateSelectedRepo}
           forceVisible={forceFullPaneForRepoMatch}

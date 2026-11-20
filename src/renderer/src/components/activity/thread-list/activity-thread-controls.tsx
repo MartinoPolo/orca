@@ -136,11 +136,6 @@ export function ActivityStatusGroupHeader({
           collapsed && '-rotate-90'
         )}
       />
-      {group.state ? (
-        <span className="inline-flex size-4 shrink-0 items-center justify-center">
-          <AgentStateDot state={group.state} size="sm" />
-        </span>
-      ) : null}
       <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.05em] text-foreground/80 transition-colors group-hover:text-foreground">
         {group.label}
       </span>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExternalLink, X } from 'lucide-react'
+import { ExternalLink, Folder, X } from 'lucide-react'
 import { AgentTypeIcon } from '@/components/agent/icons/agent-type-icon'
 import { formatAgentTypeLabel } from '../../../../../shared/agent-status/presentation/agent-type-label'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
+import { RepoIconGlyph } from '@/components/repo/repo-icon'
+import { resolveRepoHeaderColor } from '@/components/sidebar/worktree-list/rows/project-header-color'
+import type { Repo } from '../../../../../shared/repository/repo-types'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
 import '../../sidebar/workspace-card/activity/worktree-card-empty-inputs'
 import CommentMarkdown from '../../comment-markdown/CommentMarkdown'
 import { EventTime, ThreadAgentStateIndicator } from './activity-thread-controls'
@@ -22,6 +26,7 @@ import {
   SessionPriorityBadge,
   SessionSavedMarker,
   SessionUnreadDot,
+  SessionWorkPriorityShiftChip,
   sessionAttentionMetadataClass,
   sessionAttentionSurfaceClass
 } from '@/attention/session-attention-components'
@@ -65,9 +70,38 @@ function ActivityThreadRowAction({
   )
 }
 
+function ActivityThreadProjectIcon({ repo }: { repo: Repo | null }): React.JSX.Element {
+  const t = useTranslate()
+  const label = repo
+    ? repo.displayName
+    : t('auto.components.activity.ActivityThreadRow.noProject', 'No project')
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="mr-1 inline-flex shrink-0 align-[-2px]" role="img" aria-label={label}>
+          {repo ? (
+            <RepoIconGlyph
+              repoIcon={repo.repoIcon}
+              color={resolveRepoHeaderColor(repo.badgeColor)}
+              className="size-3.25 shrink-0"
+              iconClassName="size-3.25"
+            />
+          ) : (
+            <Folder className="size-3.25 text-muted-foreground" aria-hidden />
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={4}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 // Stable thread/callback identities let memoized rows skip query, selection and grouping updates.
 export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   thread,
+  workPriorityShift,
   selected,
   multiSelected = false,
   onSelect,
@@ -80,6 +114,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   previewSuppressed = false
 }: {
   thread: AgentPaneThread
+  /** Work switch offset applied to this row's stored priority, from the list's grouping. */
+  workPriorityShift: number
   selected: boolean
   /** In the multi-selection and not the open row. */
   multiSelected?: boolean
@@ -145,6 +181,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
                   thread.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground'
                 )}
               >
+                <ActivityThreadProjectIcon repo={thread.repo} />
                 {taskTitle}
               </button>
               <EventTime
@@ -195,7 +232,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               {thread.unread ? (
                 <SessionUnreadDot sessionName={taskTitle} onMarkRead={() => onMarkRead(thread)} />
               ) : null}
-              <SessionPriorityBadge priority={thread.priority ?? 3} />
+              <SessionPriorityBadge priority={thread.priority ?? DEFAULT_SESSION_PRIORITY} />
+              <SessionWorkPriorityShiftChip shift={workPriorityShift} />
               {thread.savedMarker?.savedColor ? (
                 <SessionSavedMarker color={thread.savedMarker.savedColor} />
               ) : null}

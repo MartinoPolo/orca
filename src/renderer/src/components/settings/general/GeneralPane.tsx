@@ -29,6 +29,10 @@ import { GeneralConfirmationsSection } from './GeneralConfirmationsSection'
 import { GeneralSearchResults } from './GeneralSearchResults'
 import { getGeneralSubPageTitle, type GeneralSubPage } from './general-sub-pages'
 import { useOpenInMenuDraft } from './OpenInMenuSetting'
+import {
+  WorkProjectsFolderSetting,
+  getWorkProjectsFolderSearchEntry
+} from './WorkProjectsFolderSetting'
 
 export function getDesktopPlatformFromUserAgent(userAgent: string): 'darwin' | 'win32' | 'other' {
   if (userAgent.includes('Mac')) {
@@ -149,6 +153,8 @@ function GeneralRootSettings({
   const tabsEntries = getGeneralNavigationSearchEntries()
   const runtimeEntries = getGeneralProjectRuntimeSearchEntries()
   const showRuntime = shouldShowProjectRuntimeSection(wslSupportedPlatform, query, runtimeEntries)
+  const showWorkProjectsFolder =
+    showNavigation || matchesSettingsSearch(query, getWorkProjectsFolderSearchEntry(t))
   const autoSaveEntries = getGeneralEditorSearchDescriptors()
     .filter((descriptor) => descriptor.page === null)
     .map(({ entry }) => entry)
@@ -210,7 +216,7 @@ function GeneralRootSettings({
           </SearchableSetting>
         </SettingsGroup>
       ) : null}
-      {showNavigation || showRuntime ? (
+      {showNavigation || showRuntime || showWorkProjectsFolder ? (
         <SettingsGroup title={t('settings.general.workspaces.title', 'Workspaces')}>
           {showNavigation ? (
             <>
@@ -246,6 +252,9 @@ function GeneralRootSettings({
                 onClick={() => onSelectSubPage('open-in')}
               />
             </>
+          ) : null}
+          {showWorkProjectsFolder ? (
+            <WorkProjectsFolderSetting settings={settings} updateSettings={updateSettings} />
           ) : null}
           {showRuntime ? (
             <DefaultWindowsProjectRuntimeSetting

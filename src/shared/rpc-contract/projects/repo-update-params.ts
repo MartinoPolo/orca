@@ -94,6 +94,7 @@ export function createRepoUpdateSchema<T extends Readonly<Record<string, z.ZodTy
       hiddenAt: z.number().finite().nullable().optional(),
       projectGroupId: OptionalString.nullable().optional(),
       browserProfileId: OptionalString.nullable().optional(),
+      workProject: z.boolean().optional(),
       projectGroupOrder: OptionalFiniteNumber.nullable().optional(),
       sourceControlAi: RepoSourceControlAiOverrides,
       workspaceCleanupPolicy: RepoWorkspaceCleanupPolicyParam.optional()

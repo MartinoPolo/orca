@@ -1,8 +1,20 @@
 import { defineFixture } from '../../../component-fixtures/component-fixture'
 import { ActivityThreadRow } from './activity-thread-row'
 import type { AgentPaneThread } from '../threads/activity-thread-types'
+import type { Repo } from '../../../../../shared/repository/repo-types'
+import { WORK_PROJECT_PRIORITY_SHIFT } from '../../../../../shared/session-effective-priority'
 
-function thread(minutesAgo: number, unread: boolean): AgentPaneThread {
+const workRepo: Repo = {
+  id: 'fixture-repo',
+  path: '/projects/orca',
+  displayName: 'orca',
+  badgeColor: '#2563eb',
+  repoIcon: { type: 'lucide', name: 'Rocket' },
+  addedAt: 0,
+  workProject: true
+}
+
+function thread(minutesAgo: number, unread: boolean, repo: Repo | null = null): AgentPaneThread {
   return {
     paneKey: `activity-fixture-${minutesAgo}`,
     paneTitle: 'Make the agent activity timestamp easier to scan',
@@ -25,7 +37,7 @@ function thread(minutesAgo: number, unread: boolean): AgentPaneThread {
       sortOrder: 0,
       lastActivityAt: 0
     },
-    repo: null,
+    repo,
     tab: {
       id: 'fixture-tab',
       ptyId: null,
@@ -50,20 +62,23 @@ function thread(minutesAgo: number, unread: boolean): AgentPaneThread {
 function ActivityCards({ compactMode = false }: { compactMode?: boolean }) {
   return (
     <div className="space-y-2 bg-background p-2 text-foreground">
-      {[thread(2, true), thread(125, false), thread(3000, false)].map((entry, index) => (
-        <ActivityThreadRow
-          key={entry.paneKey}
-          thread={entry}
-          selected={index === 1}
-          compactMode={compactMode}
-          canJump
-          previewSuppressed
-          onSelect={() => {}}
-          onJump={() => {}}
-          onMarkRead={() => {}}
-          onClear={() => {}}
-        />
-      ))}
+      {[thread(2, true, workRepo), thread(125, false), thread(3000, false, workRepo)].map(
+        (entry, index) => (
+          <ActivityThreadRow
+            key={entry.paneKey}
+            thread={entry}
+            workPriorityShift={entry.repo?.workProject ? WORK_PROJECT_PRIORITY_SHIFT : 0}
+            selected={index === 1}
+            compactMode={compactMode}
+            canJump
+            previewSuppressed
+            onSelect={() => {}}
+            onJump={() => {}}
+            onMarkRead={() => {}}
+            onClear={() => {}}
+          />
+        )
+      )}
     </div>
   )
 }

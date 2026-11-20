@@ -113,6 +113,8 @@ export type Repo = {
   dictationTerms?: DictationTerm[]
   /** Browser profile new tabs in this repo use, on the repo's own host. Absent follows the Browser setting. */
   browserProfileId?: string
+  /** Work projects shift with the Activity Work switch; stored in Orca's repo record so SSH repos keep it. */
+  workProject?: boolean
 }
 
 /** Shared IPC shape for repos:getBaseRefDefault across main/preload/renderer; remoteCount avoids a second hint lookup. */
