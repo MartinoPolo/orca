@@ -36,7 +36,8 @@ export const MOBILE_WEB_APP_HOST_CATALOG_MAX_BYTES = 384 * 1024
 // manifest-contract.ts); routes are split and the entry is capped below, so no one asset nears 10 MiB.
 // 10.75 MiB: dropping duplicate package builds took the page to 10,815,616 bytes (2026-11-19). The fence
 // drops with it so those 198 KiB stay saved; the 446 KiB left is about what the phone parity round had.
-export const MOBILE_WEB_APP_BUNDLE_MAX_TOTAL_BYTES = 10.75 * 1024 * 1024
+// Fork: +0.05 MiB for fork code shared into the phone page; upstream growth used its headroom.
+export const MOBILE_WEB_APP_BUNDLE_MAX_TOTAL_BYTES = 10.8 * 1024 * 1024
 
 // Only these licensed terminal fonts have their own allowance; other fonts (KaTeX's) and code count.
 // The page fetches each only when the terminal draws with it, so none weighs on first open.
