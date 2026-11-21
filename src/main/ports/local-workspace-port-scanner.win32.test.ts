@@ -2,12 +2,11 @@ import { createServer, type Server } from 'node:net'
 import { afterEach, expect, it, vi } from 'vitest'
 
 vi.mock('./port-scan-command-client', async () => {
-  const { join } = await import('node:path')
   const { runProcess } = await import('@orca/process-host')
   return {
     runPortScanCommand: async (command: string, args: string[]) => {
       const result = await runProcess({
-        program: join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', `${command}.exe`),
+        program: command,
         args,
         timeoutMs: 10_000
       })

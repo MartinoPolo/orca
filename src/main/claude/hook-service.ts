@@ -290,18 +290,17 @@ export class ClaudeHookService {
   /** A `configDir` removes only that profile root's entries; shared files stay for the default home. */
   remove(configDir?: string): AgentHookInstallStatus {
     const refused = refuseProfileAtDefaultHome(this.options, configDir)
-    if (refused) {
-      return refused
-    }
     const configPath = getConfigPath(this.options.settings, configDir)
-    const config = readHooksJson(configPath)
+    const config = refused ? null : readHooksJson(configPath)
     if (!config) {
       return {
         agent: this.options.agent,
         state: 'error',
         configPath,
         managedHooksPresent: false,
-        detail: `Could not parse ${this.options.displayName} settings.json`
+        detail: `Could not parse ${this.options.displayName} settings.json`,
+        // A profile resolving to the default home is refused before its hooks are read.
+        ...refused
       }
     }
     const { config: hooksRemoved, changed: hooksChanged } = removeManagedHooks(

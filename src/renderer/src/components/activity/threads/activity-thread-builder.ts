@@ -22,15 +22,25 @@ import {
   resolveAttentionStartedAt
 } from './session-attention-presentation'
 
+type PaneThreadInputs = {
+  events: readonly ActivityEvent[]
+  live: ActivityLiveAgentSnapshot | undefined
+  paneEntry: AgentStatusEntry | undefined
+}
+
 /** Reuse unchanged thread objects and list identity so memoized rows/search caches survive unrelated store writes. */
 export type AgentPaneThreadReuseCache = {
-  previousByPaneKey: Map<string, AgentPaneThread>
+  previousByPaneKey: Map<string, PaneThreadInputs & { thread: AgentPaneThread }>
   previousList: AgentPaneThread[]
+  generatedTitlesEnabled?: boolean
+  sessionAttention?: SessionAttentionInputs
 }
 
 export function createAgentPaneThreadReuseCache(): AgentPaneThreadReuseCache {
   return { previousByPaneKey: new Map(), previousList: [] }
 }
+
+const NO_EVENTS: readonly ActivityEvent[] = []
 
 function arrayItemsEqual<T>(a: readonly T[], b: readonly T[]): boolean {
   if (a.length !== b.length) {
@@ -79,6 +89,155 @@ function reuseThreadIfEqual(
   return next
 }
 
+/** One pane's thread from its events (newest first) and live turn. */
+function buildPaneThread(
+  paneKey: string,
+  { events, live, paneEntry }: PaneThreadInputs,
+  generatedTitlesEnabled: boolean
+): AgentPaneThread {
+  let thread: AgentPaneThread | undefined
+  for (const event of events) {
+    if (!thread) {
+      thread = {
+        paneKey,
+        paneTitle: paneTitleForEvent(event, generatedTitlesEnabled),
+        worktree: event.worktree,
+        repo: event.repo,
+        tab: event.tab,
+        projectedTab: event.projectedTab,
+        agentType: event.agentType,
+        currentAgentState: null,
+        currentAgentEntry: null,
+        paneEntry,
+        responsePreview: statusPreviewForEntry(event.entry, event.state),
+        latestTimestamp: event.timestamp,
+        latestEvent: event,
+        events: [event],
+        migrationUnsupportedPtyId: event.migrationUnsupportedPtyId,
+        unread: event.unread
+      }
+      continue
+    }
+    thread.events.push(event)
+    thread.unread = thread.unread || event.unread
+    thread.migrationUnsupportedPtyId =
+      thread.migrationUnsupportedPtyId ?? event.migrationUnsupportedPtyId
+    // Why max, not the latest event's: "Clear completed" cuts off at this, and must pass every event.
+    thread.latestTimestamp = Math.max(thread.latestTimestamp, event.timestamp)
+    if (!thread.latestEvent || event.observedAt > thread.latestEvent.observedAt) {
+      thread.latestEvent = event
+      thread.paneTitle = paneTitleForEvent(event, generatedTitlesEnabled)
+      thread.agentType = event.agentType
+      thread.tab = event.tab
+      thread.projectedTab = event.projectedTab
+      thread.responsePreview = statusPreviewForEntry(
+        event.entry,
+        event.state,
+        thread.responsePreview
+      )
+    }
+  }
+
+  if (live && !thread) {
+    thread = {
+      paneKey,
+      paneTitle: paneTitleForEntry(live.entry, live.tab, generatedTitlesEnabled),
+      worktree: live.worktree,
+      repo: live.repo,
+      tab: live.tab,
+      projectedTab: live.projectedTab,
+      agentType: live.agentType,
+      currentAgentState: live.state,
+      currentAgentEntry: live.entry,
+      paneEntry,
+      responsePreview: statusPreviewForEntry(live.entry, live.entry.state),
+      latestTimestamp: live.timestamp,
+      latestEvent: null,
+      events: [],
+      migrationUnsupportedPtyId: live.migrationUnsupportedPtyId,
+      unread: false
+    }
+  } else if (live && thread) {
+    // Why: row title/time/target must follow the active turn (not historical events) so a running agent never shows the previous prompt as primary.
+    thread.paneTitle = paneTitleForEntry(live.entry, live.tab, generatedTitlesEnabled)
+    thread.worktree = live.worktree
+    thread.repo = live.repo
+    thread.tab = live.tab
+    thread.projectedTab = live.projectedTab
+    thread.agentType = live.agentType
+    thread.currentAgentState = live.state
+    thread.currentAgentEntry = live.entry
+    thread.migrationUnsupportedPtyId ??= live.migrationUnsupportedPtyId
+    thread.responsePreview = statusPreviewForEntry(
+      live.entry,
+      live.entry.state,
+      thread.responsePreview
+    )
+    thread.latestTimestamp = live.timestamp
+  }
+  // Every listed pane has an event or a live turn.
+  const built = thread!
+  return { ...built, events: [...built.events].sort((a, b) => b.observedAt - a.observedAt) }
+}
+
+type SessionAttentionInputs = {
+  metadataByIdentity: Record<string, SessionAttentionMetadata> | undefined
+  defaultHostId: ExecutionHostId | undefined
+}
+
+/** Adds the session identity, priority, saved marker and attention-queue standing. */
+function withSessionAttention(
+  thread: AgentPaneThread,
+  { metadataByIdentity, defaultHostId }: SessionAttentionInputs
+): AgentPaneThread {
+  const entry = thread.currentAgentEntry ?? thread.latestEvent?.entry
+  const identity = entry
+    ? resolveSessionAttentionIdentity({
+        workspaceId: thread.worktree.id,
+        agentType: thread.agentType,
+        entry,
+        terminalTab: thread.tab,
+        projectedTab: thread.projectedTab,
+        resolveFallbackExecutionHostId: () =>
+          resolveSessionAttentionWorkspaceFallback({
+            worktree: thread.worktree,
+            repo: thread.repo ?? undefined,
+            defaultHostId
+          })
+      })
+    : null
+  const metadata = identity
+    ? findSessionAttentionMetadata(metadataByIdentity ?? {}, identity)
+    : undefined
+  const savedMarker = metadata?.savedColor
+    ? { savedColor: metadata.savedColor, savedAt: metadata.savedAt }
+    : null
+  const status = activityThreadStatusId(thread)
+  const statusStartedAt =
+    thread.currentAgentEntry?.stateStartedAt ?? thread.latestEvent?.timestamp ?? null
+  const supportsStatusAttention = thread.migrationUnsupportedPtyId === undefined
+  const unread = supportsStatusAttention && thread.unread
+  return {
+    ...thread,
+    sessionIdentity: identity?.sessionIdentity ?? null,
+    priority: metadata?.priority ?? 3,
+    savedMarker,
+    attentionStartedAt: resolveAttentionStartedAt({
+      status,
+      unread,
+      statusStartedAt: metadata?.attentionEpisodeStartedAt ?? statusStartedAt,
+      savedAt: savedMarker?.savedAt,
+      supportsStatusAttention
+    }),
+    attentionEligible: isAttentionQueueEligible({
+      status,
+      unread,
+      saved: savedMarker !== null,
+      supportsStatusAttention
+    })
+  }
+}
+
 export function buildAgentPaneThreads(
   args: {
     events: ActivityEvent[]
@@ -91,159 +250,59 @@ export function buildAgentPaneThreads(
   reuseCache?: AgentPaneThreadReuseCache
 ): AgentPaneThread[] {
   const generatedTitlesEnabled = args.generatedTitlesEnabled === true
-  const byPaneKey = new Map<string, AgentPaneThread>()
+  const sessionAttention: SessionAttentionInputs = {
+    metadataByIdentity: args.sessionAttentionMetadataByIdentity,
+    defaultHostId: args.defaultHostId
+  }
+  // Panes list in first-event order, then live-only panes in live order.
+  const eventsByPaneKey = new Map<string, ActivityEvent[]>()
   for (const event of args.events) {
-    const paneKey = event.entry.paneKey
-    const existing = byPaneKey.get(paneKey)
-    if (!existing) {
-      byPaneKey.set(paneKey, {
-        paneKey,
-        paneTitle: paneTitleForEvent(event, generatedTitlesEnabled),
-        worktree: event.worktree,
-        repo: event.repo,
-        tab: event.tab,
-        projectedTab: event.projectedTab,
-        agentType: event.agentType,
-        currentAgentState: null,
-        currentAgentEntry: null,
-        paneEntry: args.paneEntryByPaneKey?.[paneKey],
-        responsePreview: statusPreviewForEntry(event.entry, event.state),
-        latestTimestamp: event.timestamp,
-        latestEvent: event,
-        events: [event],
-        migrationUnsupportedPtyId: event.migrationUnsupportedPtyId,
-        unread: event.unread,
-        sessionIdentity: null,
-        priority: 3,
-        savedMarker: null,
-        attentionStartedAt: null,
-        attentionEligible: false
-      })
-      continue
+    const paneEvents = eventsByPaneKey.get(event.entry.paneKey)
+    if (paneEvents) {
+      paneEvents.push(event)
+    } else {
+      eventsByPaneKey.set(event.entry.paneKey, [event])
     }
-    existing.events.push(event)
-    existing.unread = existing.unread || event.unread
-    existing.migrationUnsupportedPtyId =
-      existing.migrationUnsupportedPtyId ?? event.migrationUnsupportedPtyId
-    // Why max, not the latest event's: "Clear completed" cuts off at this, and must pass every event.
-    existing.latestTimestamp = Math.max(existing.latestTimestamp, event.timestamp)
-    if (!existing.latestEvent || event.observedAt > existing.latestEvent.observedAt) {
-      existing.latestEvent = event
-      existing.paneTitle = paneTitleForEvent(event, generatedTitlesEnabled)
-      existing.agentType = event.agentType
-      existing.tab = event.tab
-      existing.projectedTab = event.projectedTab
-      existing.responsePreview = statusPreviewForEntry(
-        event.entry,
-        event.state,
-        existing.responsePreview
-      )
+  }
+  const paneKeys = Array.from(eventsByPaneKey.keys())
+  for (const paneKey of Object.keys(args.liveAgentByPaneKey)) {
+    if (!eventsByPaneKey.has(paneKey)) {
+      paneKeys.push(paneKey)
     }
   }
 
-  for (const [paneKey, liveAgent] of Object.entries(args.liveAgentByPaneKey)) {
-    const existing = byPaneKey.get(paneKey)
-    if (!existing) {
-      byPaneKey.set(paneKey, {
-        paneKey,
-        paneTitle: paneTitleForEntry(liveAgent.entry, liveAgent.tab, generatedTitlesEnabled),
-        worktree: liveAgent.worktree,
-        repo: liveAgent.repo,
-        tab: liveAgent.tab,
-        projectedTab: liveAgent.projectedTab,
-        agentType: liveAgent.agentType,
-        currentAgentState: liveAgent.state,
-        currentAgentEntry: liveAgent.entry,
-        paneEntry: args.paneEntryByPaneKey?.[paneKey],
-        responsePreview: statusPreviewForEntry(liveAgent.entry, liveAgent.entry.state),
-        latestTimestamp: liveAgent.timestamp,
-        latestEvent: null,
-        events: [],
-        migrationUnsupportedPtyId: liveAgent.migrationUnsupportedPtyId,
-        unread: false,
-        sessionIdentity: null,
-        priority: 3,
-        savedMarker: null,
-        attentionStartedAt: null,
-        attentionEligible: false
-      })
-      continue
-    }
-    // Why: row title/time/target must follow the active turn (not historical events) so a running agent never shows the previous prompt as primary.
-    existing.paneTitle = paneTitleForEntry(liveAgent.entry, liveAgent.tab, generatedTitlesEnabled)
-    existing.worktree = liveAgent.worktree
-    existing.repo = liveAgent.repo
-    existing.tab = liveAgent.tab
-    existing.projectedTab = liveAgent.projectedTab
-    existing.agentType = liveAgent.agentType
-    existing.currentAgentState = liveAgent.state
-    existing.currentAgentEntry = liveAgent.entry
-    existing.migrationUnsupportedPtyId ??= liveAgent.migrationUnsupportedPtyId
-    existing.responsePreview = statusPreviewForEntry(
-      liveAgent.entry,
-      liveAgent.entry.state,
-      existing.responsePreview
-    )
-    existing.latestTimestamp = liveAgent.timestamp
-  }
-
-  const built = Array.from(byPaneKey.values())
-    .map((thread) => {
-      const entry = thread.currentAgentEntry ?? thread.latestEvent?.entry
-      const identity = entry
-        ? resolveSessionAttentionIdentity({
-            workspaceId: thread.worktree.id,
-            agentType: thread.agentType,
-            entry,
-            terminalTab: thread.tab,
-            projectedTab: thread.projectedTab,
-            resolveFallbackExecutionHostId: () =>
-              resolveSessionAttentionWorkspaceFallback({
-                worktree: thread.worktree,
-                repo: thread.repo ?? undefined,
-                defaultHostId: args.defaultHostId
-              })
-          })
-        : null
-      const sessionIdentity = identity?.sessionIdentity ?? null
-      const metadata = identity
-        ? findSessionAttentionMetadata(args.sessionAttentionMetadataByIdentity ?? {}, identity)
-        : undefined
-      const savedMarker = metadata?.savedColor
-        ? { savedColor: metadata.savedColor, savedAt: metadata.savedAt }
-        : null
-      const nextWithEvents: AgentPaneThread = {
-        ...thread,
-        events: [...thread.events].sort((a, b) => b.observedAt - a.observedAt),
-        sessionIdentity,
-        priority: metadata?.priority ?? 3,
-        savedMarker,
-        attentionStartedAt: null,
-        attentionEligible: false
+  // A thread depends only on its pane's inputs, so unchanged panes keep their thread without rebuilding it.
+  const reusable =
+    reuseCache?.generatedTitlesEnabled === generatedTitlesEnabled &&
+    reuseCache.sessionAttention?.metadataByIdentity === sessionAttention.metadataByIdentity &&
+    reuseCache.sessionAttention?.defaultHostId === sessionAttention.defaultHostId
+  const nextByPaneKey = new Map<string, PaneThreadInputs & { thread: AgentPaneThread }>()
+  const built = paneKeys
+    .map((paneKey) => {
+      const inputs: PaneThreadInputs = {
+        events: eventsByPaneKey.get(paneKey) ?? NO_EVENTS,
+        live: Object.hasOwn(args.liveAgentByPaneKey, paneKey)
+          ? args.liveAgentByPaneKey[paneKey]
+          : undefined,
+        paneEntry: args.paneEntryByPaneKey?.[paneKey]
       }
-      const status = activityThreadStatusId(nextWithEvents)
-      const statusStartedAt =
-        nextWithEvents.currentAgentEntry?.stateStartedAt ??
-        nextWithEvents.latestEvent?.timestamp ??
-        null
-      const supportsStatusAttention = nextWithEvents.migrationUnsupportedPtyId === undefined
-      const next: AgentPaneThread = {
-        ...nextWithEvents,
-        attentionStartedAt: resolveAttentionStartedAt({
-          status,
-          unread: supportsStatusAttention && nextWithEvents.unread,
-          statusStartedAt: metadata?.attentionEpisodeStartedAt ?? statusStartedAt,
-          savedAt: savedMarker?.savedAt,
-          supportsStatusAttention
-        }),
-        attentionEligible: isAttentionQueueEligible({
-          status,
-          unread: supportsStatusAttention && nextWithEvents.unread,
-          saved: savedMarker !== null,
-          supportsStatusAttention
-        })
-      }
-      return reuseThreadIfEqual(reuseCache?.previousByPaneKey.get(thread.paneKey), next)
+      const previous = reuseCache?.previousByPaneKey.get(paneKey)
+      const thread =
+        reusable &&
+        previous !== undefined &&
+        previous.live === inputs.live &&
+        previous.paneEntry === inputs.paneEntry &&
+        arrayItemsEqual(previous.events, inputs.events)
+          ? previous.thread
+          : reuseThreadIfEqual(
+              previous?.thread,
+              withSessionAttention(
+                buildPaneThread(paneKey, inputs, generatedTitlesEnabled),
+                sessionAttention
+              )
+            )
+      nextByPaneKey.set(paneKey, { ...inputs, thread })
+      return thread
     })
     .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
 
@@ -252,6 +311,8 @@ export function buildAgentPaneThreads(
   }
   const result = arrayItemsEqual(reuseCache.previousList, built) ? reuseCache.previousList : built
   reuseCache.previousList = result
-  reuseCache.previousByPaneKey = new Map(result.map((thread) => [thread.paneKey, thread]))
+  reuseCache.previousByPaneKey = nextByPaneKey
+  reuseCache.generatedTitlesEnabled = generatedTitlesEnabled
+  reuseCache.sessionAttention = sessionAttention
   return result
 }

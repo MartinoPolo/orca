@@ -21,11 +21,9 @@ import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/workspace/ownership
 import { snapshotAgentTabLaunchArgs } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab-args'
 import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
 import { launchAgentInWebHostTab } from '@/lib/agent-session/launch/new-tab/launch-agent-web-host-tab'
-import { resolveAgentStartupPlanInputs } from '../../../../../../shared/agent-launch/startup/agent-startup-plan-inputs'
 import { readAgentLaunchPreferencesForWorktree } from '@/runtime/agent-launch-settings/use-host-agent-launch-preferences'
 import { TUI_AGENT_CONFIG } from '../../../../../../shared/agent-launch/catalog/tui-agent-config'
-import { resolveAgentProfileLaunchInputs } from '@/lib/agent-profile-launch-inputs'
-import { CLIENT_PLATFORM } from '@/lib/workspace/creation/new-workspace'
+import { createProfileStartupInputsResolver } from './launch-agent-in-new-tab-profile-startup'
 import {
   agentTabLaunchStore,
   resolveAgentLaunchExecutionContext
@@ -163,48 +161,33 @@ function openAgentInNewTab(
   if (argsProblem) {
     return refuseAgentTabLaunch(args, argsProblem, () => toast.error(argsProblem), notifyFailure)
   }
-  const agentProfileInputs = resolveAgentProfileLaunchInputs({
-    agent,
-    profile: agentLaunchProfile,
-    state: store,
-    worktreeId,
-    resolvedLaunchPlatform,
-    clientPlatform: CLIENT_PLATFORM,
-    commandOverrides: {},
-    environment: {}
-  })
-  if (!agentProfileInputs.ok) {
-    args.focusIntent?.cancel()
+  const resolveStartupInputs = createProfileStartupInputsResolver(
+    store,
+    args,
+    resolvedLaunchPlatform
+  )
+  args.focusIntent?.cancel()
+  if (!resolveStartupInputs) {
     return null
   }
   const buildStartup = (
     agentLaunchChoices = readAgentLaunchPreferencesForWorktree(store, worktreeId).agentLaunchChoices
-  ) => {
-    const base = resolveAgentStartupPlanInputs({
-      agent,
-      settings: {
-        ...store.settings,
-        agentLaunchChoices,
-        agentCmdOverrides: {
-          ...store.settings?.agentCmdOverrides,
-          ...agentProfileInputs.commandOverrides
-        }
-      },
-      agentArgs,
-      sessionOptions,
-      sessionOptionsYieldToAgentArgs: args.sessionOptionsYieldToAgentArgs,
-      platform: resolvedLaunchPlatform,
-      shell: queuedShell,
-      isRemote
-    })
-    return planLaunchAgentStartupPrompt({
-      base: { ...base, agentEnv: { ...base.agentEnv, ...agentProfileInputs.environment } },
+  ) =>
+    planLaunchAgentStartupPrompt({
+      base: resolveStartupInputs({
+        agent,
+        settings: { ...store.settings, agentLaunchChoices },
+        agentArgs,
+        sessionOptions,
+        sessionOptionsYieldToAgentArgs: args.sessionOptionsYieldToAgentArgs,
+        platform: resolvedLaunchPlatform,
+        shell: queuedShell,
+        isRemote
+      }),
       prompt: trimmedPrompt,
       promptDelivery,
       isFollowupPath
     })
-  }
-  args.focusIntent?.cancel()
   const runtimeEnvironmentId = runtimeEnvironmentIdOrLocalUnlessTwin(store, worktreeId)
   if (isWebRuntimeSessionActive(runtimeEnvironmentId)) {
     if (beforeSurfaceOpen?.({ kind: 'host-published' }) === false) {
@@ -218,7 +201,6 @@ function openAgentInNewTab(
       groupId,
       cwd: initialCwd,
       ...(trustWorktreeId ? { trustWorktreeId } : {}),
-      buildStartup,
       sessionOptions,
       prompt: trimmedPrompt,
       promptDelivery,

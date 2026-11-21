@@ -19,7 +19,7 @@ import {
   storedExtraAgentArgs
 } from '../../../shared/automations/launch/automation-extra-agent-args-record'
 import { storedAutomationAgentProfileId } from '../../../shared/automations/launch/automation-agent-profile'
-import { nextAutomationOccurrenceAfter } from '../../../shared/automations/scheduling/automation-schedule-occurrences'
+import { settleAutomationTriggers } from '../../webhooks/webhook-rule-check'
 import { deriveAutomationExecutionTargetForCreate } from '../../../shared/automations/ownership/automation-execution-target'
 import {
   assertAutomationDestination,
@@ -33,6 +33,8 @@ import {
   normalizeAutomationSessionReuse,
   normalizeAutomationSetupDecisionForWorkspaceMode
 } from './automation-context-migration'
+import { firstAutomationRunAt } from './automation-schedule-operations'
+import { botAndTriggerFields } from './automation-bot-trigger-fields'
 import { refuseManagedOrcadHost } from '../../automations/ownership/orcad-fenced-automation'
 import {
   automationProjectionContext,
@@ -58,7 +60,8 @@ export function listAutomations(state: PersistedState): Automation[] {
 export function createAutomation(
   operations: AutomationDefinitionOperations,
   input: AutomationCreateInput,
-  options?: { destination?: AutomationDestination; resolvedRepo?: Repo }
+  // id: chosen by a caller that registered it elsewhere first (a webhook's mint).
+  options?: { destination?: AutomationDestination; id?: string; resolvedRepo?: Repo }
 ): Automation {
   if (input.creationKey) {
     const existing = (operations.state.automations ?? []).find(
@@ -77,14 +80,17 @@ export function createAutomation(
   const now = Date.now()
   const workspaceId = input.workspaceMode === 'existing' ? (input.workspaceId ?? null) : null
   const workspaceSshPin = automationWorkspaceSshPin(operations.state, workspaceId)
-  const executionTarget = deriveAutomationExecutionTargetForCreate({
-    repo,
-    sshTargetGeneration: sshTargetGenerationForConnection(
-      operations.state,
-      repo ? getRepoSshConnectionId(repo) : undefined
-    ),
-    workspaceSshPin
-  })
+  // v1 bots live on this computer and have no project to derive a host from.
+  const executionTarget = input.bot
+    ? ({ executionTargetType: 'local', executionTargetId: 'local' } as const)
+    : deriveAutomationExecutionTargetForCreate({
+        repo,
+        sshTargetGeneration: sshTargetGenerationForConnection(
+          operations.state,
+          repo ? getRepoSshConnectionId(repo) : undefined
+        ),
+        workspaceSshPin
+      })
   refuseManagedOrcadHost(operations.state, executionTarget, workspaceSshPin)
   if (options?.destination) {
     const context = automationProjectionContext(
@@ -101,7 +107,7 @@ export function createAutomation(
   const extraAgentArgs = storedExtraAgentArgs(setup.extraAgentArgs)
   const agentProfileId = storedAutomationAgentProfileId(input.agentId, input.agentProfileId)
   const automation: Automation = {
-    id: randomUUID(),
+    id: options?.id ?? randomUUID(),
     ...automationCreateIdentity(input),
     name: input.name.trim() || 'Untitled automation',
     prompt: input.prompt,
@@ -117,6 +123,7 @@ export function createAutomation(
     // Prefer authority-local contexts; client-assigned runtime IDs cannot identify this store's host.
     runContext: contexts.runContext ?? input.runContext ?? null,
     sourceContext: contexts.sourceContext ?? input.sourceContext ?? null,
+    ...botAndTriggerFields(input),
     projectId: input.projectId,
     ...executionTarget,
     schedulerOwner,
@@ -132,7 +139,7 @@ export function createAutomation(
     rrule: input.rrule,
     dtstart: input.dtstart,
     enabled: input.enabled ?? true,
-    nextRunAt: nextAutomationOccurrenceAfter(input.rrule, input.dtstart, now),
+    nextRunAt: firstAutomationRunAt(input, operations.storageAuthority, now),
     missedRunPolicy: 'run_once_within_grace',
     missedRunGraceMinutes: input.missedRunGraceMinutes ?? 720,
     createdAt: now,
@@ -140,6 +147,7 @@ export function createAutomation(
   }
   applyAutomationSetupTrust(automation, input)
   assertAutomationExtraAgentArgs(automation)
+  settleAutomationTriggers(automation)
   operations.state.automations = [...(operations.state.automations ?? []), automation]
   operations.recordCreated()
   operations.flush()

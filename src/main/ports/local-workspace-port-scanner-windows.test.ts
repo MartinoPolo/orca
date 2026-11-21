@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { windowsSystem32Binary } from '@orca/process-host/windows-system-binary'
 import { scanWorkspacePorts } from './local-workspace-port-scanner'
 import { resetWorkspacePortScanTimeoutBackoffForTests } from './local-workspace-port-scan-state'
 
@@ -81,7 +82,9 @@ describe('Windows desktop workspace port scanning', () => {
     })
 
     expect(runPortScanCommandMock).toHaveBeenCalledOnce()
-    expect(runPortScanCommandMock).toHaveBeenCalledWith('netstat', ['-ano'])
+    expect(runPortScanCommandMock).toHaveBeenCalledWith(windowsSystem32Binary('netstat.exe'), [
+      '-ano'
+    ])
     expect(scan.ports).toHaveLength(7)
     expect(scan.ports.filter((port) => port.pid === 4101)).toHaveLength(5)
     expect(scan.ports.filter((port) => port.pid === 4102)).toHaveLength(1)

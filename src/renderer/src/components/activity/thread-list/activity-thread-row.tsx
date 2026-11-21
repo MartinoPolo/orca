@@ -17,8 +17,11 @@ import { EventTime, ThreadAgentStateIndicator } from './activity-thread-controls
 import { ActivityThreadHoverCard } from '../thread-preview/activity-thread-hover-card'
 import {
   activityThreadRowCopy,
+  activityThreadRowIdentity,
   activityThreadStatusId
 } from '../threads/activity-thread-presentation'
+import { ProjectChip } from '@/components/repo/project-chip'
+import type { ActivityGroupBy } from '../../../../../shared/agent-status/presentation/agents-view-thread-filters'
 import type { AgentPaneThread } from '../threads/activity-thread-types'
 import type { ActivityThreadClickEvent } from './use-activity-thread-selection'
 import { sessionAttentionTone } from '../threads/session-attention-presentation'
@@ -111,7 +114,8 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   canJump,
   compactMode,
   showJumpAction = true,
-  previewSuppressed = false
+  previewSuppressed = false,
+  groupBy = 'none'
 }: {
   thread: AgentPaneThread
   /** Work switch offset applied to this row's stored priority, from the list's grouping. */
@@ -127,11 +131,13 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   compactMode: boolean
   showJumpAction?: boolean
   previewSuppressed?: boolean
+  groupBy?: ActivityGroupBy
 }): React.JSX.Element {
   const t = useTranslate()
   useUiLanguageRevision()
   const { taskTitle, statusLine, statusKind, needsAttention, workspaceLabel } =
     activityThreadRowCopy(thread, t)
+  const { showProject, showWorkspace } = activityThreadRowIdentity(thread, groupBy)
   const showMarkdownStatus = statusKind === 'message'
   const agentLabel = formatAgentTypeLabel(thread.agentType)
   const attentionTone =
@@ -195,6 +201,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               showMarkdownStatus ? (
                 <CommentMarkdown
                   content={statusLine}
+                  singleTildeStrikethrough={false}
                   className={cn(
                     'min-w-0 break-words text-[13px] leading-5 text-foreground/80',
                     compactMode ? 'line-clamp-2' : 'line-clamp-3',
@@ -226,8 +233,19 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               <span className="inline-flex shrink-0" title={agentLabel}>
                 <AgentTypeIcon agentType={thread.agentType} size={13} />
               </span>
-              <span className="min-w-0 flex-1 truncate" title={workspaceLabel}>
-                {workspaceLabel}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                {showProject && thread.repo ? (
+                  // Why: the workspace name yields width first, keeping a few characters visible.
+                  <ProjectChip
+                    repo={thread.repo}
+                    className={showWorkspace ? 'max-w-[calc(100%-3rem)]' : 'max-w-full'}
+                  />
+                ) : null}
+                {showWorkspace ? (
+                  <span className="min-w-0 truncate" title={workspaceLabel}>
+                    {workspaceLabel}
+                  </span>
+                ) : null}
               </span>
               {thread.unread ? (
                 <SessionUnreadDot sessionName={taskTitle} onMarkRead={() => onMarkRead(thread)} />

@@ -147,7 +147,11 @@ describe('mouse encoding snapshot round trips', () => {
     const terminal = {
       cols: 10,
       rows: 5,
-      buffer: { active: { cursorX: 2, cursorY: 1 } },
+      modes: { insertMode: false },
+      buffer: {
+        active: { type: 'normal', cursorX: 2, cursorY: 1, baseY: 0, getLine: () => undefined },
+        normal: { length: 5 }
+      },
       _core: core
     }
     const serializer = { serialize: () => 'content' }
@@ -159,7 +163,11 @@ describe('mouse encoding snapshot round trips', () => {
     const terminal = {
       cols: 10,
       rows: 5,
-      buffer: { active: { cursorX: 2, cursorY: 1 } },
+      modes: { insertMode: false },
+      buffer: {
+        active: { type: 'normal', cursorX: 2, cursorY: 1, baseY: 0, getLine: () => undefined },
+        normal: { length: 5 }
+      },
       _core: { mouseStateService: { activeProtocol: 'FUTURE', activeEncoding: 'SGR' } }
     }
     const serializer = { serialize: () => 'content' }

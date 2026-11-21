@@ -1,7 +1,7 @@
 import { runProcessSync } from '@orca/process-host'
 import { mkdir, mkdtemp, realpath, rm, stat, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Repo } from '../../../shared/repository/repo-types'
@@ -129,8 +129,8 @@ describe('clone reuses only a project on this machine', () => {
 
       expect(second.id).toBe(first.id)
       expect(repos).toHaveLength(1)
-      // Why: the clone records the resolved path with forward slashes on Windows.
-      expect(resolve(first.path)).toBe(join(root, 'real', 'source'))
+      // Git for Windows answers `rev-parse --show-toplevel` with forward slashes.
+      expect(first.path).toBe(join(root, 'real', 'source').replaceAll('\\', '/'))
     })
 
     it('refuses a different repository at a saved project whose folder is gone', async () => {

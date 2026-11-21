@@ -18,7 +18,8 @@ export type AgentListStatus =
 
 /** How the desktop Agents list shows one agent pane; unlisted panes are not in the list at all. */
 export type AgentListVerdict =
-  | { listed: false }
+  /** `unread`: a closed chat's finished turn not yet read, for its chat row. */
+  | { listed: false; unread?: true }
   | {
       listed: true
       status: AgentListStatus

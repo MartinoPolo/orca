@@ -231,7 +231,8 @@ export type DirectSshAuthority = {
   connectionGeneration: number
 }
 
-export type SshConnectionState = {
+/** `remoteHomeDirectory` is the host's own login home; it resolves `~/` account profile roots without sending local paths. */
+export type SshConnectionState = { remoteHomeDirectory?: string } & {
   targetId: string
   status: SshConnectionStatus
   error: string | null
@@ -245,8 +246,6 @@ export type SshConnectionState = {
   supportsFolderDownload?: boolean
   /** Remote OS detected by the SSH relay once available. */
   remotePlatform?: SshRemotePlatform
-  /** The host's own login home; resolves `~/` account profile roots without sending local paths. */
-  remoteHomeDirectory?: string
   /** Set while connected without the Orca remote server (runtime ladder rung D). */
   plainSsh?: SshPlainSshMode
   /** Set while the relay runs on the opt-in host-Node runtime, an unsupported configuration. */

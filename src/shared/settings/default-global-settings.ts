@@ -14,7 +14,7 @@ import { DEFAULT_NATIVE_CHAT_IDLE_STOP_MINUTES } from '../native-chat/settings/n
 import { DEFAULT_BROWSER_MEMORY_SAVER_HOURS } from '../browser/guest-lifecycle/browser-memory-saver'
 import { DEFAULT_DISABLED_TUI_AGENTS } from '../agent-launch/catalog/tui-agent-selection'
 import { UI_LANGUAGE_SYSTEM } from '../i18n/ui-language'
-import { FILE_LINK_SYSTEM_APP_KINDS } from '../file-link-system-app-kinds'
+import { buildDefaultAgentWorkflowSettings } from './default-agent-workflow-settings'
 import {
   DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
   DEFAULT_LEFT_SIDEBAR_TINT_OPACITY
@@ -39,6 +39,7 @@ export function buildDefaultSettings(args: {
   voice: VoiceSettings
 }): GlobalSettings {
   return {
+    ...buildDefaultAgentWorkflowSettings(),
     workspaceDir: args.workspaceDir,
     worktreeVisibilityDefaults: { external: 'hide' },
     workspaceCleanupPolicy: getDefaultWorkspaceCleanupRules(),
@@ -98,6 +99,7 @@ export function buildDefaultSettings(args: {
     terminalLigatures: 'auto',
     // Lazy image addon stays off the critical path and creates canvas layers only on first image; decoder setup still has overhead.
     terminalInlineImages: true,
+    terminalDroppedImagesPreview: true,
     terminalCursorStyle: 'block',
     terminalCursorStyleDefaultedToBlock: true,
     terminalCursorBlink: true,
@@ -156,7 +158,6 @@ export function buildDefaultSettings(args: {
     terminalLinkActionPopoverEnabled: true,
     terminalLinkClickBehavior: 'actions',
     terminalUrlMiddleClickBehavior: 'open',
-    fileLinkSystemAppKinds: [...FILE_LINK_SYSTEM_APP_KINDS],
     browserExtensionsEnabled: true,
     agentDefaultSurface: 'terminal',
     nativeChatResumeWorkOnRestart: true,
@@ -165,8 +166,6 @@ export function buildDefaultSettings(args: {
     nativeChatIdleStopMinutes: DEFAULT_NATIVE_CHAT_IDLE_STOP_MINUTES,
     nativeChatInlineVisuals: true,
     nativeChatLinkPreviews: true,
-    prioritizeWorkProjects: true,
-    workProjectsFolder: '',
     nativeChatOpenedPullRequests: true,
     nativeChatScrollToLatestOnSend: true,
     nativeChatTurnDiffSummary: true,
@@ -184,6 +183,7 @@ export function buildDefaultSettings(args: {
     sourceControlCompareAgainstUpstream: false,
     prAutoRefresh: 'default',
     showTitlebarAppName: true,
+    linuxTilingWindowMode: false,
     showTasksButton: true,
     showAutomationsButton: true,
     artifactsEnabled: true,
@@ -203,6 +203,7 @@ export function buildDefaultSettings(args: {
     terminalShortcutPolicy: 'orca-first',
     floatingTerminalEnabled: true,
     browserClientHostedRemoteEnabled: true,
+    antigravityManagedAgyEnabled: true,
     floatingTerminalDefaultedForAllUsers: true,
     floatingTerminalCwd: '~',
     floatingTerminalTrustedCwds: [],
@@ -263,11 +264,8 @@ export function buildDefaultSettings(args: {
     geminiCliOAuthEnabled: false,
     claudeOAuthUsageEnabled: true,
     agentCmdOverrides: {},
-    piLaunchProfiles: [],
-    claudeLaunchProfiles: [],
     // Arguments hold only the user's own text; the permission flag comes from the choice below.
     agentDefaultArgs: {},
-    agentLinkedWorkItemPromptTemplates: {},
     agentLaunchChoices: {},
     agentDefaultEnv: {},
     agentYoloDefaultsMigrated: true,
@@ -289,6 +287,7 @@ export function buildDefaultSettings(args: {
     terminalJISYenToBackslash: false,
     experimentalMobile: false,
     mobileEmulatorEnabled: true,
+    botsEnabled: true,
     mobileEmulatorDefaultDeviceUdid: null,
     androidSdkPath: null,
     // Why: indefinite hold — the "Restore" banner is the explicit return action, no wall-clock guess. See docs/mobile-fit-hold.md.
@@ -305,9 +304,8 @@ export function buildDefaultSettings(args: {
     experimentalTerminalAttention: false,
     experimentalAgentHibernation: false,
     agentHibernationIdleMs: 30 * 60 * 1000,
-    experimentalNewWorktreeCardStyle: false,
+    experimentalNewWorktreeCardStyle: true,
     experimentalEphemeralVms: false,
-    experimentalConnectors: false,
     experimentalWslHosts: false,
     experimentalOrchestrationPanel: false,
     compactWorktreeCards: false,

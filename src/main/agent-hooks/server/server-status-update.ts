@@ -23,11 +23,11 @@ import {
   shouldKeepClaudePermissionVisible,
   withHeldChildWaitMainAgent
 } from './server-claude-status-rules'
-import { isForeignTurnHook } from './server-foreign-turn-hook'
-import { recordAgentHookSessionSwitch } from './agent-hook-session-switch-breadcrumb'
+import { isForeignTurnHookElseRecordSessionSwitch } from './agent-hook-session-switch-breadcrumb'
 import { resolveCancelVerdictLatch } from '../../../shared/agent-hook-listener/state/agent-hook-cancel-verdict-latch'
 
 import { claimsPaneAfterExit } from './agent-exit-evidence'
+import { resolvedHookAgentType } from './pane-agent-turn-continuity'
 
 export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusRowMutation {
   protected applyNormalizedStatus(
@@ -105,7 +105,7 @@ export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusR
       payload.payload.sessionBoundary === true &&
       !rootContext.acquired &&
       this.sameTerminalOwner(previous, payload) &&
-      this.preservesStoppingDone(previous.paneKey)
+      this.preservesStoppingAgent(previous.paneKey)
     ) {
       return previous
     }
@@ -116,12 +116,11 @@ export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusR
         : undefined)
     const terminalOwnedPayload =
       terminalHandle === payload.terminalHandle ? payload : { ...payload, terminalHandle }
-    if (previous && isForeignTurnHook(previous, terminalOwnedPayload)) {
+    if (previous && isForeignTurnHookElseRecordSessionSwitch(previous, terminalOwnedPayload)) {
       // A lagging Grok end or a relayed Codex side thread keeps the row, even across relay restart.
       this.commitStatusRowMutation(rowBefore, previous)
       return previous
     }
-    recordAgentHookSessionSwitch(previous, terminalOwnedPayload)
     const connectionClearWatermark = terminalOwnedPayload.connectionId
       ? this.connectionTimestampWatermarkById.get(terminalOwnedPayload.connectionId)
       : undefined
@@ -197,6 +196,10 @@ export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusR
     if (previous && stateReconciledPayload === previous) {
       return previous
     }
+    const resumed = this.preserveAcceptedTurn(previous, stateReconciledPayload, rowBefore, origin)
+    if (resumed !== null) {
+      return resumed
+    }
     // Relay restart loses root context; child hooks must not erase persisted resume/model identity.
     const rootContextPreservingPayload = retainHookRootContext(
       stateReconciledPayload,
@@ -205,13 +208,10 @@ export abstract class AgentHookServerStatusUpdate extends AgentHookServerStatusR
       !!previous && this.sameTerminalOwner(previous, stateReconciledPayload),
       rootContext.returningProviderSession
     )
-    const identityResolvedPayload =
-      identity.agentType === rootContextPreservingPayload.payload.agentType
-        ? rootContextPreservingPayload
-        : {
-            ...rootContextPreservingPayload,
-            payload: { ...rootContextPreservingPayload.payload, agentType: identity.agentType }
-          }
+    const identityResolvedPayload = resolvedHookAgentType(
+      rootContextPreservingPayload,
+      identity.agentType
+    )
     const attachedPayload = attachClaudePermissionToolUseId(previous, identityResolvedPayload)
     // Resolve cancellation before permission holds adopt a replayed main-agent observation.
     const latch = resolveCancelVerdictLatch(previous, attachedPayload, Date.now())

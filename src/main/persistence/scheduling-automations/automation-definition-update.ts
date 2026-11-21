@@ -14,7 +14,7 @@ import type {
 import { normalizeAutomationPrecheck } from '../../../shared/automations/launch/automation-precheck'
 import { assertAutomationExtraAgentArgs } from '../../../shared/automations/launch/automation-extra-agent-args-record'
 import { applyAutomationAgentProfileUpdate } from '../../../shared/automations/launch/automation-agent-profile'
-import { nextAutomationOccurrenceAfter } from '../../../shared/automations/scheduling/automation-schedule-occurrences'
+import { settleAutomationTriggers } from '../../webhooks/webhook-rule-check'
 import {
   applyAutomationExecutionTarget,
   deriveAutomationExecutionTargetForUpdate
@@ -33,6 +33,7 @@ import {
   applyAutomationSetupTrust,
   normalizeAutomationSetupDecisionForWorkspaceMode
 } from './automation-context-migration'
+import { updatedAutomationSchedule } from './automation-schedule-operations'
 import { refuseManagedOrcadHost } from '../../automations/ownership/orcad-fenced-automation'
 import {
   automationProjectionContext,
@@ -136,8 +137,9 @@ export function mergeAutomationUpdate(
     Object.entries(launchSetupUpdate).filter(([, value]) => value !== undefined)
   ) as Omit<AutomationUpdateInput, 'launchSetupPatch'> & Pick<Automation, 'surface'>
   const repoId = updates.projectId ?? current.projectId
+  // A bot's host is fixed, so a destination fence only checks it.
   const selectorMoveRequested =
-    updates.projectId !== undefined || options?.destination !== undefined
+    !current.bot && (updates.projectId !== undefined || options?.destination !== undefined)
   const repo = findAutomationRepoForWrite(
     operations.state.repos,
     repoId,
@@ -148,9 +150,6 @@ export function mergeAutomationUpdate(
   const schedulerOwner =
     selectorMoveRequested && repo ? getAutomationSchedulerOwner(repo) : current.schedulerOwner
   const contexts = getAutomationContextsForRepo(repo, operations.state.projectHostSetups ?? [])
-  const rrule = updates.rrule ?? current.rrule
-  const dtstart = updates.dtstart ?? current.dtstart
-  const scheduleChanged = updates.rrule !== undefined || updates.dtstart !== undefined
   const workspaceMode = updates.workspaceMode ?? current.workspaceMode
   const merged: Automation = {
     ...current,
@@ -203,11 +202,7 @@ export function mergeAutomationUpdate(
       workspaceMode === 'existing'
         ? (updates.reuseSession ?? current.reuseSession ?? false)
         : false,
-    rrule,
-    dtstart,
-    nextRunAt: scheduleChanged
-      ? nextAutomationOccurrenceAfter(rrule, dtstart, Date.now())
-      : current.nextRunAt,
+    ...updatedAutomationSchedule(current, definedUpdates, operations.storageAuthority),
     updatedAt: Date.now()
   }
   if (retainContexts && !Object.hasOwn(current, 'sourceContext')) {
@@ -221,6 +216,7 @@ export function mergeAutomationUpdate(
   Object.assign(merged, automationCanonicalLaunchSetup(launchSetupUpdate))
   applyAutomationAgentProfileUpdate(merged, definedUpdates, current)
   assertAutomationExtraAgentArgs(merged)
+  settleAutomationTriggers(merged)
   const previousPin = automationWorkspaceSshPin(operations.state, current.workspaceId)
   const workspaceSshPin = automationWorkspaceSshPin(operations.state, merged.workspaceId)
   const workspaceSshPinMoved = previousPin?.targetId !== workspaceSshPin?.targetId

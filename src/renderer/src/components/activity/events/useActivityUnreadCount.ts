@@ -42,8 +42,13 @@ export function countActivityUnread(source: ActivityUnreadCountSource, now = Dat
     }
   }
 
+  const { projection } = source.agentStatusByPaneKey
   for (const [paneKey, entry] of Array.from(source.agentStatusByPaneKey.entries())) {
     seenPaneKeys.add(paneKey)
+    // Panes with no workspace row have no Activity row to clear.
+    if (!projection.rowWorktree(paneKey)) {
+      continue
+    }
     countEntry(entry, source.acknowledgedAgentsByPaneKey[paneKey] ?? 0, true)
   }
   return count
@@ -55,7 +60,9 @@ const createActivityUnreadCountSelector = () =>
     (
       state: AppState,
       acknowledgedAgentsByPaneKey: AppState['acknowledgedAgentsByPaneKey'],
-      activityClearedAtByPaneKey: AppState['activityClearedAtByPaneKey']
+      activityClearedAtByPaneKey: AppState['activityClearedAtByPaneKey'],
+      // Closing a tab can drop a pane's row without a status write.
+      _rowOwnersRevision: number
     ) =>
       countActivityUnread({
         agentStatusByPaneKey: state.agentStatusByPaneKey,
@@ -70,7 +77,8 @@ export function useActivityUnreadCount(): number {
     selectActivityUnreadCount(
       state,
       state.acknowledgedAgentsByPaneKey,
-      state.activityClearedAtByPaneKey
+      state.activityClearedAtByPaneKey,
+      state.agentStatusByPaneKey.projection.rowOwnersRevision()
     )
   )
 }

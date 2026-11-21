@@ -3,6 +3,11 @@ import { isTuiAgent } from './agent-launch/catalog/tui-agent-config'
 
 export const ARTIFACT_URL_TEMPLATE_TOKEN = '{{artifact_url}}'
 
+export type AgentLinkedWorkItemPromptTemplateSettings = {
+  /** Per-agent draft template used when launching with a linked work-item URL. */
+  agentLinkedWorkItemPromptTemplates?: Partial<Record<TuiAgent, string>>
+}
+
 export function normalizeAgentLinkedWorkItemPromptTemplates(
   value: unknown
 ): Partial<Record<TuiAgent, string>> {

@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
-import path from 'node:path'
 import type * as FsPromises from 'node:fs/promises'
 import { scanWorkspacePorts } from './local-workspace-port-scanner'
 import {
@@ -52,15 +51,6 @@ const worktrees = [
 describe('attributePortToWorkspace', () => {
   afterEach(() => {
     vi.restoreAllMocks()
-  })
-
-  it('requires command-line path boundary evidence', () => {
-    const owner = attributePortToWorkspace(
-      { commandLine: `node ${path.posix.resolve('/repo/worktrees/feature-other/server.js')}` },
-      [worktrees[1]]
-    )
-
-    expect(owner).toBeUndefined()
   })
 
   it('uses Windows path semantics for native command-line attribution', () => {

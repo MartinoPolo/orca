@@ -1,4 +1,3 @@
-import { completeAutomationSave } from './automation-save-completion'
 import {
   recordedAutomationRunContext,
   isSameAutomationWorkspace
@@ -34,6 +33,7 @@ import {
   saveExistingAutomation
 } from './automation-orca-save-operations'
 import type { AutomationSaveContext } from './automation-save-context'
+import { completeAutomationSave } from './automation-save-completion'
 
 /** Saves an Orca automation, including destination validation and host moves. */
 export async function saveOrcaAutomation(

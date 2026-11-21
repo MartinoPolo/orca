@@ -3,6 +3,7 @@ import type { AgentProfileHostScope } from '../../../../shared/agent-launch-prof
 import type { AppState } from '@/store/types'
 import { getFolderWorkspaceAgentLaunchFact } from '@/components/sidebar/workspace-creation/folder/folder-workspace-agent-startup'
 import { resolveComposerProfileHostScope } from '@/lib/composer-agent-profile-target'
+import { readRuntimeStatuses } from '@/store/slices/runtime-status/views/runtime-status-owner'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host/execution-host'
 import type { ComposerModel } from './composer-model'
 
@@ -37,7 +38,7 @@ export function resolveComposerAgentProfileHostScope(
           executionHostId: getRepoExecutionHostId(group),
           connectionId: group.connectionId,
           runtimeEnvironmentId: state.folderTargetRuntimeEnvironmentId,
-          launchHost: getFolderWorkspaceAgentLaunchFact(store, group),
+          launchHost: getFolderWorkspaceAgentLaunchFact(store, readRuntimeStatuses(), group),
           ephemeralVmRecipeId: null,
           sshConnectionStates: store.sshConnectionStates
         })

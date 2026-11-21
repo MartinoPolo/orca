@@ -1,3 +1,5 @@
+import { getAutomaticUpdatesSettingCopy } from '../updates/automatic-updates-copy'
+import { isWebClientLocation } from '@/app-shell/platform/web-client-location'
 import { getGeneralConfirmationSearchEntries } from './general-confirmations-search'
 import { getWorkProjectsFolderSearchEntry } from './WorkProjectsFolderSetting'
 import { getGeneralSubPageTitle } from './general-sub-pages'
@@ -183,6 +185,7 @@ export const getGeneralCliSearchEntries = createLocalizedCatalog(() => [
 ])
 
 export const getGeneralUpdateSearchEntries = createLocalizedCatalog(() => [
+  ...(isWebClientLocation() ? [] : [getAutomaticUpdatesSettingCopy()]),
   {
     title: translate('auto.components.settings.general.search.0504f69ba0', 'Check for updates'),
     description: translate(

@@ -1,5 +1,9 @@
 import { linkedWorkItemPromptTemplateRowProps } from './linked-work-item-prompt-template-row-props'
+import { agentChoiceCatalogTarget } from './agent-choice-catalog-target'
 import { useAppStateValue } from '@/store/retained-views/app-state-view'
+import { useAppStateValueWithHostStatuses } from '@/store/slices/runtime-status/views/use-runtime-status-view'
+import { AgentCliUpdateButton } from '@/components/agent-cli-update/AgentCliUpdateButton'
+
 import { AgentLaunchChoiceEditor } from '@/components/agent/launch-settings/AgentLaunchChoiceEditor'
 import { agentChatPermissionModes } from '../../../../../../shared/agent-launch/permissions/agent-chat-permission-support'
 import { savedChatPermissionMode } from '../../../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
@@ -48,6 +52,7 @@ import {
   readChatProgram,
   resolveChatProgramContext
 } from '@/lib/agent-session/launch/inventory/host-chat-program'
+import { agentLaunchRouteStoreFor } from '@/lib/agent-session/launch/routing/agent-launch-route-input'
 import { readNativeDetectedAgents } from '@/store/slices/agent-inventory/local-detected-agent-store-state'
 import {
   useDetectedAgents,
@@ -70,6 +75,7 @@ import {
 } from '@/runtime/native-chat/agent-catalogs/chat-provider-agents'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../../../shared/execution-host/execution-host'
 import { useTranslate } from '@/i18n/use-translate'
+import { chatProgramInstalled } from '../../../../../../shared/agent-launch/picker/agent-launch-picker-rows'
 
 export type AgentPermissionsRenderer = (props: AgentPermissionsSettingProps) => React.ReactNode
 
@@ -119,11 +125,11 @@ export function AgentLaunchSettingsCatalog({
   useChatProgramFacts(workspace, detectionTarget.kind !== 'ssh')
   const chosen = settings.defaultTuiAgent
   // The saved default reads as available where it opens as a chat without its CLI.
-  const defaultOpensAsChat = useAppStateValue((state) =>
-    chosen && chosen !== 'blank' && detectionTarget.kind !== 'ssh'
-      ? agentChoiceOpensAsChat(state, chosen, workspace, detected)
-      : false
-  )
+  const defaultOpensAsChat = useAppStateValueWithHostStatuses((appState, statuses) => {
+    const state = agentLaunchRouteStoreFor(appState, statuses)
+    const opensAsChat = chosen && chosen !== 'blank' && detectionTarget.kind !== 'ssh'
+    return opensAsChat ? agentChoiceOpensAsChat(state, chosen, workspace, detected) : false
+  })
   // The chat-or-CLI choice is this computer's, so a paired host's page doesn't offer it.
   const chatAgents = local
     ? recomputeOn([hostAgentsVersion], () => chatProviderAgents(LOCAL_EXECUTION_HOST_ID, undefined))
@@ -132,17 +138,18 @@ export function AgentLaunchSettingsCatalog({
     managedRuntimeChatAgents(LOCAL_EXECUTION_HOST_ID, undefined)
   )
   // Agents whose chat program is here without their CLI, like a downloaded chat runtime, are installed for chat.
-  const chatOnlyKey = useAppStateValue((state) => {
+  const chatOnlyKey = useAppStateValueWithHostStatuses((appState, statuses) => {
     if (detectionTarget.kind === 'ssh') {
       return ''
     }
+    const state = agentLaunchRouteStoreFor(appState, statuses)
     const context = resolveChatProgramContext(state, workspace)
     const selectedDetected = detectionTarget.kind === 'runtime' ? detected : installedHere
-    return chatProviderAgents(context.executionHostId, state.runtimeStatusByEnvironmentId)
+    return chatProviderAgents(context.executionHostId, statuses)
       .filter(
         (agent) =>
           !selectedDetected?.includes(agent) &&
-          readChatProgram(state, agent, context, selectedDetected) === 'available'
+          chatProgramInstalled(readChatProgram(statuses, agent, context, selectedDetected))
       )
       .join(' ')
   })
@@ -235,6 +242,9 @@ export function AgentLaunchSettingsCatalog({
     agent: (typeof catalog)[number],
     isDetected: boolean
   ): AgentCatalogRowProps => ({
+    cliUpdate: isDetected ? (
+      <AgentCliUpdateButton detectionTarget={detectionTarget} agent={agent.id} />
+    ) : undefined,
     agentId: agent.id,
     label: agent.label,
     homepageUrl: agent.homepageUrl,
@@ -266,13 +276,7 @@ export function AgentLaunchSettingsCatalog({
             <AgentLaunchChoiceEditor
               permissionControlRef={permissionControlRef}
               showArguments={isDetected}
-              catalogTarget={
-                detectionTarget.kind === 'ssh'
-                  ? null
-                  : detectionTarget.kind === 'runtime'
-                    ? { kind: 'environment', environmentId: detectionTarget.environmentId }
-                    : { kind: 'local' }
-              }
+              catalogTarget={agentChoiceCatalogTarget(detectionTarget)}
               agent={agent.id}
               label={agent.label}
               choices={settings.agentChoices?.defaults[agent.id]}
