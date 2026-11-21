@@ -136,7 +136,7 @@ export function deliverNativeNotification(
     notification.on('click', clickHandler)
   }
 
-  showDesktopNotification(notification, displayConfirmation?.start)
+  const submitted = showDesktopNotification(notification, displayConfirmation?.start)
 
   if (displayConfirmation) {
     return displayConfirmation.result.then((displayed) => {
@@ -149,5 +149,11 @@ export function deliverNativeNotification(
     })
   }
 
+  if (submitted instanceof Promise) {
+    // Why: a stalled Linux service never receives the banner, so it is not announced.
+    return submitted.then((shown) =>
+      shown ? { delivered: true } : { delivered: false, reason: 'not-displayed' }
+    )
+  }
   return { delivered: true }
 }

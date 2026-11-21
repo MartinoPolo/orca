@@ -9,11 +9,7 @@ import { normalizeFeatureInteractions } from '../../../../../shared/feature-educ
 import { normalizeContextualTourIds } from '../../../../../shared/feature-education/contextual-tours/contextual-tours'
 import { normalizeSessionAttentionMetadataByIdentity } from '../../../../../shared/session-attention'
 import type { UISlice } from './ui-slice-contract'
-import {
-  sanitizeAcknowledgedAgentsByPaneKey,
-  sanitizeActivityClearedAtByPaneKey,
-  sanitizePaneKeyTimestampRecord
-} from './ui-slice-hydration-sanitizers'
+import { sanitizePaneKeyTimestampRecord } from './ui-slice-hydration-sanitizers'
 
 const VALID_TASK_PRESETS = new Set<TaskViewPresetId>([
   'all',
@@ -179,10 +175,8 @@ export function hydrateAgentReadState(
   | 'sessionAttentionMetadataByIdentity'
 > {
   return {
-    acknowledgedAgentsByPaneKey: sanitizeAcknowledgedAgentsByPaneKey(
-      ui.acknowledgedAgentsByPaneKey
-    ),
-    activityClearedAtByPaneKey: sanitizeActivityClearedAtByPaneKey(ui.activityClearedAtByPaneKey),
+    acknowledgedAgentsByPaneKey: sanitizePaneKeyTimestampRecord(ui.acknowledgedAgentsByPaneKey),
+    activityClearedAtByPaneKey: sanitizePaneKeyTimestampRecord(ui.activityClearedAtByPaneKey),
     manuallyUnreadTurnsByPaneKey: sanitizePaneKeyTimestampRecord(ui.manuallyUnreadTurnsByPaneKey),
     sessionAttentionMetadataByIdentity: normalizeSessionAttentionMetadataByIdentity(
       ui.sessionAttentionMetadataByIdentity

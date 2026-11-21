@@ -19478,6 +19478,7 @@
         "optionUpdateFailed": "Option konnte nicht aktualisiert werden",
         "optionValue": {
           "none": "Keine",
+          "off": "Aus",
           "fast": "Schnell",
           "minimal": "Minimal",
           "low": "Niedrig",
@@ -22775,6 +22776,9 @@
     "linkedMessageMissing": "Diese Nachricht wurde nicht gefunden.",
     "math": {
       "scrollDisplayEquation": "Abgesetzte Gleichung scrollen"
+    },
+    "messageTime": {
+      "yesterday": "Gestern {{time}}"
     }
   },
   "quitAndStopAllSessions": {

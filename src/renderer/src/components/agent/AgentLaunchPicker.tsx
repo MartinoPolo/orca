@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { getAgentLabel } from '@/lib/agent-catalog/agent-catalog'
-import { getAgentSessionOptionLaunchCatalog } from '../../../../shared/agent-session/options/agent-session-option-catalog'
 import { AgentVariantIcon } from '@/components/agent/icons/AgentVariantIcon'
 import { useTranslate } from '@/i18n/use-translate'
 import { rowLabel } from './launch-menu/agent-menu-row-presentation'
@@ -48,13 +47,7 @@ import {
   type AgentPickerEntry
 } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 
-/** A model's name as the agent's catalog lists it, else its id. */
-export function launchModelLabel(agent: string, model: string | undefined): string | undefined {
-  return (
-    getAgentSessionOptionLaunchCatalog(agent)?.models.find((entry) => entry.id === model)?.label ??
-    model
-  )
-}
+export { launchModelLabel } from './launch-model-label'
 
 const AGENT_LAUNCH_PICKER_SIDE_OFFSET = 4
 const AGENT_LAUNCH_PICKER_COLLISION_PADDING = 8
@@ -133,7 +126,9 @@ export const AgentLaunchPicker = memo(
       agent: AgentPickerEntry['agent'],
       draft?: AgentPickerDraft,
       entry?: AgentPickerEntry,
-      surface?: AgentPickerDraft['surface']
+      surface?: AgentPickerDraft['surface'],
+      /** The user chose the draft's permission, even one it already showed. */
+      permissionPicked?: boolean
     ) => void
   }) {
     const t = useTranslate()
@@ -207,11 +202,11 @@ export const AgentLaunchPicker = memo(
       }
     }, [catalogAgent, onCatalogOpen])
     const pick = useCallback<typeof onPick>(
-      (picked, next, from, surface) => {
+      (picked, next, from, surface, permissionPicked) => {
         if (next && from) {
           rememberPickedAgentModel(from, next)
         }
-        onPick(picked, next, from, surface)
+        onPick(picked, next, from, surface, permissionPicked)
       },
       [onPick]
     )
