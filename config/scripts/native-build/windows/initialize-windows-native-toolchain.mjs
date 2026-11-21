@@ -32,7 +32,8 @@ export function parseWindowsCompilerEnvironment(output, arch) {
     throw new Error('Developer environment lacks the compiler or Windows SDK')
   }
   if (
-    !/^\d+\.\d+\./.test(value('VSCMD_VER')) ||
+    // VS 2026 Build Tools report a two-part version such as 18.0.
+    !/^\d+\.\d+(?:\.|$)/.test(value('VSCMD_VER')) ||
     !/^\d+\.\d+\.\d+\.\d+\\?$/.test(value('WindowsSDKVersion'))
   ) {
     throw new Error('Developer environment has an invalid compiler or Windows SDK version')
