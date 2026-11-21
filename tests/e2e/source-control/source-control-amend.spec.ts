@@ -2,8 +2,8 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import type { Page } from '@stablyai/playwright-test'
-import { test, expect } from './helpers/orca-app'
+import { expect, type Page } from '@stablyai/playwright-test'
+import { test } from '../desktop/electron-fixtures/orca-app'
 import {
   cleanupGoldenWorktree,
   createGoldenWorktree,
@@ -11,8 +11,8 @@ import {
   type GoldenWorktree,
   openGoldenSourceControl,
   seedGoldenSourceEdit
-} from './helpers/golden-source-control'
-import { waitForSessionReady } from './helpers/store'
+} from '../golden-journeys/golden-source-control'
+import { waitForSessionReady } from '../desktop/renderer-probes/store'
 
 const AMENDED_LINE = 'export const amended = true'
 const BASE_COMMIT_MESSAGE = 'feat: amend base'
