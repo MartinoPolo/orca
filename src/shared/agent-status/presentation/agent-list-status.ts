@@ -16,6 +16,22 @@ export type AgentListStatus =
   // Sidebar combines blocked/waiting as permission; retain its vocabulary with the shared question glyph/token.
   | 'permission'
 
+// Use exhaustive, unique attention ranks so new states fail typecheck and recency cannot reorder headers.
+export const AGENT_LIST_STATUS_RANK: Record<AgentListStatus, number> = {
+  waiting: 0,
+  blocked: 1,
+  permission: 2,
+  failed: 3,
+  unconfirmed: 4,
+  working: 5,
+  monitoring: 6,
+  // A user's Stop is not news, so it follows live work, but it is not a finish either.
+  interrupted: 7,
+  unverifiable: 8,
+  done: 9,
+  idle: 10
+}
+
 /** How the desktop Agents list shows one agent pane; unlisted panes are not in the list at all. */
 export type AgentListVerdict =
   /** `unread`: a closed chat's finished turn not yet read, for its chat row. */
