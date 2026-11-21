@@ -1,6 +1,6 @@
 [
   {
-    "filePath": "src/renderer/src/components/agent/launch-settings/AgentLaunchDefaultsEditor.tsx",
+    "filePath": "src/renderer/src/components/agent/launch-settings/AgentLinkedWorkItemPromptTemplateInput.tsx",
     "kind": "jsx-attribute:placeholder",
     "text": "/skill:mpx-execute",
     "dynamic": true,
