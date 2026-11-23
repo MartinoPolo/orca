@@ -173,7 +173,7 @@ describe('session attention durable writer integration', () => {
     expect(
       resumed.getState().sessionAttentionMetadataByIdentity[identityFor(replacementProvider)]
     ).toEqual({
-      priority: 3,
+      priority: 2,
       attentionEpisodeStartedAt: 2_000,
       attentionEpisodeKind: 'unresolved-input'
     })

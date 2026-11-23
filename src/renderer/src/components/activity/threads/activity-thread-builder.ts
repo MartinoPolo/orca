@@ -21,6 +21,7 @@ import {
   isAttentionQueueEligible,
   resolveAttentionStartedAt
 } from './session-attention-presentation'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
 
 type PaneThreadInputs = {
   events: readonly ActivityEvent[]
@@ -220,7 +221,7 @@ function withSessionAttention(
   return {
     ...thread,
     sessionIdentity: identity?.sessionIdentity ?? null,
-    priority: metadata?.priority ?? 3,
+    priority: metadata?.priority ?? DEFAULT_SESSION_PRIORITY,
     savedMarker,
     attentionStartedAt: resolveAttentionStartedAt({
       status,

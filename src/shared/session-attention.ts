@@ -1,4 +1,5 @@
 import type { AgentProviderSessionMetadata } from './agent-session/lifecycle/agent-session-resume'
+import { DEFAULT_SESSION_PRIORITY } from './session-effective-priority'
 
 export const SESSION_PRIORITIES = [1, 2, 3, 4, 5] as const
 export type SessionPriority = (typeof SESSION_PRIORITIES)[number]
@@ -60,7 +61,7 @@ function isSessionPriority(value: unknown): value is SessionPriority {
 }
 
 function normalizePriority(value: unknown): SessionPriority {
-  return isSessionPriority(value) ? value : 3
+  return isSessionPriority(value) ? value : DEFAULT_SESSION_PRIORITY
 }
 
 function isSessionSavedColor(value: unknown): value is SessionSavedColor {
@@ -122,4 +123,24 @@ export function normalizeSessionAttentionMetadataByIdentity(
     }
   }
   return normalized
+}
+
+const FORMER_DEFAULT_SESSION_PRIORITY = 3
+
+/** Stored P3 was the former default, indistinguishable from an explicit choice, so it becomes the current default. */
+export function migrateFormerDefaultSessionPriorities(
+  metadataByIdentity: Record<string, SessionAttentionMetadata>
+): Record<string, SessionAttentionMetadata> {
+  const migrated: Record<string, SessionAttentionMetadata> = {}
+  for (const [identity, metadata] of Object.entries(metadataByIdentity)) {
+    if (metadata.priority !== FORMER_DEFAULT_SESSION_PRIORITY) {
+      migrated[identity] = metadata
+      continue
+    }
+    if (metadata.savedColor === undefined && metadata.attentionEpisodeStartedAt === undefined) {
+      continue
+    }
+    migrated[identity] = { ...metadata, priority: DEFAULT_SESSION_PRIORITY }
+  }
+  return migrated
 }

@@ -209,6 +209,7 @@ export const UI_STATE_GLOBAL_FIELDS = [
   '_minimaxStatusBarDefaultAdded',
   '_museStatusBarDefaultAdded',
   '_portsStatusBarDefaultAdded',
+  '_sessionPriorityDefaultP2Migrated',
   '_sortBySmartMigrated',
   '_workspaceStatusesDefaultOrderMigrated',
   '_workspaceStatusesDefaultVisualsMigrated',

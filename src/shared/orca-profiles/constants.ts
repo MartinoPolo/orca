@@ -195,6 +195,7 @@ export function getDefaultUIState(): PersistedUIState {
     activityClearedAtByPaneKey: {},
     manuallyUnreadTurnsByPaneKey: {},
     sessionAttentionMetadataByIdentity: {},
+    _sessionPriorityDefaultP2Migrated: true,
     setupGuideSidebarDismissed: false,
     setupGuideBrowserMilestoneMigrated: true,
     setupGuideBrowserMilestoneLegacyComplete: false,

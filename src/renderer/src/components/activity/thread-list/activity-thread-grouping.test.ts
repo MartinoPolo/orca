@@ -33,7 +33,7 @@ function thread(paneKey: string, overrides: Partial<AgentPaneThread> = {}): Agen
     latestEvent: null,
     events: [],
     unread: false,
-    priority: 3,
+    priority: 2,
     savedMarker: null,
     attentionStartedAt: null,
     attentionEligible: false,
@@ -58,7 +58,7 @@ const threads = [
   thread('working-old', { currentAgentState: 'working', latestTimestamp: 100 }),
   thread('monitoring', { currentAgentState: 'monitoring' }),
   thread('waiting-new', { currentAgentState: 'waiting', attentionStartedAt: 20 }),
-  thread('done-read-p4', { priority: 4 }),
+  thread('done-read-p3', { priority: 3 }),
   thread('waiting-p1-oldest', {
     currentAgentState: 'waiting',
     priority: 1,
@@ -66,11 +66,11 @@ const threads = [
   }),
   thread('working-new', { currentAgentState: 'working', latestTimestamp: 200 }),
   thread('done-unread', { unread: true }),
-  thread('blocked-p2', { currentAgentState: 'blocked', priority: 2 }),
-  thread('working-p4', { currentAgentState: 'working', priority: 4 }),
+  thread('blocked-p1', { currentAgentState: 'blocked', priority: 1 }),
+  thread('working-p3', { currentAgentState: 'working', priority: 3 }),
   thread('waiting-work', { currentAgentState: 'waiting', repo: workRepo, attentionStartedAt: 30 }),
   thread('waiting-old', { currentAgentState: 'waiting', attentionStartedAt: 10 }),
-  thread('done-unread-p5', { unread: true, priority: 5 })
+  thread('done-unread-p4', { unread: true, priority: 4 })
 ]
 
 function groupOrder(
@@ -88,12 +88,12 @@ function groupOrder(
 describe('Activity status grouping', () => {
   it('splits by effective priority tier, then orders by state, priority, unread and age', () => {
     expect(groupOrder(true)).toEqual({
-      'priority:high': ['waiting-work', 'done-unread-p5', 'done-read-p4', 'working-p4'],
+      'priority:high': ['waiting-work', 'done-unread-p4', 'done-read-p3', 'working-p3'],
       'priority:other': [
         'waiting-old',
         'waiting-new',
         'waiting-p1-oldest',
-        'blocked-p2',
+        'blocked-p1',
         'done-unread',
         'working-new',
         'working-old',
@@ -108,9 +108,9 @@ describe('Activity status grouping', () => {
     const otherOrder = groups['priority:other']
     const workIndex = otherOrder.indexOf('waiting-work')
     expect(otherOrder.slice(workIndex - 1, workIndex + 2)).toEqual([
-      'waiting-new',
+      'waiting-p1-oldest',
       'waiting-work',
-      'waiting-p1-oldest'
+      'blocked-p1'
     ])
   })
 

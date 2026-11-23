@@ -13,6 +13,7 @@ import {
   resolveSessionAttentionIdentity,
   resolveSessionAttentionWorkspaceFallback
 } from './session-attention-identity'
+import { DEFAULT_SESSION_PRIORITY } from '../../../shared/session-effective-priority'
 
 export function useAgentRowSessionAttention(
   agent: DashboardAgentRow,
@@ -64,7 +65,7 @@ export function useAgentRowSessionAttention(
   return {
     isSession,
     sessionIdentity: identityKeys.sessionIdentity,
-    priority: metadata?.priority ?? 3,
+    priority: metadata?.priority ?? DEFAULT_SESSION_PRIORITY,
     savedColor: metadata?.savedColor,
     unread: isSession && unread,
     tone:

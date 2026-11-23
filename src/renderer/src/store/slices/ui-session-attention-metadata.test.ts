@@ -35,7 +35,7 @@ describe('createUISlice session attention metadata actions', () => {
     store.getState().setSessionSavedMarker('stable-session', 'blue')
     store.getState().setSessionSavedMarker('stable-session', 'rose')
     expect(store.getState().sessionAttentionMetadataByIdentity['stable-session']).toEqual({
-      priority: 3,
+      priority: 2,
       savedColor: 'rose',
       savedAt: 100
     })

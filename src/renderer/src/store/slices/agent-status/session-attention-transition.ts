@@ -16,6 +16,7 @@ import type {
 } from '../../../../../shared/session-attention'
 import type { AgentStatusLiveEntryBuild } from './live-status/agent-status-live-entry-contract'
 import { getTabIdFromPaneKey } from './pane-authority/agent-status-pane-key-tab-binding'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
 
 function attentionEpisodeKind(
   entry: AgentStatusEntry,
@@ -76,11 +77,11 @@ function resolveEntryIdentity(state: AppState, entry: AgentStatusEntry) {
   })
 }
 
-/** The session's saved priority, defaulting to P3 when the entry has no resolvable identity. */
+/** The session's saved priority, defaulting to the default priority when the entry has no resolvable identity. */
 export function resolveEntrySessionPriority(state: AppState, entry: AgentStatusEntry): number {
   const identity = resolveEntryIdentity(state, entry)
   if (!identity?.sessionIdentity) {
-    return 3
+    return DEFAULT_SESSION_PRIORITY
   }
   for (const candidate of [identity.sessionIdentity, ...identity.identityAliases]) {
     const savedPriority = state.sessionAttentionMetadataByIdentity[candidate]?.priority
@@ -88,12 +89,12 @@ export function resolveEntrySessionPriority(state: AppState, entry: AgentStatusE
       return savedPriority
     }
   }
-  return 3
+  return DEFAULT_SESSION_PRIORITY
 }
 
 function hasMeaningfulMetadata(metadata: SessionAttentionMetadata): boolean {
   return (
-    metadata.priority !== 3 ||
+    metadata.priority !== DEFAULT_SESSION_PRIORITY ||
     metadata.savedColor !== undefined ||
     metadata.attentionEpisodeStartedAt !== undefined
   )
@@ -106,7 +107,8 @@ function migrateIdentityMetadata(
 ): { metadata: SessionAttentionMetadata; next: Record<string, SessionAttentionMetadata> } {
   const alias = aliases.find((candidate) => current[candidate] !== undefined)
   const canonical = current[sessionIdentity]
-  const metadata = canonical ?? (alias ? current[alias] : undefined) ?? { priority: 3 }
+  const metadata = canonical ??
+    (alias ? current[alias] : undefined) ?? { priority: DEFAULT_SESSION_PRIORITY }
   let next = current
   if (alias || !canonical) {
     next = { ...current, [sessionIdentity]: metadata }

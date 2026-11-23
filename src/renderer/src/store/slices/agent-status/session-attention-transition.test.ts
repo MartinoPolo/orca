@@ -120,7 +120,7 @@ describe('persisted session attention episodes', () => {
 
     store.getState().setSessionSavedMarker(attentionIdentity(), null)
     expect(store.getState().sessionAttentionMetadataByIdentity[attentionIdentity()]).toEqual({
-      priority: 3,
+      priority: 2,
       attentionEpisodeStartedAt: 1_000,
       attentionEpisodeKind: 'unresolved-input'
     })

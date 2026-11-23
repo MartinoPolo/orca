@@ -2,6 +2,10 @@ import { applyDefaultOnStatusBarItems } from '../../../../shared/status-bar/stat
 import { normalizeGitGraphFilters } from '../../../../shared/git/history/git-graph-filters'
 import { resolveStatusBarCompactChangeNoticeDismissed } from '../../../../shared/status-bar/status-bar-compact-change-notice'
 import { migrateExplorerDisplayRoots } from '../../../../shared/file-listing/file-explorer-display-root'
+import {
+  migrateFormerDefaultSessionPriorities,
+  normalizeSessionAttentionMetadataByIdentity
+} from '../../../../shared/session-attention'
 import '../../../../shared/orca-profiles/constants'
 import {
   getWorktreeCardModeProperties,
@@ -41,6 +45,10 @@ export function normalizeLoadedUiState(
     parsed.worktreeMeta ?? {}
   )
   if (parsed.ui?._explorerDisplayRootMigrated !== true) {
+    markNeedsSave()
+  }
+  const sessionPriorityDefaultMigrated = parsed.ui?._sessionPriorityDefaultP2Migrated === true
+  if (!sessionPriorityDefaultMigrated) {
     markNeedsSave()
   }
   const rawSort = parsed.ui?.sortBy
@@ -231,6 +239,16 @@ export function normalizeLoadedUiState(
     sortBy: migrate ? ('smart' as const) : sort,
     _explorerDisplayRootMigrated: true,
     explorerDisplayRootByWorktree,
+    ...(sessionPriorityDefaultMigrated
+      ? {}
+      : {
+          sessionAttentionMetadataByIdentity: migrateFormerDefaultSessionPriorities(
+            normalizeSessionAttentionMetadataByIdentity(
+              parsed.ui?.sessionAttentionMetadataByIdentity
+            )
+          )
+        }),
+    _sessionPriorityDefaultP2Migrated: true,
     gitGraphFiltersByWorktree: normalizeGitGraphFilters(parsed.ui?.gitGraphFiltersByWorktree),
     showDotfilesByWorktree: normalizeShowDotfilesByWorktree(parsed.ui?.showDotfilesByWorktree),
     notificationsMutedByWorktree: normalizeNotificationsMutedByWorktree(

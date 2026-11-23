@@ -194,6 +194,8 @@ export type PersistedUIState = {
   manuallyUnreadTurnsByPaneKey?: Record<string, number>
   /** Priority and saved-for-later facts keyed by stable host/workspace/provider session identity. */
   sessionAttentionMetadataByIdentity?: Record<string, SessionAttentionMetadata>
+  /** One-shot migration flag for the P3-to-P2 default; stored P3 was the former default and becomes P2. */
+  _sessionPriorityDefaultP2Migrated?: boolean
   /** User-hidden setup-guide sidebar entry; a reversible declutter pref (Help menu stays available), not completion. */
   setupGuideSidebarDismissed?: boolean
   /** One-shot marker for the browser setup-guide milestone; profiles missing it are evaluated once in the renderer (completion needs runtime probes). */

@@ -9,6 +9,7 @@ type MainOwnedUIState =
   | 'jiraSavedFilterState'
   | 'jiraQuickFilterState'
   | '_explorerDisplayRootMigrated'
+  | '_sessionPriorityDefaultP2Migrated'
   | 'trayMinimizeNoticeShown'
   | 'dashboardPopoutBounds'
   | 'windowFullScreen'

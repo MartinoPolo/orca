@@ -1,9 +1,10 @@
 import type { GlobalSettings } from './settings/global-settings-types'
+import type { SessionPriority } from './session-attention'
 
-/** Unprioritized sessions count as P3. */
-export const DEFAULT_SESSION_PRIORITY = 3
+/** Unprioritized sessions count as P2. */
+export const DEFAULT_SESSION_PRIORITY: SessionPriority = 2
 /** Effective priority at or above this earns desktop banners and the Activity "High priority" tier. */
-export const HIGH_SESSION_PRIORITY = 4
+export const HIGH_SESSION_PRIORITY = 3
 /** How far the Work switch moves work-project sessions above or below their stored priority. */
 export const WORK_PROJECT_PRIORITY_SHIFT = 1.5
 

@@ -22,6 +22,7 @@ import {
 } from './activity-clear-completed'
 import { activityThreadRowCopy } from '../threads/activity-thread-presentation'
 import type { AgentPaneThread } from '../threads/activity-thread-types'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
 
 type CopyTarget = { key: string; label: string; value: string }
 
@@ -186,7 +187,7 @@ function ActivityThreadSingleMenuItems({
       <ContextMenuSeparator />
       <SessionAttentionMenuItems
         sessionIdentity={thread.sessionIdentity ?? null}
-        priority={thread.priority ?? 3}
+        priority={thread.priority ?? DEFAULT_SESSION_PRIORITY}
         savedColor={thread.savedMarker?.savedColor}
         onPriorityChange={setSessionPriority}
         onSavedColorChange={setSessionSavedMarker}

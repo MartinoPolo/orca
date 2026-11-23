@@ -45,7 +45,7 @@ const badgeVariants = cva(
         priorityP2:
           'h-4 min-w-6 rounded border-session-priority-p2-border bg-session-priority-p2 px-1 text-[9px] font-semibold leading-none text-session-priority-p2-foreground',
         priorityP3:
-          'h-4 min-w-6 rounded border-session-priority-p3 bg-session-priority-p3 px-1 text-[9px] font-semibold leading-none text-white',
+          'h-4 min-w-6 rounded border-session-priority-p3-border bg-session-priority-p3 px-1 text-[9px] font-semibold leading-none text-session-priority-p3-foreground',
         priorityP4:
           'h-4 min-w-6 rounded border-session-priority-p4-border bg-session-priority-p4 px-1 text-[9px] font-semibold leading-none text-session-priority-p4-foreground',
         priorityP5:

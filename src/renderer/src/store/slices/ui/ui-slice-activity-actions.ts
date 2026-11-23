@@ -10,6 +10,7 @@ import {
   usableTimestamp
 } from './ui-slice-agent-notification-acknowledgement'
 import { updateSessionAttentionForReadState } from '../agent-status/session-attention-transition'
+import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
 
 type ActivityActions = Pick<
   UISlice,
@@ -193,7 +194,10 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
           if (!previous?.savedColor) {
             return s
           }
-          if (previous.priority === 3 && previous.attentionEpisodeStartedAt === undefined) {
+          if (
+            previous.priority === DEFAULT_SESSION_PRIORITY &&
+            previous.attentionEpisodeStartedAt === undefined
+          ) {
             const next = { ...s.sessionAttentionMetadataByIdentity }
             delete next[identity]
             return { sessionAttentionMetadataByIdentity: next }
@@ -216,7 +220,7 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
             ...s.sessionAttentionMetadataByIdentity,
             [identity]: {
               ...previous,
-              priority: previous?.priority ?? 3,
+              priority: previous?.priority ?? DEFAULT_SESSION_PRIORITY,
               savedColor: color,
               savedAt: previous?.savedAt ?? Date.now()
             }

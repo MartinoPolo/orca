@@ -227,7 +227,7 @@ describe('dispatchTerminalNotification sound categories', () => {
 })
 
 describe('dispatchTerminalNotification session priority', () => {
-  it('uses session-scoped priority and defaults unassigned sessions to P3', () => {
+  it('uses session-scoped priority and defaults unassigned sessions to P2', () => {
     const providerSession = { key: 'session_id' as const, id: 'session-1' }
     mockState.agentStatusByPaneKey[paneKey] = makeAgentStatus(paneKey, {
       providerSession,
@@ -249,15 +249,15 @@ describe('dispatchTerminalNotification session priority', () => {
     expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 4 })
     mockState.sessionAttentionMetadataByIdentity = {}
     dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
-    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 3 })
+    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 2 })
   })
 
   it('shifts work-project sessions by the Work switch so the desktop gate sees effective priority', () => {
     mockState.repos = [{ id: 'repo1', displayName: 'orca', connectionId: null, workProject: true }]
     dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
-    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 4.5 })
+    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 3.5 })
     mockState.settings.prioritizeWorkProjects = false
     dispatchTerminalNotification('wt-primary', { source: 'agent-task-complete', paneKey })
-    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 1.5 })
+    expect(getLastNotificationDispatchArg()).toMatchObject({ priority: 0.5 })
   })
 })

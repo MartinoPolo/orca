@@ -71,15 +71,10 @@ export function sessionAttentionMetadataClass(tone: SessionAttentionTone): strin
 }
 
 export function SessionPriorityBadge({
-  priority,
-  showDefault = false
+  priority
 }: {
   priority: SessionPriority
-  showDefault?: boolean
-}): React.JSX.Element | null {
-  if (priority === DEFAULT_SESSION_PRIORITY && !showDefault) {
-    return null
-  }
+}): React.JSX.Element {
   return (
     <Badge
       variant={PRIORITY_VARIANTS[priority]}
@@ -233,7 +228,7 @@ export function SessionAttentionMenuItems({
           >
             {PRIORITY_MENU_ORDER.map((value) => (
               <ContextMenuRadioItem key={value} value={String(value)}>
-                <SessionPriorityBadge priority={value} showDefault />
+                <SessionPriorityBadge priority={value} />
                 {value === DEFAULT_SESSION_PRIORITY
                   ? translate('sessionAttention.priority.default', 'Default')
                   : null}

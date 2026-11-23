@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildSessionAttentionIdentity,
+  migrateFormerDefaultSessionPriorities,
   normalizeSessionAttentionMetadataByIdentity
 } from './session-attention'
 
@@ -78,7 +79,7 @@ describe('normalizeSessionAttentionMetadataByIdentity', () => {
           savedAt: 123,
           attentionEpisodeStartedAt: 100
         },
-        defaultPriority: { priority: 3 },
+        defaultPriority: { priority: 2 },
         badPriority: { priority: 9, savedColor: 'blue', savedAt: 10 },
         badColor: { priority: 2, savedColor: 'orange', savedAt: 20 },
         missingSavedAt: { priority: 4, savedColor: 'rose' },
@@ -92,11 +93,30 @@ describe('normalizeSessionAttentionMetadataByIdentity', () => {
         savedAt: 123,
         attentionEpisodeStartedAt: 100
       },
-      defaultPriority: { priority: 3 },
-      badPriority: { priority: 3, savedColor: 'blue', savedAt: 10 },
+      defaultPriority: { priority: 2 },
+      badPriority: { priority: 2, savedColor: 'blue', savedAt: 10 },
       badColor: { priority: 2 },
       missingSavedAt: { priority: 4 },
       badEpisode: { priority: 1 }
+    })
+  })
+})
+
+describe('migrateFormerDefaultSessionPriorities', () => {
+  it('turns stored former-default P3 into P2 and drops entries left without facts', () => {
+    expect(
+      migrateFormerDefaultSessionPriorities({
+        bare: { priority: 3 },
+        saved: { priority: 3, savedColor: 'teal', savedAt: 5 },
+        episode: { priority: 3, attentionEpisodeStartedAt: 7 },
+        low: { priority: 1 },
+        high: { priority: 5 }
+      })
+    ).toEqual({
+      saved: { priority: 2, savedColor: 'teal', savedAt: 5 },
+      episode: { priority: 2, attentionEpisodeStartedAt: 7 },
+      low: { priority: 1 },
+      high: { priority: 5 }
     })
   })
 })

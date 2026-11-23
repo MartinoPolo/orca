@@ -90,7 +90,7 @@ export function isNotificationAttentionAcknowledgement(
 
 export type NotificationDispatchRequest = {
   source: NotificationEventSource
-  /** Effective session priority (stored priority shifted by the Work switch; may be fractional). Absent means P3. */
+  /** Effective session priority (stored priority shifted by the Work switch; may be fractional). Absent means the default priority. */
   priority?: number
   soundCategory?: NotificationSoundCategory
   /** Local presentation alert, not a new agent completion for paired mobile clients. */
