@@ -1,3 +1,4 @@
+import type { ConnectorFailure } from '../../../../shared/connectors/connector-cloud-contract'
 import type {
   JournalConnectorReplyCut,
   JournalConnectorReplyCutRows,
@@ -29,6 +30,24 @@ export class JournalSqlConnectorReplies {
     return result.rows
   }
 
+  /** One page of an account's filled, unsent rows after a delivery id (null: from the start). */
+  async readOwed(
+    account: string,
+    after: string | null,
+    limit: number
+  ): Promise<JournalConnectorReplyRow[]> {
+    const result = await this.db.readers.database({
+      kind: 'connector-replies-owed',
+      account,
+      after,
+      limit
+    })
+    if (result.kind !== 'connector-replies') {
+      throw new Error('journal reader returned no connector replies')
+    }
+    return result.rows
+  }
+
   /** Fills rows with their outcomes, the first fill winning; whether any changed. */
   async fillOutcomes(fills: readonly JournalConnectorReplyFill[]): Promise<boolean> {
     if (this.db.readOnly || fills.length === 0) {
@@ -46,8 +65,12 @@ export class JournalSqlConnectorReplies {
   }
 
   /** The continuation's own turn was cut and is owed again: its claimed rows become that cut's. */
-  async recut(claimMessageId: string, cut: JournalConnectorReplyCut): Promise<boolean> {
-    return await this.maintain({ kind: 'connector-replies-recut', claimMessageId, cut })
+  async recut(
+    claimMessageId: string,
+    cut: JournalConnectorReplyCut,
+    failure?: ConnectorFailure
+  ): Promise<boolean> {
+    return await this.maintain({ kind: 'connector-replies-recut', claimMessageId, cut, failure })
   }
 
   /** The claiming message never became the continuation: its rows are their cut's again. */

@@ -1,3 +1,4 @@
+import { createContext } from 'react'
 import { acceptedAgentStatuses } from '@/store/slices/agent-status/status-ownership/accepted-agent-statuses'
 import {
   requestVirtualizedScrollAnchorRecord,
@@ -26,6 +27,8 @@ import { lineageStoreKeyOfRow } from '../../../../../../shared/worktree/lineage/
 
 export const WORKTREE_CONTEXT_MENU_SCOPE_ATTR = 'data-worktree-context-menu-scope'
 export const WORKTREE_NATIVE_CONTEXT_MENU_ATTR = 'data-worktree-native-context-menu'
+export const WORKTREE_CONTEXT_MENU_PORTAL_SCOPE_ATTR = 'data-worktree-context-menu-portal-scope'
+export const WorktreeContextMenuPortalScope = createContext<string | null>(null)
 const CONTEXT_MENU_CLICK_SUPPRESSION_MS = 500
 const DELETE_POSITION_RESTORE_MAX_FRAMES = 180
 const DELETE_POSITION_RESTORE_STABLE_FRAMES = 6
@@ -78,41 +81,47 @@ export function hasWorktreeParentLink(
   )
 }
 
-function closestEventTarget(target: EventTarget | null, selector: string): Element | null {
-  if (!target) {
-    return null
-  }
-  if ('closest' in target && typeof target.closest === 'function') {
-    const closest = target.closest(selector)
-    if (closest) {
-      return closest
-    }
-  }
-  if (
-    'parentElement' in target &&
-    target.parentElement &&
-    typeof target.parentElement === 'object' &&
-    'closest' in target.parentElement &&
-    typeof target.parentElement.closest === 'function'
-  ) {
-    return target.parentElement.closest(selector)
-  }
-  return null
+function closestContextMenuElement(target: EventTarget | null, selector: string): Element | null {
+  const maybeElement = target as {
+    closest?: (selector: string) => Element | null
+    parentElement?: { closest?: (selector: string) => Element | null }
+  } | null
+  return (
+    maybeElement?.closest?.(selector) ?? maybeElement?.parentElement?.closest?.(selector) ?? null
+  )
 }
 
 export function shouldUseNativeContextMenu(target: EventTarget | null): boolean {
-  return closestEventTarget(target, `[${WORKTREE_NATIVE_CONTEXT_MENU_ATTR}]`) != null
+  return closestContextMenuElement(target, `[${WORKTREE_NATIVE_CONTEXT_MENU_ATTR}]`) !== null
 }
 
 export function shouldYieldToNestedContextMenu(target: EventTarget | null): boolean {
-  return closestEventTarget(target, '[data-slot="context-menu-trigger"]') != null
+  return closestContextMenuElement(target, '[data-slot="context-menu-trigger"]') !== null
+}
+
+export function isFromWorkspaceAgentRow(scope: Element, target: EventTarget | null): boolean {
+  const row = closestContextMenuElement(target, '[data-workspace-agent-row]')
+  return row?.closest(`[${WORKTREE_CONTEXT_MENU_SCOPE_ATTR}]`) === scope
+}
+
+/** A right-click on an agent row that this menu's owner rendered into a portal, such as its details hover. */
+export function isOwnedWorktreeContextMenuPortal(
+  target: EventTarget | null,
+  scopeId: string
+): boolean {
+  const scope = closestContextMenuElement(target, `[${WORKTREE_CONTEXT_MENU_PORTAL_SCOPE_ATTR}]`)
+  if (scope?.getAttribute(WORKTREE_CONTEXT_MENU_PORTAL_SCOPE_ATTR) !== scopeId) {
+    return false
+  }
+  const row = closestContextMenuElement(target, '.agent-disclosure-row')
+  return row !== null && scope.contains(row)
 }
 
 export function shouldIgnoreNestedWorktreeContextMenuScope(
   currentTarget: EventTarget,
   target: EventTarget | null
 ): boolean {
-  const closestScope = closestEventTarget(target, `[${WORKTREE_CONTEXT_MENU_SCOPE_ATTR}]`)
+  const closestScope = closestContextMenuElement(target, `[${WORKTREE_CONTEXT_MENU_SCOPE_ATTR}]`)
   // Nested lineage previews own context menus even though they sit inside the parent DOM.
   return closestScope != null && closestScope !== currentTarget
 }

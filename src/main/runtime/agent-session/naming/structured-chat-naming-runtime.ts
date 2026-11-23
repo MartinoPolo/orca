@@ -88,7 +88,11 @@ export function structuredChatNamingDeps(
           'kilo',
           'mimo-code',
           'gemini',
-          'droid'
+          'droid',
+          'qwen-code',
+          'cline',
+          'devin',
+          'codebuddy'
         ].includes(record.provider)
       ) {
         return null

@@ -15,6 +15,11 @@ import {
 } from '../../../../../../shared/agent-launch-profile-agents'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import type { WorkerStartInput } from './start/worker-start-input'
+import { chatWorkerMode } from '../chat-assignee-admission'
+import {
+  downgradeWorkerStartModeForLaunchProfile,
+  type WorkerStartModeReceipt
+} from '../structured-workers/orchestration-worker-start-mode'
 
 /** `--launch-profile default` runs the agent's built-in account even under a profile coordinator. */
 export const DEFAULT_WORKER_LAUNCH_PROFILE = 'default'
@@ -126,6 +131,22 @@ export function resolveLocalWorkerLaunchProfile(
     requested: params.launchProfile,
     coordinator: mayInherit ? readWorkerCoordinatorAccount(runtime, params.from) : null
   })
+}
+
+/** The host's start mode for a local worker and its launch profile; a profile worker runs the profile's command, so it never starts as a chat. */
+export function startModeWithProfile(
+  runtime: WorkerLaunchProfileRuntime,
+  agent: TuiAgent | undefined,
+  params: Pick<WorkerStartInput, 'terminal' | 'launchProfile' | 'from'>,
+  hostMode: WorkerStartModeReceipt,
+  chat: Parameters<typeof chatWorkerMode>[1]
+): { mode: WorkerStartModeReceipt; launchProfile: AgentLaunchProfile | undefined } {
+  const launchProfile = resolveLocalWorkerLaunchProfile(runtime, agent, params)
+  const mode = chatWorkerMode(hostMode, chat)
+  return {
+    mode: launchProfile ? downgradeWorkerStartModeForLaunchProfile(mode) : mode,
+    launchProfile
+  }
 }
 
 /** A chat coordinator has no terminal; it starts workers on their built-in account. */

@@ -37,10 +37,9 @@ export function useAgentCatalogRowExpansion(cmdOpen: boolean, setCmdOpen: (open:
     if (revealFrame.current !== null) {
       cancelAnimationFrame(revealFrame.current)
     }
-    const scroller = rowRef.current?.closest('[data-settings-scroll-list]')
     revealFrame.current = scheduleSettingsListReveal(() => {
       const panel = panelRef.current
-      if (!panel || (scroller && panel.closest('[data-settings-scroll-list]') !== scroller)) {
+      if (!panel) {
         return null
       }
       if (focusPermission) {
@@ -51,7 +50,8 @@ export function useAgentCatalogRowExpansion(cmdOpen: boolean, setCmdOpen: (open:
         button?.focus({ preventScroll: true })
         return button ?? panel
       }
-      return panel
+      // The whole row, so a tall panel scrolls its header to the top instead of past it.
+      return rowRef.current ?? panel
     })
   }
   const openPermission = (): void => {

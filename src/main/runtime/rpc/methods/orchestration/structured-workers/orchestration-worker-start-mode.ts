@@ -3,12 +3,12 @@
 import {
   decideAgentLaunchMode,
   downgradeAgentLaunchModeForHost,
-  downgraded,
   readAgentLaunchModeSettings,
   resolveAgentLaunchModeOnHost,
   type AgentLaunchModeSettings,
   type AgentLaunchModeVocabulary
 } from '../../../../../agent-launch/agent-launch-mode'
+import { chatPreferenceOf, downgraded } from '../../../../../agent-launch/agent-launch-mode-wording'
 
 import type { AgentLaunchModeReceipt } from '../../../../../../shared/agent-launch/contracts/agent-launch-intent'
 import type { TuiAgent } from '../../../../../../shared/agent-launch/catalog/tui-agent'
@@ -39,10 +39,13 @@ type WorkerStartModePlacement = {
 export function decideWorkerStartMode(args: {
   params: WorkerStartModePlacement
   settings: AgentLaunchModeSettings | null | undefined
+  /** The caller's lineage starts its workers as chats, whatever the settings say. */
+  chatLineage?: boolean
 }): WorkerStartModeReceipt {
   return decideAgentLaunchMode({
     placement: args.params,
     settings: args.settings,
+    chatLineage: args.chatLineage,
     vocabulary: WORKER_START_VOCABULARY
   })
 }
@@ -67,7 +70,7 @@ export function downgradeWorkerStartModeForLaunchProfile(
   receipt: WorkerStartModeReceipt
 ): WorkerStartModeReceipt {
   return receipt.mode === 'structured'
-    ? downgraded('launch_profile', WORKER_START_VOCABULARY, receipt.reason === 'requested')
+    ? downgraded('launch_profile', WORKER_START_VOCABULARY, chatPreferenceOf(receipt))
     : receipt
 }
 

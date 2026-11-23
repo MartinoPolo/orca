@@ -1,4 +1,4 @@
-import type { GlobalSettings } from './global-settings-types'
+import { type GlobalSettings, withAgentWorkflowDefaults } from './default-agent-workflow-settings'
 import type { NotificationSettings } from '../notifications/notification-settings-types'
 import type { VoiceSettings } from '../speech/speech-types'
 import { DEFAULT_TERMINAL_FONT_WEIGHT_BOLD } from '../terminal/appearance/terminal-fonts'
@@ -14,7 +14,6 @@ import { DEFAULT_NATIVE_CHAT_IDLE_STOP_MINUTES } from '../native-chat/settings/n
 import { DEFAULT_BROWSER_MEMORY_SAVER_HOURS } from '../browser/guest-lifecycle/browser-memory-saver'
 import { DEFAULT_DISABLED_TUI_AGENTS } from '../agent-launch/catalog/tui-agent-selection'
 import { UI_LANGUAGE_SYSTEM } from '../i18n/ui-language'
-import { buildDefaultAgentWorkflowSettings } from './default-agent-workflow-settings'
 import {
   DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
   DEFAULT_LEFT_SIDEBAR_TINT_OPACITY
@@ -38,8 +37,7 @@ export function buildDefaultSettings(args: {
   notifications: NotificationSettings
   voice: VoiceSettings
 }): GlobalSettings {
-  return {
-    ...buildDefaultAgentWorkflowSettings(),
+  return withAgentWorkflowDefaults({
     workspaceDir: args.workspaceDir,
     worktreeVisibilityDefaults: { external: 'hide' },
     workspaceCleanupPolicy: getDefaultWorkspaceCleanupRules(),
@@ -162,7 +160,8 @@ export function buildDefaultSettings(args: {
     agentDefaultSurface: 'terminal',
     nativeChatResumeWorkOnRestart: true,
     nativeChatQueueFollowUps: true,
-    nativeChatAutoContinueAfterUsageLimit: false,
+    nativeChatAutoContinueAfterUsageLimit: true,
+    nativeChatAutoContinueAfterUsageLimitDefaultedOn: true,
     nativeChatIdleStopMinutes: DEFAULT_NATIVE_CHAT_IDLE_STOP_MINUTES,
     nativeChatInlineVisuals: true,
     nativeChatLinkPreviews: true,
@@ -204,6 +203,7 @@ export function buildDefaultSettings(args: {
     floatingTerminalEnabled: true,
     browserClientHostedRemoteEnabled: true,
     antigravityManagedAgyEnabled: true,
+    antigravityServerAutoUpdateEnabled: true,
     floatingTerminalDefaultedForAllUsers: true,
     floatingTerminalCwd: '~',
     floatingTerminalTrustedCwds: [],
@@ -248,6 +248,7 @@ export function buildDefaultSettings(args: {
     skipCloseTerminalWithRunningProcessConfirm: false,
     skipDeleteAutomationConfirm: false,
     skipDeleteArtifactConfirm: false,
+    skipDeleteChatConfirm: false,
     skipCodexRateLimitResetConfirm: false,
     defaultTaskViewPreset: 'all',
     defaultTaskSource: 'github',
@@ -303,6 +304,7 @@ export function buildDefaultSettings(args: {
     experimentalActivityDefaultedOffForAllUsers: true,
     experimentalTerminalAttention: false,
     experimentalAgentHibernation: false,
+    experimentalSharedCodexServers: false,
     agentHibernationIdleMs: 30 * 60 * 1000,
     experimentalNewWorktreeCardStyle: true,
     experimentalEphemeralVms: false,
@@ -318,5 +320,5 @@ export function buildDefaultSettings(args: {
     sourceControlAi: getDefaultSourceControlAiSettings(),
     voice: args.voice,
     voiceDictationModeDefaultedToAuto: true
-  }
+  })
 }

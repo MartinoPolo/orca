@@ -1,5 +1,4 @@
 import {
-  activityThreadStatusId,
   paneTitleForEntry,
   paneTitleForEvent,
   statusPreviewForEntry
@@ -13,15 +12,9 @@ import type {
 import type { ExecutionHostId } from '../../../../../shared/execution-host/execution-host'
 import type { SessionAttentionMetadata } from '../../../../../shared/session-attention'
 import {
-  findSessionAttentionMetadata,
-  resolveSessionAttentionIdentity,
-  resolveSessionAttentionWorkspaceFallback
-} from '@/attention/session-attention-identity'
-import {
-  isAttentionQueueEligible,
-  resolveAttentionStartedAt
-} from './session-attention-presentation'
-import { DEFAULT_SESSION_PRIORITY } from '../../../../../shared/session-effective-priority'
+  withSessionAttention,
+  type SessionAttentionInputs
+} from './activity-thread-session-attention'
 
 type PaneThreadInputs = {
   events: readonly ActivityEvent[]
@@ -35,10 +28,14 @@ export type AgentPaneThreadReuseCache = {
   previousList: AgentPaneThread[]
   generatedTitlesEnabled?: boolean
   sessionAttention?: SessionAttentionInputs
+  /** Set by a reader of build changes; without one, builds skip the bookkeeping. */
+  trackChanges?: boolean
+  /** Panes whose thread was added, replaced or dropped by the last build; null when untracked. */
+  changedPaneKeys: ReadonlySet<string> | null
 }
 
 export function createAgentPaneThreadReuseCache(): AgentPaneThreadReuseCache {
-  return { previousByPaneKey: new Map(), previousList: [] }
+  return { previousByPaneKey: new Map(), previousList: [], changedPaneKeys: null }
 }
 
 const NO_EVENTS: readonly ActivityEvent[] = []
@@ -181,64 +178,6 @@ function buildPaneThread(
   return { ...built, events: [...built.events].sort((a, b) => b.observedAt - a.observedAt) }
 }
 
-type SessionAttentionInputs = {
-  metadataByIdentity: Record<string, SessionAttentionMetadata> | undefined
-  defaultHostId: ExecutionHostId | undefined
-}
-
-/** Adds the session identity, priority, saved marker and attention-queue standing. */
-function withSessionAttention(
-  thread: AgentPaneThread,
-  { metadataByIdentity, defaultHostId }: SessionAttentionInputs
-): AgentPaneThread {
-  const entry = thread.currentAgentEntry ?? thread.latestEvent?.entry
-  const identity = entry
-    ? resolveSessionAttentionIdentity({
-        workspaceId: thread.worktree.id,
-        agentType: thread.agentType,
-        entry,
-        terminalTab: thread.tab,
-        projectedTab: thread.projectedTab,
-        resolveFallbackExecutionHostId: () =>
-          resolveSessionAttentionWorkspaceFallback({
-            worktree: thread.worktree,
-            repo: thread.repo ?? undefined,
-            defaultHostId
-          })
-      })
-    : null
-  const metadata = identity
-    ? findSessionAttentionMetadata(metadataByIdentity ?? {}, identity)
-    : undefined
-  const savedMarker = metadata?.savedColor
-    ? { savedColor: metadata.savedColor, savedAt: metadata.savedAt }
-    : null
-  const status = activityThreadStatusId(thread)
-  const statusStartedAt =
-    thread.currentAgentEntry?.stateStartedAt ?? thread.latestEvent?.timestamp ?? null
-  const supportsStatusAttention = thread.migrationUnsupportedPtyId === undefined
-  const unread = supportsStatusAttention && thread.unread
-  return {
-    ...thread,
-    sessionIdentity: identity?.sessionIdentity ?? null,
-    priority: metadata?.priority ?? DEFAULT_SESSION_PRIORITY,
-    savedMarker,
-    attentionStartedAt: resolveAttentionStartedAt({
-      status,
-      unread,
-      statusStartedAt: metadata?.attentionEpisodeStartedAt ?? statusStartedAt,
-      savedAt: savedMarker?.savedAt,
-      supportsStatusAttention
-    }),
-    attentionEligible: isAttentionQueueEligible({
-      status,
-      unread,
-      saved: savedMarker !== null,
-      supportsStatusAttention
-    })
-  }
-}
-
 export function buildAgentPaneThreads(
   args: {
     events: ActivityEvent[]
@@ -278,6 +217,8 @@ export function buildAgentPaneThreads(
     reuseCache.sessionAttention?.metadataByIdentity === sessionAttention.metadataByIdentity &&
     reuseCache.sessionAttention?.defaultHostId === sessionAttention.defaultHostId
   const nextByPaneKey = new Map<string, PaneThreadInputs & { thread: AgentPaneThread }>()
+  const changedPaneKeys = reuseCache?.trackChanges ? new Set<string>() : null
+  let keptPaneCount = 0
   const built = paneKeys
     .map((paneKey) => {
       const inputs: PaneThreadInputs = {
@@ -303,6 +244,12 @@ export function buildAgentPaneThreads(
               )
             )
       nextByPaneKey.set(paneKey, { ...inputs, thread })
+      if (changedPaneKeys) {
+        keptPaneCount += Number(previous !== undefined)
+        if (previous?.thread !== thread) {
+          changedPaneKeys.add(paneKey)
+        }
+      }
       return thread
     })
     .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
@@ -311,6 +258,14 @@ export function buildAgentPaneThreads(
     return built
   }
   const result = arrayItemsEqual(reuseCache.previousList, built) ? reuseCache.previousList : built
+  if (changedPaneKeys && keptPaneCount < reuseCache.previousByPaneKey.size) {
+    for (const paneKey of reuseCache.previousByPaneKey.keys()) {
+      if (!nextByPaneKey.has(paneKey)) {
+        changedPaneKeys.add(paneKey)
+      }
+    }
+  }
+  reuseCache.changedPaneKeys = changedPaneKeys
   reuseCache.previousList = result
   reuseCache.previousByPaneKey = nextByPaneKey
   reuseCache.generatedTitlesEnabled = generatedTitlesEnabled

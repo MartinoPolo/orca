@@ -67,9 +67,9 @@ type WorkerAgentPlacementArgs = {
   launch: {
     preferences: AgentLaunchPreferences | undefined
     receipt: OrchestrationWorkerLaunchReceipt
+    /** Only with a terminal mode: a chat cannot run a profile's own command. */
+    launchProfile?: AgentLaunchProfile
   }
-  /** Only with a terminal mode: a chat cannot run a profile's own command. */
-  launchProfile?: AgentLaunchProfile
   effects: WorkerEffect[]
   /** Attributes a throw to the step that was running, the way the caller's own stages do. */
   onStage: (stage: string) => void
@@ -188,7 +188,7 @@ async function launchWorkerAgent(
             promisedAgentChat,
             onWorkspaceCreated,
             ...(args.launch.preferences ? { launchPreferences: args.launch.preferences } : {}),
-            ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
+            ...(args.launch.launchProfile ? { launchProfile: args.launch.launchProfile } : {}),
             effects: args.effects
           })
           return {
@@ -283,7 +283,7 @@ function workerSurfaceFactory(
         worktreeId,
         agent,
         ...(args.launch.preferences ? { launchPreferences: args.launch.preferences } : {}),
-        ...(args.launchProfile ? { launchProfile: args.launchProfile } : {}),
+        ...(args.launch.launchProfile ? { launchProfile: args.launch.launchProfile } : {}),
         taskId: args.taskId,
         effects: args.effects
       })

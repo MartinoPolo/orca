@@ -21,17 +21,22 @@ import {
 } from '../../../../../shared/bots/bot-items'
 import {
   botItemActivity,
+  botItemWaitEntryKey,
+  botItemWorkerStopReason,
   type BotItemActivityEntry
 } from '../../../../../shared/bots/bot-item-activity'
 import { botItemActorName } from '../../../../../shared/bots/bot-item-actor-name'
 import { botItemStatusName } from './bot-item-status-name'
-import { BOT_ITEM_COMMENT_ATTRIBUTE, BotItemCommentCard } from './BotItemCommentCard'
+import { BotItemCommentCard } from './BotItemCommentCard'
+import { BotItemWaitCard } from './BotItemWaitCard'
+import { revealBotItemComment } from './bot-item-comment-reveal'
 import type { BotItemQuickReplyActions } from './use-bot-item-question-steps'
 import { NativeChatMessageTimestamp } from '../../native-chat/messages/rows/NativeChatMessageTimestamp'
 import { BotItemStatusIcon } from './BotItemStatusIcon'
 import { BotItemLinkedRefs } from './BotItemLinkedRefs'
 import { formatBotItemSnoozeTime } from './bot-item-snooze-time'
 import type { BotItemPendingComments } from '../../../../../shared/bots/bot-item-pending-comments'
+import { NATIVE_CHAT_QUOTE_SOURCE_PROPS } from '../../../../../shared/native-chat/input/quotes/native-chat-quote-selection'
 
 const ACTOR = 'font-medium text-foreground/80'
 // Where a linked event's refs go in its translated sentence.
@@ -195,12 +200,14 @@ function WorkerBody({
     )
   }
   const failed = entry.link.state === 'failed' || entry.link.state === 'stopped'
+  const reason = botItemWorkerStopReason(entry.link)
   return (
     <>
       {failed
         ? t('bots.items.activity.workerFailed', 'Worker stopped:')
         : t('bots.items.activity.workerFinished', 'Worker finished:')}{' '}
       {title}
+      {reason ? ` - ${reason}` : null}
       {entry.link.report ? <span className="block">{entry.link.report.subject}</span> : null}
     </>
   )
@@ -259,25 +266,20 @@ export function BotItemActivityList({
 }): React.JSX.Element {
   const t = useTranslate()
   const entries = botItemActivity(item, events)
+  const waitKey = botItemWaitEntryKey(item, entries)
   const list = useRef<HTMLDivElement | null>(null)
-  // A reply's quote leads to its question: centred, so the sticky header never covers it, and
-  // focused, so Tab goes on from there.
-  const jump = useCallback((eventId: string) => {
-    const target = list.current?.querySelector<HTMLElement>(
-      `[${BOT_ITEM_COMMENT_ATTRIBUTE}="${CSS.escape(eventId)}"]`
-    )
-    if (!target) {
-      return
-    }
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    target.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' })
-    target.focus({ preventScroll: true })
-  }, [])
+  // A reply's quote leads to its question, focused so Tab goes on from there.
+  const jump = useCallback(
+    (eventId: string) => revealBotItemComment(list.current, eventId, 'focus'),
+    []
+  )
   // The rail runs through the event glyphs; each glyph and card sits on the panel fill over it.
   return (
     <>
       <div
         ref={list}
+        // Comments and events quote into the item's comment box, as replies do into chat's composer.
+        {...NATIVE_CHAT_QUOTE_SOURCE_PROPS}
         className="relative flex flex-col before:absolute before:inset-y-2.5 before:left-[9.5px] before:w-px before:bg-foreground/12"
       >
         {entries.map((entry) => {
@@ -301,6 +303,10 @@ export function BotItemActivityList({
                 quickReplies={quickReplies}
               />
             )
+          }
+          // Shown last, as its card, while the item waits.
+          if (entry.key === waitKey) {
+            return null
           }
           return (
             <div
@@ -326,6 +332,9 @@ export function BotItemActivityList({
             </div>
           )
         })}
+        {item.status === 'waiting' && item.wait ? (
+          <BotItemWaitCard text={item.wait.text} at={item.wait.at} />
+        ) : null}
         {/* Last, as sent: never placed by this machine's clock among the host's events. */}
         {pending?.shown.map(({ event, failed }) =>
           // Answers posted as one comment show on their lines already.

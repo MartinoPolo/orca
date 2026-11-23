@@ -31,6 +31,8 @@ import { ChatUnavailableOnWindowsNote } from '../../../agent/launch-settings/Age
 import { structuredChatUnavailableOnPlatform } from '../../../../../../shared/agent-session/capabilities/structured-chat-platform-support'
 import { SettingsGroup } from '../../section-layout/SettingsGroup'
 import { useRecheckOnce } from './use-recheck-once'
+import { useOnLaterChange } from './use-on-later-change'
+import { useAntigravityAccountRun } from './use-antigravity-account-run'
 import { AntigravityGoogleSignInChoice } from '../../../provider-accounts/AntigravityGoogleSignInChoice'
 import { AntigravityAgySignInButton } from '../../../provider-accounts/AntigravityAgySignInButton'
 import { ACCOUNTS_SECTION_IDS } from '../accounts-search'
@@ -54,6 +56,11 @@ function usageMatchesTarget(provenance: string, target: AntigravityAccountTarget
 }
 
 const AGY_CHECK_SETTLE_MS = 8_000
+// Why a helper: React Compiler cannot compile a throw statement inside try/catch.
+function staleUsageRead(message: string): never {
+  throw new Error(message)
+}
+
 export function AntigravityAccountsSection({
   owner,
   target,
@@ -69,10 +76,8 @@ export function AntigravityAccountsSection({
   const [state, setState] = useState<AntigravityAccountState | null>(null)
   const [usage, setUsage] = useState<ProviderRateLimits | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const pending = useRef(false)
-  const rereadQueued = useRef(false)
   const mounted = useRef(true)
+  const { busy, pending, run } = useAntigravityAccountRun(perform, mounted)
   const ownerKind = owner.kind
   const environmentId = owner.kind === 'environment' ? owner.environmentId : null
   const windowsHost = ownerPlatform === 'win32' && target.runtime === 'host'
@@ -134,15 +139,12 @@ export function AntigravityAccountsSection({
   })
 
   /** `keepShown`: a background re-read, which leaves a Usage reading or error on screen. */
-  async function run(action: AntigravityAccountAction, accountId?: string, keepShown = false) {
-    if (pending.current) {
-      // A re-read asked for meanwhile (after a Google sign-in pick) runs once the current one ends.
-      rereadQueued.current ||= keepShown && action === 'List'
-      return
-    }
-    pending.current = true
+  async function perform(
+    action: AntigravityAccountAction,
+    accountId: string | undefined,
+    keepShown: boolean
+  ) {
     if (!keepShown) {
-      setBusy(true)
       setError(null)
       setUsage(null)
     }
@@ -166,13 +168,13 @@ export function AntigravityAccountsSection({
           account.subject !== after.currentAccount.subject ||
           account.authMethod !== after.currentAccount.authMethod
         ) {
-          throw new Error('The native account changed while reading usage. Refresh usage again.')
+          staleUsageRead('The native account changed while reading usage. Refresh usage again.')
         }
         const usage = snapshot.rateLimits.antigravity
         const provenance = usage?.usageMetadata?.authProvenance
         // Usage follows the Accounts location; a reading from another runtime is another login's.
         if (provenance && !usageMatchesTarget(provenance, target)) {
-          throw new Error(
+          staleUsageRead(
             'Antigravity usage was read from a different location. Refresh usage again.'
           )
         }
@@ -201,15 +203,6 @@ export function AntigravityAccountsSection({
       // A background re-read fails quietly; the next one or Refresh shows the answer.
       if (mounted.current && !keepShown) {
         setError(cause instanceof Error ? cause.message : 'Antigravity account action failed.')
-      }
-    } finally {
-      pending.current = false
-      if (mounted.current) {
-        setBusy(false)
-      }
-      if (rereadQueued.current && mounted.current) {
-        rereadQueued.current = false
-        void run('List', undefined, true)
       }
     }
   }
@@ -295,19 +288,29 @@ export function AntigravityAccountsSection({
   const chatDescription = antigravityChatDescription(state, chatRuntime)
   // A pick moves new chats between agy and Orca's server, which the rows' answer follows.
   const reread = () => void run('List', undefined, true)
+  // Removing, installing or switching the runtime moves the route; the rows read it again then.
+  const installKey =
+    chatRuntime.kind === 'active' && chatRuntime.snapshot.kind === 'known'
+      ? `${chatRuntime.snapshot.state.program}:${chatRuntime.snapshot.state.source}`
+      : null
+  useOnLaterChange(installKey, reread)
   // Present only for the Google account method once the route has answered (see the host's
   // chatGoogleSignInInUse); the choice stays hidden otherwise.
   const inUse = state?.chatGoogleSignInInUse
   const googleSignIn = inUse ? { inUse, changed: reread } : undefined
+  // Gemini API key chats run on agy here: the method and key stay editable.
+  const keyOnAgy = state?.chatKeyOnAgy === true
   const chatRows =
     chats && chatRuntime.kind === 'active' ? (
-      antigravityProviderSignInShown(chatRuntime) ? (
+      keyOnAgy || antigravityProviderSignInShown(chatRuntime) ? (
         <AntigravityChatSignInRow
           owner={owner}
           label={label}
-          disabled={antigravityChatSignInBlocked(chatRuntime)}
+          disabled={!keyOnAgy && antigravityChatSignInBlocked(chatRuntime)}
           runtime={runtimeRow}
           googleSignIn={googleSignIn}
+          onSaved={reread}
+          noServerAccount={keyOnAgy}
         />
       ) : (
         // No sign-in form: new chats run on agy, or Orca's server isn't installed or is changing.
@@ -326,7 +329,14 @@ export function AntigravityAccountsSection({
       {chatRows ? (
         <SettingsGroup
           title={logoTitle(t('accounts.antigravity.chatTitle', 'Antigravity Chat'))}
-          description={chatDescriptions[chatDescription]}
+          description={
+            keyOnAgy
+              ? t(
+                  'accounts.antigravity.chatDescriptionKeyOnAgy',
+                  'New chats run on agy with the sign-in below, kept apart from agy in the terminal.'
+                )
+              : chatDescriptions[chatDescription]
+          }
           action={
             chatDescription === 'agySignedOut' ? (
               <AntigravityAgySignInButton owner={owner} />

@@ -49,14 +49,17 @@ export const webhookCardRead = bindDeferredRpcOperation(
   })
 )
 
-/** The hook's key-bearing URL, fetched on the owner's tap and never shown. */
+/** The hook's key-bearing URL and its key, fetched on the owner's tap and never shown. */
 export const webhookKeyReveal = bindDeferredRpcOperation(
   defineRpcOperation({
     name: 'webhooks.reveal',
     method: 'webhooks.reveal',
     acceptance: 'require-result-or-throw-message',
     barrier: 'after-caller-barrier',
-    read: rpcResultVariant('webhook-key', z.looseObject({ url: z.string() }))
+    read: rpcResultVariant(
+      'webhook-key',
+      z.looseObject({ url: z.string(), key: z.string().optional() })
+    )
   })
 )
 
@@ -103,7 +106,16 @@ export const googleStatusRead = bindDeferredRpcOperation(
           .array(
             z.looseObject({
               email: z.string(),
-              services: z.array(z.looseObject({ service: z.string(), state: z.string() }))
+              // `reconnect`: Google ended this sign-in.
+              status: z.string().optional(),
+              services: z.array(
+                z.looseObject({
+                  service: z.string(),
+                  state: z.string(),
+                  detail: z.string().optional(),
+                  enableUrl: z.string().optional()
+                })
+              )
             })
           )
           .optional()

@@ -96,6 +96,31 @@ export const AGENT_SESSION_SETUP_COMMANDS = [
     slashCommand: '/login',
     installCommand: 'curl -fsSL https://app.factory.ai/cli | sh'
   },
+  // Qwen has no login command; `/auth` in its CLI connects a provider.
+  {
+    agent: 'qwen-code',
+    loginCommand: ['qwen'],
+    slashCommand: '/auth',
+    installCommand:
+      'curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh | bash',
+    windowsInstallScript:
+      'https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.ps1'
+  },
+  // `cline auth` signs in to Cline or connects another provider.
+  { agent: 'cline', loginCommand: ['cline', 'auth'], installCommand: 'npm install -g cline' },
+  {
+    agent: 'devin',
+    loginCommand: ['devin', 'auth', 'login'],
+    remoteLoginCommand: ['devin', 'auth', 'login', '--force-manual-token-flow'],
+    installCommand: 'curl -fsSL https://cli.devin.ai/install.sh | bash',
+    windowsInstallScript: 'https://cli.devin.ai/install.ps1'
+  },
+  {
+    agent: 'codebuddy',
+    loginCommand: ['codebuddy'],
+    slashCommand: '/login',
+    installCommand: 'npm install -g @tencent-ai/codebuddy-code'
+  },
   // An `agy` login signs in only chats on agy (`system`); chats on Orca's server keep their own.
   {
     agent: 'antigravity',

@@ -2,7 +2,6 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { windowsSystem32Binary } from '@orca/process-host/windows-system-binary'
 import { scanWorkspacePorts } from './local-workspace-port-scanner'
-import { resetWorkspacePortScanTimeoutBackoffForTests } from './local-workspace-port-scan-state'
 
 const { readWindowsProcessTableMock, runPortScanCommandMock } = vi.hoisted(() => ({
   readWindowsProcessTableMock: vi.fn(),
@@ -51,7 +50,6 @@ const netstatOutput = [
 
 describe('Windows desktop workspace port scanning', () => {
   afterEach(() => {
-    resetWorkspacePortScanTimeoutBackoffForTests()
     vi.restoreAllMocks()
     readWindowsProcessTableMock.mockReset()
     runPortScanCommandMock.mockReset()

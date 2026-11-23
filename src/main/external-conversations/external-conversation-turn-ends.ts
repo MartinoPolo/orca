@@ -8,9 +8,11 @@ import type { ConversationEvent } from './external-conversation-events'
 import { connectorFailure } from './external-conversation-failure'
 import type { SlackMirrorTurn } from './slack-mirror'
 import type { EndedChatTurn } from './external-conversation-ended-turn'
-import type { ConversationReplyFill } from './external-conversation-reply-fill'
+import type { ConversationReplyFill, FilledTurn } from './external-conversation-reply-fill'
 import type { ExternalConversationLink } from '../../shared/connectors/external-conversation-link'
 import type { ConnectorWorkLink } from '../../shared/connector-work-link-contract'
+import { connectorReplyWords } from '../../shared/agent-session/journal/journal-connector-reply-turn'
+import { isSlackDirectMessage } from '../../shared/connectors/slack-direct-message'
 export type { SlackMirrorTurn } from './slack-mirror'
 
 export type ChatTurnEnd = {
@@ -59,11 +61,7 @@ export function endAdoptedTurn(
 
 /** Its reply posts after the owner's words: held while their post failed, until Retry or Dismiss,
  *  across a restart too. A quiet result still ends the turn, with no words. */
-export function endMirroredTurn(
-  end: ChatTurnEnd,
-  mirrored: SlackMirrorTurn,
-  link: ExternalConversationLink
-): void {
+export function endMirroredTurn(end: ChatTurnEnd, mirrored: SlackMirrorTurn): void {
   void end.news.readTurn().then(async (read) => {
     if (!end.current()) {
       return
@@ -72,7 +70,7 @@ export function endMirroredTurn(
     if (!end.current()) {
       return
     }
-    const message = botTurnReply(end, link, read, false)
+    const message = read.lastAssistantMessage
     mirrored.release({
       ...end.ended,
       ...end.turnFor(read),
@@ -86,9 +84,16 @@ export function endMirroredTurn(
   })
 }
 
-// A turn's length by the machine's clock, when its start was seen and the clock ran forward.
-function tookOf(ended: ChatTurnEnd['ended']): { tookMs?: number } {
-  return ended.turnId !== null && ended.at > ended.turnId ? { tookMs: ended.at - ended.turnId } : {}
+// The turn as its conversation knows it (its turn-started `at`), and its length by the machine's
+// clock, when its start was seen and the clock ran forward.
+function turnTimesOf(ended: ChatTurnEnd['ended']): { tookMs?: number; turnStartedAt?: number } {
+  if (ended.turnId === null) {
+    return {}
+  }
+  return {
+    turnStartedAt: ended.turnId,
+    ...(ended.at > ended.turnId ? { tookMs: ended.at - ended.turnId } : {})
+  }
 }
 
 export type ChatTurnReplies = {
@@ -102,29 +107,36 @@ export function readOnce<T>(read: () => Promise<T>): () => Promise<T> {
   return () => (reading ??= read())
 }
 
+/** How a replied turn's end went: `told` once the outbox covers the conversation (or the end reaches
+ *  no one); else the legacy turn end tells it, `not-covered` when no outbox row of it can post the
+ *  answer too, `unsafe` when one may (its fill threw, or the turn's row is unknown), so recovery
+ *  posts it. */
+export type RepliedTurnEnd = 'told' | 'not-covered' | 'unsafe'
+
 /**
  * A turn that answered requests admitted through the reply outbox: their rows are filled, and a
- * conversation they cover hears the turn's state only (design item 125 §3). False when the legacy
- * turn end still tells this conversation; true, too, once the end reaches no one.
+ * conversation they cover hears the turn's state only (design item 125 §3).
  */
 export async function endRepliedTurn(
   end: ChatTurnEnd,
   turn: EndedChatTurn,
   link: ExternalConversationLink,
   links: () => Promise<ConnectorWorkLink[]>,
-  fill: ConversationReplyFill | null | undefined,
-  legacyReply?: string
-): Promise<boolean> {
+  fill: ConversationReplyFill | null | undefined
+): Promise<RepliedTurnEnd> {
   // A reset meanwhile: the end reaches no one, either way.
   if (!end.current()) {
-    return true
+    return 'told'
   }
-  if (!fill || !turn.stamps?.length || !turn.turnItemId) {
-    return false
+  if (!fill || !turn.stamps?.length) {
+    return 'not-covered'
   }
-  const failure =
-    end.news.outcome === 'failure' ? { failure: connectorFailure(turn.failure, end.agent) } : {}
-  const covered = await fill({
+  if (!turn.turnItemId) {
+    return 'unsafe'
+  }
+  const failure = turnFailure(end, turn)
+  let threw = false
+  const { covered, resumesAt } = await fill({
     sessionId: end.news.sessionId,
     turnItemId: turn.turnItemId,
     stamps: turn.stamps,
@@ -133,70 +145,107 @@ export async function endRepliedTurn(
     prose: turn.turnProse ?? '',
     bot: Boolean(link.bot),
     links: link.bot ? await links() : [],
-    ...tookOf(end.ended),
+    ...turnTimesOf(end.ended),
     ...failure
-  }).catch((error: unknown) => {
+  }).catch((error: unknown): FilledTurn => {
     console.warn('[connector] could not fill reply outbox rows', error)
-    return new Set<string>()
+    threw = true
+    return { covered: new Set<string>(), paused: false }
   })
   // A turn whose stamps name this conversation answers it through the outbox only, even when its
   // rows were already sent and gone or the fill failed (recovery drains what is left): never also as
   // a full end.
   const outboxed =
-    covered.has(link.externalId) ||
-    (answersThroughOutbox(link.source) &&
-      turn.stamps.some(
-        (stamp) =>
-          stamp.conversation.source === link.source &&
-          stamp.conversation.externalId === link.externalId
-      ))
-  if (!end.current() || !outboxed) {
-    return !end.current()
+    covered.has(link.externalId) || (answersThroughOutbox(link.source) && stampsName(turn, link))
+  if (!end.current()) {
+    return 'told'
   }
-  // The constant fallback uses this end's existing durable turn-event key.
-  if (legacyReply && legacyReply !== turn.lastAssistantMessage) {
-    return false
+  if (!outboxed) {
+    return threw ? 'unsafe' : 'not-covered'
   }
   await end.workersChecked()
   if (end.current()) {
     // The cloud keeps the thread's failure from whichever of this and the reply lands last.
-    end.emit({ ...end.ended, ...end.turnFor(turn), stateOnly: true, ...failure })
+    // Paused with a time the app shows: the thread says when it picks the work up (Phase 1 §4).
+    end.emit({
+      ...end.ended,
+      ...end.turnFor(turn),
+      stateOnly: true,
+      ...failure,
+      ...(resumesAt !== undefined && failure.failure
+        ? {
+            resumes: true as const,
+            failure: {
+              ...failure.failure,
+              usageLimit: { ...failure.failure.usageLimit, resetsAt: resumesAt }
+            }
+          }
+        : {})
+    })
   }
-  return true
+  return 'told'
 }
 
-const COALESCED_QUIET_REPLY =
-  'I replied but the message may not have reached you. Please ask again.'
-
-/** Only count metadata can turn a quiet completion into a constant; earlier text is never read. */
-export function botTurnReply(
-  end: ChatTurnEnd,
-  link: ExternalConversationLink,
+/** With reply filling installed, a matching stamp covers the answer even after its row was sent.
+ * An uncovered legacy turn end can use the owner DM fallback. */
+export function legacyTurnWords(
   turn: EndedChatTurn,
-  requested: boolean
-): string | undefined {
+  link: ExternalConversationLink,
+  replied: Exclude<RepliedTurnEnd, 'told'>,
+  reply: string | undefined
+): string | null {
   const message = turn.lastAssistantMessage
-  if (!link.bot || !message || !isQuietBotResult(message)) {
-    return message
-  }
-  const providerTurnCount = end.news.mergedTurnCount ?? 1
-  if (providerTurnCount <= 1) {
-    return undefined
-  }
-  // Quiet to the thread's own message is its answer: the merged turns before it were not the reply.
-  const reason = !requested
-    ? 'not-thread-request'
-    : answersThread(link, turn)
-      ? 'thread-answered-quietly'
-      : 'coalesced-quiet'
-  const fallback = reason === 'coalesced-quiet'
-  // Text-free and id-free: only how many turns merged and what was decided.
-  console.info('[connector] merged quiet completion', { providerTurnCount, fallback, reason })
-  return fallback ? COALESCED_QUIET_REPLY : undefined
+  const words =
+    replied === 'not-covered' && message && ownerDmAnswer(link, turn)
+      ? connectorReplyWords(message, { bot: Boolean(link.bot), addressed: true })
+      : null
+  return words ?? reply ?? null
 }
 
-function answersThread(link: ExternalConversationLink, turn: EndedChatTurn): boolean {
-  const body = (turn.opener ?? turn.latestOpener)?.body
-  const from = body?.kind === 'message' ? body.connectorConversation : undefined
-  return from?.source === link.source && from.externalId === link.externalId
+/** A failed turn's reason, as its end carries it. */
+export function turnFailure(
+  end: ChatTurnEnd,
+  turn: EndedChatTurn
+): { failure?: ReturnType<typeof connectorFailure> } {
+  return end.news.outcome === 'failure'
+    ? { failure: connectorFailure(turn.failure, end.agent) }
+    : {}
+}
+
+/** Whether the turn's journal stamps prove it answered this conversation (for its owner only). */
+function stampsName(
+  turn: EndedChatTurn,
+  link: ExternalConversationLink,
+  ownerOnly = false
+): boolean {
+  return Boolean(
+    turn.stamps?.some(
+      (stamp) =>
+        stamp.conversation.source === link.source &&
+        stamp.conversation.externalId === link.externalId &&
+        (!ownerOnly || stamp.ownerAsked)
+    )
+  )
+}
+
+/** The legacy delivery records the owner on its opener even when no outbox stamp was written. */
+function ownerDmAnswer(link: ExternalConversationLink, turn: EndedChatTurn): boolean {
+  if (!isSlackDirectMessage(link)) {
+    return false
+  }
+  const opener = turn.opener?.body
+  return (
+    stampsName(turn, link, true) ||
+    (opener?.kind === 'message' &&
+      opener.origin === 'connector' &&
+      opener.asker?.role === 'owner' &&
+      opener.connectorConversation?.source === link.source &&
+      opener.connectorConversation.externalId === link.externalId)
+  )
+}
+
+/** The words a turn's end carries: a bot's quiet marker carries none, however many turns it ended. */
+export function turnReply(link: ExternalConversationLink, turn: EndedChatTurn): string | undefined {
+  const message = turn.lastAssistantMessage
+  return link.bot && message && isQuietBotResult(message) ? undefined : message
 }

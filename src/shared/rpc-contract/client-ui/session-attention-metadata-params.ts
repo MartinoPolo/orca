@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { SESSION_ATTENTION_EPISODE_KINDS } from '../../session-attention'
+import { THREAD_READ_FILTER_WIRE_VALUES } from '../../agent-status/presentation/agents-view-thread-filters'
 
 export const SessionAttentionMetadataByIdentity = z.record(
   z.string(),
@@ -13,3 +14,9 @@ export const SessionAttentionMetadataByIdentity = z.record(
     })
     .strict()
 )
+
+/** Activity's attention read filter (still accepting legacy `unread`) and per-session attention metadata. */
+export const SessionAttentionUiUpdateFields = {
+  agentsReadFilter: z.enum(THREAD_READ_FILTER_WIRE_VALUES).optional(),
+  sessionAttentionMetadataByIdentity: SessionAttentionMetadataByIdentity.optional()
+}

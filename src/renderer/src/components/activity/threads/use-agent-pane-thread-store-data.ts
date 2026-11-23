@@ -1,4 +1,8 @@
 import { selectVisibleAgentOrchestration } from '@/runtime/agent-orchestration/visible-agent-orchestration'
+import {
+  getStructuredAgentSessionTabs,
+  type StructuredTab
+} from '@/components/native-chat/session/status/structured-agent-session-tabs'
 import { getIndexedRepoMap } from '@/store/repos/repository-catalog-index'
 import { getIndexedWorktreeMap } from '@/store/slices/worktrees/listing/worktree-catalog-index'
 import type { AppState } from '@/store/types'
@@ -6,7 +10,7 @@ import {
   getSettingsFocusedExecutionHostId,
   type ExecutionHostId
 } from '../../../../../shared/execution-host/execution-host'
-import { projectActivityTabs, type ActivityTabProjection } from '../events/activity-tab-projection'
+import { advanceActivityTabs, type ActivityTabProjection } from '../events/activity-tab-projection'
 import {
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces,
@@ -37,6 +41,8 @@ export type AllAgentPaneThreadsStoreData = Pick<
 > & {
   /** Current native-chat originals and terminal tabs with semantic identity reuse. */
   activityTabs: ActivityTabProjection
+  /** Same list while no chat tab changes; the builder indexes it by pane key only when a pane needs it. */
+  structuredTabs: readonly StructuredTab[]
   worktreeMap: ReturnType<typeof getIndexedWorktreeMap>
   repoMap: ReturnType<typeof getIndexedRepoMap>
   generatedTitlesEnabled: boolean
@@ -60,7 +66,7 @@ function selectActivityTabs(raw: AppState['unifiedTabsByWorktree']): ActivityTab
   if (tabProjection.raw === raw && tabProjection.projected) {
     return tabProjection.projected
   }
-  const projected = projectActivityTabs(raw, tabProjection.projected)
+  const projected = advanceActivityTabs(raw, tabProjection.raw, tabProjection.projected)
   tabProjection = { raw, projected }
   return projected
 }
@@ -74,6 +80,7 @@ export function selectAllAgentPaneThreadStoreData(s: AppState): AllAgentPaneThre
     tabsByWorktree: s.tabsByWorktree,
     ptyIdsByTabId: s.ptyIdsByTabId,
     activityTabs: selectActivityTabs(s.unifiedTabsByWorktree),
+    structuredTabs: getStructuredAgentSessionTabs(s.unifiedTabsByWorktree),
     repos: s.repos,
     // Read by getKnownWorktreeById for folder owners, so a change must rebuild Activity owners.
     projectGroups: s.projectGroups,

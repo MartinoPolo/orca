@@ -12,13 +12,10 @@ import {
 } from '../../ui-chrome/ui-chrome-types'
 import { isFeatureInteractionId } from '../../feature-education/interactions/feature-interactions'
 import type { FeatureInteractionId } from '../../feature-education/interactions/feature-interaction-catalog'
-import {
-  ACTIVITY_GROUP_BY_VALUES,
-  THREAD_READ_FILTER_WIRE_VALUES
-} from '../../agent-status/presentation/agents-view-thread-filters'
+import { ACTIVITY_GROUP_BY_VALUES } from '../../agent-status/presentation/agents-view-thread-filters'
 import { isReleaseChannel } from '../../updater/release-channel'
 import type { ReleaseChannel } from '../../updater/release-channel'
-import { SessionAttentionMetadataByIdentity } from './session-attention-metadata-params'
+import { SessionAttentionUiUpdateFields } from './session-attention-metadata-params'
 import { ClientUiWorkspaceFilterFields } from './client-ui-workspace-filter-fields-params'
 import { TaskResumeState } from './task-resume-state-params'
 import { WorkspaceCleanup } from '../workspace-cleanup/workspace-cleanup-ui-params'
@@ -134,6 +131,9 @@ export const UiUpdateFields = z
     rightSidebarExplorerView: z.enum(['files', 'search']).optional(),
     rightSidebarWidth: z.number().finite().optional(),
     activityBarPosition: z.enum(['top', 'side']).optional(),
+    activityBarOrder: z.array(z.string()).optional(),
+    activityBarBotOrder: z.array(z.string()).optional(),
+    activityBarHidden: z.array(z.string()).optional(),
     markdownTocPanelWidth: z.number().finite().optional(),
     combinedDiffFileTreeWidth: z.number().finite().optional(),
     groupBy: z.enum(['none', 'workspace-status', 'repo', 'pr-status']).optional(),
@@ -163,7 +163,7 @@ export const UiUpdateFields = z
     agentsShowChildAgents: z.boolean().optional(),
     agentsCompactMode: z.boolean().optional(),
     agentsShowSearch: z.boolean().optional(),
-    agentsReadFilter: z.enum(THREAD_READ_FILTER_WIRE_VALUES).optional(),
+    ...SessionAttentionUiUpdateFields,
     agentsGroupBy: z.enum(ACTIVITY_GROUP_BY_VALUES).optional(),
     workspaceHostOrder: z.array(z.string()).optional(),
     automationHostFilter: z
@@ -250,7 +250,6 @@ export const UiUpdateFields = z
     acknowledgedAgentsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     activityClearedAtByPaneKey: z.record(z.string(), z.number().finite()).optional(),
     manuallyUnreadTurnsByPaneKey: z.record(z.string(), z.number().finite()).optional(),
-    sessionAttentionMetadataByIdentity: SessionAttentionMetadataByIdentity.optional(),
     browserDefaultUrl: NullableString.optional(),
     browserDefaultSearchEngine: z
       .enum(['google', 'duckduckgo', 'bing', 'kagi'])

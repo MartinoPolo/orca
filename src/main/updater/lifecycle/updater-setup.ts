@@ -2,6 +2,12 @@ import { app, powerMonitor } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { ReleaseBuild, ReleaseChannel } from '../../../shared/updater/release-channel'
 import type { ReleaseBuildListOptions } from '../releases/updater-release-build-cache'
+import {
+  managesUpdates,
+  requiredMinimumVersion,
+  sameTeamUpdatePolicy,
+  type TeamUpdatePolicy
+} from '../releases/updater-release-policy'
 import type {
   LinuxPackageInstallInstructions,
   UpdateCheckOptions,
@@ -17,16 +23,18 @@ import { createUpdaterDiagnosticLogger } from '../linux-package/linux-package-in
 import { registerAutoUpdaterHandlers } from '../updater-events'
 import { getServeUpdateHandoffFailure } from '../serve-update-handoff'
 import { recordUpdaterLifecycle } from '../updater-lifecycle-diagnostics'
-import { AUTO_UPDATE_CHECK_INTERVAL_MS } from './updater-state'
-import { UpdaterDownloadInstall } from './updater-download-install'
+import { AUTO_UPDATE_CHECK_INTERVAL_MS, TEAM_POLICY_CHECK_RETRY_MS } from './updater-state'
+import { UpdaterManualUpdateGuard } from './updater-manual-update-guard'
+import type { TeamRestartOptions } from './updater-required-restart'
+import { sameTeamUpdateRestartScope } from './team-update-restart-record'
 import { configureMacShipItScheduling } from '../mac-install/macos-shipit-scheduling'
 import { handleElectronUpdaterProxyLogin } from './electron-updater-proxy-session'
 import { resolveWindowsUpdateInstallDirectory } from './windows-update-install-directory'
-import { isManualUpdateBuild } from './manual-update-build'
-import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
-
-const MANUAL_UPDATE_MESSAGE =
-  'Automatic updates are disabled in this custom build. Install updates manually.'
+import type {
+  PreQuitCleanupFailureMode,
+  UpdateInstallMode,
+  UpdateInstallTrigger
+} from './updater-state'
 
 export type UpdaterSetupOptions = {
   getMainWindow?: () => BrowserWindow | null
@@ -38,43 +46,29 @@ export type UpdaterSetupOptions = {
   setPendingUpdateNudgeId?: (id: string | null) => void
   setDismissedUpdateNudgeId?: (id: string | null) => void
   getReleaseChannelOverride?: () => ReleaseChannel | null
+  getTeamUpdatePolicy?: () => TeamUpdatePolicy | undefined
+  onTeamUpdatePolicyChanged?: (listener: () => void) => void
+  teamRestart?: TeamRestartOptions
   getUpdateDelayDays?: () => number
   getAutomaticUpdates?: () => boolean
   installMode?: UpdateInstallMode
   onBeforeQuitFailure?: PreQuitCleanupFailureMode
 }
 
-export class UpdaterSetup extends UpdaterDownloadInstall {
-  private rejectManualUpdateAction(): boolean {
-    if (!isManualUpdateBuild()) {
-      return false
-    }
-    this.sendErrorStatus(MANUAL_UPDATE_MESSAGE, true)
-    return true
-  }
-
+export class UpdaterSetup extends UpdaterManualUpdateGuard {
   checkForUpdates(): void {
-    if (!isManualUpdateBuild()) {
-      this.checkForUpdatesInBackground()
-    }
+    this.checkForUpdatesInBackground()
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
-    if (!this.rejectManualUpdateAction()) {
-      super.checkForUpdatesFromMenu(options)
-    }
+    super.checkForUpdatesFromMenu(options)
   }
 
   downloadUpdate(automatic = false): void {
-    if (!this.rejectManualUpdateAction()) {
-      super.downloadUpdate(automatic)
-    }
+    super.downloadUpdate(automatic)
   }
 
   applyAutomaticUpdatesSetting(): void {
-    if (isManualUpdateBuild()) {
-      return
-    }
     if (this.currentStatus.state === 'downloaded' && !this.currentStatus.installing) {
       this.publishDownloadStatus(this.currentStatus)
     } else {
@@ -82,10 +76,11 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     }
   }
 
-  quitAndInstall(automatic = false): void {
-    if (!this.rejectManualUpdateAction()) {
-      super.quitAndInstall(automatic)
-    }
+  override quitAndInstall(
+    trigger: UpdateInstallTrigger = 'manual',
+    isCurrentTeamRestart?: () => boolean
+  ): void {
+    super.quitAndInstall(trigger, isCurrentTeamRestart)
   }
 
   isQuittingForUpdate(): boolean {
@@ -124,16 +119,10 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
   }
 
   async getLinuxPackageInstallInstructions(): Promise<LinuxPackageInstallInstructions> {
-    if (this.rejectManualUpdateAction()) {
-      throw new Error(MANUAL_UPDATE_MESSAGE)
-    }
     return super.getLinuxPackageInstallInstructions()
   }
 
   async showLinuxPackage(): Promise<void> {
-    if (this.rejectManualUpdateAction()) {
-      throw new Error(MANUAL_UPDATE_MESSAGE)
-    }
     return super.showLinuxPackage()
   }
 
@@ -141,9 +130,6 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     channel: ReleaseChannel,
     options?: ReleaseBuildListOptions
   ): Promise<ReleaseBuild[]> {
-    if (isManualUpdateBuild()) {
-      return []
-    }
     return super.listAvailableReleaseBuilds(channel, options)
   }
 
@@ -167,16 +153,14 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     this._setPendingUpdateNudgeId = opts?.setPendingUpdateNudgeId ?? null
     this._setDismissedUpdateNudgeId = opts?.setDismissedUpdateNudgeId ?? null
     this.getReleaseChannelOverride = opts?.getReleaseChannelOverride ?? null
+    this.getTeamUpdatePolicy = opts?.getTeamUpdatePolicy ?? null
+    this.teamRestartOptions = opts?.teamRestart
     this.getUpdateDelayDays = opts?.getUpdateDelayDays ?? null
     this.getAutomaticUpdates = opts?.getAutomaticUpdates ?? null
     this.updateInstallMode = opts?.installMode ?? 'interactive'
     this.lastInstallDeferralVersion = { download: null, install: null }
 
-    if (isManualUpdateBuild()) {
-      return
-    }
-
-    const serveHandoffFailure = getServeUpdateHandoffFailure()
+    const serveHandoffFailure = this.manualUpdatesOnly() ? null : getServeUpdateHandoffFailure()
     if (serveHandoffFailure) {
       recordUpdaterLifecycle(
         'headless_serve_handoff_failed',
@@ -186,7 +170,7 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       this.sendErrorStatus(`The server update did not complete: ${serveHandoffFailure}`, true)
     }
 
-    if (!app.isPackaged) {
+    if (!app.isPackaged || this.manualUpdatesOnly()) {
       return
     }
 
@@ -199,8 +183,10 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       autoUpdater.disableDifferentialDownload = false
     }
     // Implicit quit install requires interactive mode and an explicit non-root/AppImage marker; serve requires handoff.
-    autoUpdater.autoInstallOnAppQuit =
+    this.implicitInstallOnQuit =
       this.updateInstallMode === 'interactive' && getLinuxPackageType() === 'non-root'
+    autoUpdater.autoInstallOnAppQuit = false
+    this.applyTeamPolicyBeforeQuit()
     // MacUpdater ignores quitAndInstall arguments; only the surviving CLI supervisor may relaunch serve.
     autoUpdater.autoRunAppAfterInstall = this.updateInstallMode === 'interactive'
     // Keep native updater diagnostics visible through local logging.
@@ -226,6 +212,26 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     }
     this.autoUpdaterInitialized = true
     autoUpdater.on('login', handleElectronUpdaterProxyLogin)
+
+    let previousPolicy = this.getTeamUpdatePolicy?.()
+    let previousScope = this.teamRestartOptions?.scope()
+    opts?.onTeamUpdatePolicyChanged?.(() => {
+      const next = this.getTeamUpdatePolicy?.()
+      const nextScope = this.teamRestartOptions?.scope()
+      const checkNeeded =
+        (managesUpdates(previousPolicy) || managesUpdates(next)) &&
+        (!sameTeamUpdatePolicy(previousPolicy, next) ||
+          !sameTeamUpdateRestartScope(previousScope, nextScope))
+      previousPolicy = next
+      previousScope = nextScope
+      if (!checkNeeded || this.invalidateTeamRestart()) {
+        return
+      }
+      this.teamPolicyCheckPending = true
+      if (!this.runBackgroundUpdateCheck()) {
+        this.scheduleAutomaticUpdateCheck(TEAM_POLICY_CHECK_RETRY_MS)
+      }
+    })
 
     registerAutoUpdaterHandlers({
       autoUpdater,
@@ -256,14 +262,17 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
         this.markUpdateAvailableEventPending(attemptId),
       markMissingManifestPrereleaseFallbackChecking: () =>
         this.markMissingManifestPrereleaseFallbackChecking(),
-      performQuitAndInstall: () => this.performQuitAndInstall(),
+      performQuitAndInstall: () => this.performRecordedInstall('manual'),
       commitStagedMacInstall: () => this.commitStagedMacInstall(),
+      finishMacStaging: () => this.finishMacStaging(),
       failMacStaging: (error) => {
-        this.stopWatchingMacStaging()
+        this.finishMacStaging()
         this.failMacStaging(error)
       },
       isAwaitingMacStaging: () => this.isAwaitingMacStaging(),
       isMacStagingDeferredToInstall: () => this.isMacStagingDeferredToInstall(),
+      shouldAcceptDownloadedUpdate: (version, obsolete) =>
+        this.shouldAcceptDownloadedUpdate(version, obsolete),
       watchMacStaging: (version) => this.watchMacStaging(version),
       shouldDeferMacQuitForInstall: () => this.updateInstallMode === 'interactive',
       recordCompletedUpdateCheck: () => this.recordCompletedUpdateCheck(),
@@ -314,7 +323,11 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     const lastUpdateCheckAt = opts?.getLastUpdateCheckAt?.() ?? null
     const msSinceLastCheck =
       lastUpdateCheckAt === null ? Number.POSITIVE_INFINITY : Date.now() - lastUpdateCheckAt
-    if (msSinceLastCheck >= AUTO_UPDATE_CHECK_INTERVAL_MS) {
+    if (
+      msSinceLastCheck >= AUTO_UPDATE_CHECK_INTERVAL_MS ||
+      previousPolicy?.forceUpdates ||
+      requiredMinimumVersion(previousPolicy, app.getVersion())
+    ) {
       this.runBackgroundUpdateCheck()
       this.scheduleAutomaticUpdateCheck(AUTO_UPDATE_CHECK_INTERVAL_MS)
     } else {
