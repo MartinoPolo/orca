@@ -4,13 +4,16 @@ const { runProcessSync } = require('@orca/process-host')
 const REPOSITORY = 'MartinoPolo/orca'
 const FORK_URL = 'https://github.com/MartinoPolo/orca.git'
 const SHA = /^[0-9a-f]{40}$/
+const LOCAL_GIT_TIMEOUT_MS = 20000
+// GitHub fetches routinely take about 10 s; a slow network must not fail the release.
+const FETCH_TIMEOUT_MS = 120000
 
-function git(cwd, args) {
+function git(cwd, args, timeoutMs = LOCAL_GIT_TIMEOUT_MS) {
   const result = runProcessSync({
     program: 'git',
     args,
     cwd,
-    timeoutMs: 20000,
+    timeoutMs,
     maxOutputBytes: 1024 * 1024,
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_NOSYSTEM: '1' }
   })
@@ -40,14 +43,18 @@ function assertForkReleaseSource({ cwd = process.cwd(), expectedCommit, fetch = 
     throw new Error(`fork remote must be ${FORK_URL}`)
   }
   if (fetch) {
-    git(cwd, [
-      'fetch',
-      '--no-tags',
-      '--prune',
-      'fork',
-      '+refs/heads/main:refs/remotes/fork/main',
-      '+refs/heads/martas/*:refs/remotes/fork/martas/*'
-    ])
+    git(
+      cwd,
+      [
+        'fetch',
+        '--no-tags',
+        '--prune',
+        'fork',
+        '+refs/heads/main:refs/remotes/fork/main',
+        '+refs/heads/martas/*:refs/remotes/fork/martas/*'
+      ],
+      FETCH_TIMEOUT_MS
+    )
   }
   const commit = git(cwd, ['rev-parse', 'HEAD'])
   if (!SHA.test(commit) || commit !== git(cwd, ['rev-parse', 'refs/remotes/fork/main'])) {
