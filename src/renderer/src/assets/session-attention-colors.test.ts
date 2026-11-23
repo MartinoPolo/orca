@@ -47,8 +47,9 @@ function contrast(first: string, second: string): number {
 describe('session attention palette', () => {
   it('uses the approved priority fills and contrast-safe foregrounds in both themes', () => {
     const expected = {
-      p1: { fill: '#1d4ed8', foreground: '#fff' },
+      p1: { fill: '#737373', foreground: '#fff' },
       p2: { fill: '#15803d', foreground: '#fff' },
+      p3: { fill: '#1d4ed8', foreground: '#fff' },
       p4: { fill: '#f59e0b', foreground: '#2b1800' },
       p5: { fill: '#dc2626', foreground: '#fff' }
     }
