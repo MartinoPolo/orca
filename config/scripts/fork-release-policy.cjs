@@ -7,11 +7,13 @@ const SHA = /^[0-9a-f]{40}$/
 const LOCAL_GIT_TIMEOUT_MS = 20000
 // GitHub fetches routinely take about 10 s; a slow network must not fail the release.
 const FETCH_TIMEOUT_MS = 120000
+// GIT_CONFIG_NOSYSTEM also drops Git for Windows' fscache, which makes a full status several times slower.
+const PLATFORM_GIT_CONFIG = process.platform === 'win32' ? ['-c', 'core.fscache=true'] : []
 
 function git(cwd, args, timeoutMs = LOCAL_GIT_TIMEOUT_MS) {
   const result = runProcessSync({
     program: 'git',
-    args,
+    args: [...PLATFORM_GIT_CONFIG, ...args],
     cwd,
     timeoutMs,
     maxOutputBytes: 1024 * 1024,
