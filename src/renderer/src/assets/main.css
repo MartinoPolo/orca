@@ -341,8 +341,8 @@
   --session-priority-p1: #737373;
   --session-priority-p1-border: #737373;
   --session-priority-p1-foreground: #fff;
-  --session-priority-p2: #15803d;
-  --session-priority-p2-border: #15803d;
+  --session-priority-p2: #7c3aed;
+  --session-priority-p2-border: #7c3aed;
   --session-priority-p2-foreground: #fff;
   --session-priority-p3: #1d4ed8;
   --session-priority-p3-border: #1d4ed8;
@@ -496,8 +496,8 @@
   --session-priority-p1: #737373;
   --session-priority-p1-border: #a3a3a3;
   --session-priority-p1-foreground: #fff;
-  --session-priority-p2: #15803d;
-  --session-priority-p2-border: #86efac;
+  --session-priority-p2: #7c3aed;
+  --session-priority-p2-border: #c4b5fd;
   --session-priority-p2-foreground: #fff;
   --session-priority-p3: #1d4ed8;
   --session-priority-p3-border: #93c5fd;

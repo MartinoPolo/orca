@@ -126,7 +126,7 @@ Surfaces are strong enough to notice but remain low-saturation row tints rather 
 
 ### 4.4 Priority
 
-- P1 is solid blue, P2 solid green, P4 solid orange, and P5 solid red. P3 remains hidden on rows and neutral inside controls. Done remains green and distinct from every priority badge.
+- P1 is solid gray, P2 solid violet, P3 solid blue, P4 solid amber, and P5 solid red; every row shows its badge. Done remains green and distinct from every priority badge.
 - Badges have a fixed compact footprint in Workspace and Activity views.
 - Text contrast is chosen per fill. Orange uses dark text rather than assuming white passes.
 - Priority colors do not change with the state-palette control.
